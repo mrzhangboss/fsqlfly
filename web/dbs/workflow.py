@@ -1,0 +1,151 @@
+# -*- coding: utf-8 -*-
+import json
+import os
+import re
+import subprocess
+import tempfile
+import yaml
+from io import StringIO
+from urllib.parse import urlparse
+from web.settings import BASE_DIR, FLINK_BIN_PATH, BOOTSTRAP_SERVERS, ES_HOST
+from .models import Transform, Namespace, Resource, Functions
+
+
+def get_connector(name: str, **kwargs) -> dict:
+    def _get_es_host(host: str):
+        p = urlparse(host)
+        host_port = p.netloc.split(':', 2)
+        host, port = host_port[0], 9200 if len(host_port) == 1 else host_port[1]
+        return {'hostname': host, 'port': port, 'protocol': p.scheme}
+
+    typ = kwargs.get('type', 'kafka')
+    if typ == 'kafka':
+        return {
+            'property-version': kwargs.get('property-version', 1),
+            'type': 'kafka',
+            'version': 'universal',
+            'topic': name,
+            'properties': [
+                {'key': 'bootstrap.servers', 'value': BOOTSTRAP_SERVERS},
+                {'key': 'group.id', 'value': name}
+            ]
+
+        }
+    else:
+        return {
+            'property-version': kwargs.get('property-version', 1),
+            'type': 'elasticsearch',
+            'version': '6',
+            'index': name,
+            'document-type': kwargs.get('document-type', 'data'),
+            'hosts': [_get_es_host(x) for x in ES_HOST.split(',')],
+            'bulk-flush': {'max-actions': 10}
+
+        }
+
+
+def _create_config_from_resource(resource: Resource) -> dict:
+    data = yaml.load(resource.yaml, yaml.FullLoader)
+
+    data['connector'] = get_connector(resource.name, **data.get('connector', {}))
+    data['name'] = resource.name
+    data['type'] = resource.typ
+    data['update-mode'] = data.get('update-mode', 'append')
+    return data
+
+
+def _get_functions() -> list:
+    res = []
+    for f in Functions.objects.filter(is_deleted=False).all():
+        fc = {
+            'name': f.name,
+            'from': f.function_from,
+            'class': f.class_name
+        }
+        if f.constructor_config.strip():
+            fc['constructor'] = yaml.load(f.constructor_config, yaml.FullLoader)
+        res.append(fc)
+    return res
+
+
+def _get_jar() -> str:
+    res = []
+    for f in Functions.objects.filter(is_deleted=False).all():
+        res.append(os.path.join(BASE_DIR, f.resource.real_path)[1:])
+    return ' '.join('-j {} '.format(x) for x in res)
+
+
+def _create_config(transform: Transform) -> str:
+    require = json.loads(transform.require)
+    tables = []
+    for r in require:
+        rid = r['id']
+        resource = Resource.objects.get(id=rid)
+        data = _create_config_from_resource(resource)
+        tables.append(data)
+    if not transform.is_used_as_view:
+        sink = transform.sink
+        assert sink is not None
+        tables.append(_create_config_from_resource(sink))
+
+    return yaml.dump({'tables': tables, 'functions': _get_functions()})
+
+
+def _create_config_with_debug(data: dict) -> str:
+    require = data['columns']
+    tables = []
+    for r in require:
+        rid = r['id']
+        resource = Resource.objects.get(id=rid)
+        data = _create_config_from_resource(resource)
+        tables.append(data)
+    if data.get('useAsView') is not None:
+        sink = data['sinkSchema']
+        assert sink is not None
+        tables.append(_create_config_from_resource(sink))
+
+    return yaml.dump({'tables': tables, 'functions': _get_functions()})
+
+
+def _clean(s: str) -> str:
+    return re.sub(r'\[\d+(;\d+)?m?', '', s)
+
+
+def run_transform(transform: Transform) -> (bool, str):
+    _, yaml_f = tempfile.mkstemp(suffix='.yaml')
+    _, sql_f = tempfile.mkstemp(suffix='.sql')
+    yaml_conf = _create_config(transform)
+    print(yaml_conf, file=open(yaml_f, 'w'))
+    print(transform.sql, file=open(sql_f, 'w'))
+    print('exit;', file=open(sql_f, 'a+'))
+    run_commands = [FLINK_BIN_PATH, 'embedded',
+                    '-s', '{}_{}'.format(transform.id, transform.name),
+                    '--environment', yaml_f,
+                    _get_jar(),
+                    '<', sql_f]
+    try:
+        out = subprocess.check_output(' '.join(run_commands), shell=True, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as error:
+        return False, "sql:\n {} \n\noutput: \n{} \n\n error: {}\n\nyaml: \n{}".format(transform.sql,
+                                                                                       error.stdout.decode(),
+                                                                                       error.stderr.decode(),
+                                                                                       yaml_conf)
+
+    out_w = _clean(out.decode())
+    print(out_w, file=open('out.shell.txt', 'w'))
+    print(out_w)
+    return True, out_w
+
+
+def run_debug_transform(data: dict) -> (str, str):
+    _, yaml_f = tempfile.mkstemp(suffix='.yaml')
+    _, sql_f = tempfile.mkstemp(suffix='.sql')
+    yaml_conf = _create_config_with_debug(data)
+    print(yaml_conf, file=open(yaml_f, 'w'))
+    print(data['sql'], file=open(sql_f, 'w'))
+    run_commands = [FLINK_BIN_PATH, 'embedded',
+                    '-s', '{}_{}'.format(data.get('id', 'null'), "{}"),
+                    '--environment', yaml_f,
+                    _get_jar()]
+
+    return ' '.join(run_commands), sql_f
