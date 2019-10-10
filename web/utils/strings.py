@@ -36,8 +36,13 @@ def _load_yaml(source: str) -> dict:
 
 
 def check_yaml(source: str) -> bool:
-    get_schema(source)
-    return True
+    try:
+        _load_yaml(source)
+    except Exception as e:
+        print(e)
+        return False
+    else:
+        return True
 
 
 def get_schema(source: str) -> dict:

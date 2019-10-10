@@ -5,6 +5,7 @@ import re
 import subprocess
 import tempfile
 import yaml
+from typing import Optional
 from io import StringIO
 from urllib.parse import urlparse
 from web.settings import BASE_DIR, FLINK_BIN_PATH, BOOTSTRAP_SERVERS, ES_HOST
@@ -75,36 +76,20 @@ def _get_jar() -> str:
     return ' '.join('-j {} '.format(x) for x in res)
 
 
-def _create_config(transform: Transform) -> str:
-    require = json.loads(transform.require)
+def _create_config(require: dict, config: Optional[str]) -> str:
     tables = []
     for r in require:
         rid = r['id']
         resource = Resource.objects.get(id=rid)
         data = _create_config_from_resource(resource)
         tables.append(data)
-    if not transform.is_used_as_view:
-        sink = transform.sink
-        assert sink is not None
-        tables.append(_create_config_from_resource(sink))
-
-    return yaml.dump({'tables': tables, 'functions': _get_functions()})
-
-
-def _create_config_with_debug(data: dict) -> str:
-    require = data['columns']
-    tables = []
-    for r in require:
-        rid = r['id']
-        resource = Resource.objects.get(id=rid)
-        data = _create_config_from_resource(resource)
-        tables.append(data)
-    if data.get('useAsView') is not None:
-        sink = data['sinkSchema']
-        assert sink is not None
-        tables.append(_create_config_from_resource(sink))
-
-    return yaml.dump({'tables': tables, 'functions': _get_functions()})
+    base_config = yaml.load(config, yaml.FullLoader) if config else dict()
+    if base_config.get('tables'):
+        base_config['tables'].extend(tables)
+    else:
+        base_config['tables'] = tables
+    base_config['functions'] = _get_functions()
+    return yaml.dump(base_config)
 
 
 def _clean(s: str) -> str:
@@ -114,15 +99,16 @@ def _clean(s: str) -> str:
 def run_transform(transform: Transform) -> (bool, str):
     _, yaml_f = tempfile.mkstemp(suffix='.yaml')
     _, sql_f = tempfile.mkstemp(suffix='.sql')
-    yaml_conf = _create_config(transform)
+    yaml_conf = _create_config(json.loads(transform.require), transform.yaml)
     print(yaml_conf, file=open(yaml_f, 'w'))
     print(transform.sql, file=open(sql_f, 'w'))
-    print('exit;', file=open(sql_f, 'a+'))
+    print('q\nexit;', file=open(sql_f, 'a+'))
     run_commands = [FLINK_BIN_PATH, 'embedded',
                     '-s', '{}_{}'.format(transform.id, transform.name),
                     '--environment', yaml_f,
                     _get_jar(),
                     '<', sql_f]
+    print(' '.join(run_commands))
     try:
         out = subprocess.check_output(' '.join(run_commands), shell=True, stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as error:
@@ -130,6 +116,9 @@ def run_transform(transform: Transform) -> (bool, str):
                                                                                        error.stdout.decode(),
                                                                                        error.stderr.decode(),
                                                                                        yaml_conf)
+    except Exception as e:
+        print(e)
+        return False, str(e)
 
     out_w = _clean(out.decode())
     print(out_w, file=open('out.shell.txt', 'w'))
@@ -140,7 +129,7 @@ def run_transform(transform: Transform) -> (bool, str):
 def run_debug_transform(data: dict) -> (str, str):
     _, yaml_f = tempfile.mkstemp(suffix='.yaml')
     _, sql_f = tempfile.mkstemp(suffix='.sql')
-    yaml_conf = _create_config_with_debug(data)
+    yaml_conf = _create_config(data['columns'], data['config'])
     print(yaml_conf, file=open(yaml_f, 'w'))
     print(data['sql'], file=open(sql_f, 'w'))
     run_commands = [FLINK_BIN_PATH, 'embedded',

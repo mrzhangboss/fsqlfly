@@ -124,7 +124,7 @@ def get_or_update_or_delete(req: HttpRequest, pk: int) -> JsonResponse:
         return create_response(data={
             'detail': {
                 'sql': obj.sql,
-                'sinkSchema': '' if obj.sink is None else obj.sink.yaml
+                'config': '' if obj.yaml is None else obj.yaml
             },
             'resources': {
                 'columns': json.loads(obj.require)
@@ -138,13 +138,12 @@ def get_or_update_or_delete(req: HttpRequest, pk: int) -> JsonResponse:
         obj.name = data['name']
         obj.info = data['info']
         obj.is_available = data['isAvailable']
-        obj.is_used_as_view = data.get('useAsView', False)
         obj.is_publish = data['isPublish']
         obj.require = json.dumps(data['columns'])
         namespace = Namespace.objects.get(id=data['namespaceId']) if data['namespaceId'] else None
         obj.namespace = namespace
         obj.sql = data['sql']
-        if not obj.is_used_as_view:
-            obj.sink = init_sink(data['name'], obj.sink, data['sinkSchema'], namespace)
+        assert check_yaml(data['config'])
+        obj.yaml = data['config']
         obj.save()
     return create_response(data={'id': obj.id, 'namespaceId': obj.namespace.id if obj.namespace else 0})
