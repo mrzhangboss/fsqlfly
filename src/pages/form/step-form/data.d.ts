@@ -34,10 +34,8 @@ export interface TransformInfo {
   isAvailable: boolean;
   createAt: string;
   updateAt: string;
-  useSelf: boolean;
-  useAsView: boolean;
   sql?: string;
-  sinkSchema?: string;
+  config?: string;
 }
 
 export interface OneColumn {

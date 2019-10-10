@@ -69,7 +69,7 @@ export default {
       data: {
         detail: {
           sql: 'select * from shit',
-          sinkSchema: '-name: jack\n-type:time',
+          config: '-name: jack\n-type:time',
         },
         resources: mockjs.mock({
           'columns|5': [

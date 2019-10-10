@@ -38,7 +38,7 @@ export interface ModelType {
     submitStepForm: Effect;
     initSource: Effect;
     initSourceColumn: Effect;
-    submintTransformTable: Effect;
+    submitTransformTable: Effect;
     submitDebugTransformTable: Effect;
     initStepFromList: Effect;
     runCurrentTransform: Effect;
@@ -122,7 +122,7 @@ const StepModel: ModelType = {
         payload: 'result',
       });
     },
-    *submintTransformTable({ payload, callback }, { call, put, select }) {
+    *submitTransformTable({ payload, callback }, { call, put, select }) {
       const action = payload.id === undefined ? createTransform : updateTransform;
       // @ts-ignore
       const columns = yield select(x => x.formStepForm.detailColumns);

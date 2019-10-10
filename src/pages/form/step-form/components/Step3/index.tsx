@@ -24,15 +24,13 @@ interface Step3Props extends FormComponentProps {
 }
 
 interface StepState {
-  useSelf: boolean;
-  useAsView: boolean;
   isAvailable: boolean;
   isPublish: boolean;
   sql: string;
   name: string;
   info: string;
   namespaceId: number;
-  sinkSchema?: string;
+  config?: string;
   id?: number;
   submitted: boolean;
   done: boolean;
@@ -42,10 +40,8 @@ interface StepState {
 
 class Step3 extends React.Component<Step3Props, StepState> {
   state = {
-    useSelf: false,
-    useAsView: false,
     sql: '',
-    sinkSchema: '',
+    config: '',
     isAvailable: true,
     isPublish: false,
     name: '',
@@ -62,10 +58,8 @@ class Step3 extends React.Component<Step3Props, StepState> {
     if (data === undefined) return;
     // @ts-ignore
     this.setState({
-      useSelf: data.useSelf,
-      useAsView: data.useAsView,
       sql: data.sql,
-      sinkSchema: data.sinkSchema,
+      config: data.config,
       isAvailable: data.isAvailable,
       isPublish: data.isPublish,
       name: data.name,
@@ -84,8 +78,8 @@ class Step3 extends React.Component<Step3Props, StepState> {
     const onPrev = () => {
       const { form } = this.props;
 
-      const { sql, sinkSchema } = this.state;
-      const payload = { ...data, ...form.getFieldsValue(), sql, sinkSchema };
+      const { sql, config } = this.state;
+      const payload = { ...data, ...form.getFieldsValue(), sql, config };
       dispatch({
         type: 'formStepForm/saveStepFormData',
         payload,
@@ -110,18 +104,17 @@ class Step3 extends React.Component<Step3Props, StepState> {
 
     const conSubmit = () => {
       const { form } = this.props;
-      const { sql, sinkSchema, useAsView } = this.state;
+      const { sql, config } = this.state;
       form.validateFields((err: string | undefined, fieldsValue: any) => {
         if (err) return;
         this.setState({ submitted: true });
         dispatch({
-          type: 'formStepForm/submintTransformTable',
+          type: 'formStepForm/submitTransformTable',
           payload: {
             ...data,
             ...fieldsValue,
             sql,
-            sinkSchema,
-            useAsView: useAsView,
+            config,
           },
           callback: (res: { success: boolean; msg: string }) =>
             this.setState({
@@ -135,7 +128,7 @@ class Step3 extends React.Component<Step3Props, StepState> {
     };
     const debugSubmit = () => {
       const { form } = this.props;
-      const { sql, sinkSchema, useAsView } = this.state;
+      const { sql, config } = this.state;
       form.validateFields((err: string | undefined, fieldsValue: any) => {
         if (err) return;
         this.setState({ submitted: true });
@@ -145,8 +138,7 @@ class Step3 extends React.Component<Step3Props, StepState> {
             ...data,
             ...fieldsValue,
             sql,
-            sinkSchema,
-            useAsView: useAsView,
+            config,
           },
           callback: (res: { success: boolean; msg: string; data: { url: string } }) => {
             this.setState({
@@ -167,22 +159,6 @@ class Step3 extends React.Component<Step3Props, StepState> {
     const information = (
       <Form onSubmit={conSubmit}>
         <div className={styles.information}>
-          {getFieldDecorator('useAsView', {
-            valuePropName: 'checked',
-            initialValue: data.useAsView,
-          })(
-            <Checkbox onChange={x => this.setState({ useAsView: x.target.checked })}>
-              是否作为视图
-            </Checkbox>,
-          )}
-          {getFieldDecorator('useSelf', {
-            valuePropName: 'checked',
-            initialValue: data.useSelf,
-          })(
-            <Checkbox onChange={x => this.setState({ useSelf: x.target.checked })}>
-              使用自己
-            </Checkbox>,
-          )}
           {getFieldDecorator('isAvailable', {
             valuePropName: 'checked',
             initialValue: data.isAvailable,
@@ -245,25 +221,20 @@ class Step3 extends React.Component<Step3Props, StepState> {
             defaultValue={this.state.sql}
             width={'1036'}
           />
-
-          {!this.state.useAsView && (
-            <>
-              <Divider style={{ margin: '40px 0 24px' }} />
-              <AceEditor
-                mode="yaml"
-                theme="solarized_dark"
-                onChange={x => this.setState({ sinkSchema: x })}
-                name="functionConstructorConfig"
-                editorProps={{ $blockScrolling: true }}
-                readOnly={false}
-                value={this.state.sinkSchema}
-                placeholder={'your sink schema'}
-                //@ts-ignore
-                defaultValue={this.state.sinkSchema}
-                width={'1036'}
-              />
-            </>
-          )}
+          <Divider style={{ margin: '40px 0 24px' }} />
+          <AceEditor
+            mode="yaml"
+            theme="solarized_dark"
+            onChange={x => this.setState({ config: x })}
+            name="functionConstructorConfig"
+            editorProps={{ $blockScrolling: true }}
+            readOnly={false}
+            value={this.state.config}
+            placeholder={'your sink schema'}
+            //@ts-ignore
+            defaultValue={this.state.config}
+            width={'1036'}
+          />
         </div>
       </Form>
     );
