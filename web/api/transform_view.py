@@ -80,12 +80,9 @@ def get_list_or_create(req: HttpRequest) -> JsonResponse:
     if req.method == 'POST':
         data = json.loads(req.body)
         namespace = Namespace.objects.get(id=data['namespaceId']) if data['namespaceId'] else None
-        sink = init_sink(data['name'], None, data['sinkSchema'], namespace) if not data['useAsView'] else None
         obj = Transform.objects.create(name=data['name'], info=data['info'],
                                        sql=data['sql'], require=json.dumps(data['columns']),
-                                       sink=sink, namespace=namespace,
-                                       is_used_as_view=data['useAsView'],
-                                       use_self=data['useSelf'], is_publish=data['isPublish'],
+                                       yaml=data['config'], namespace=namespace, is_publish=data['isPublish'],
                                        is_available=data['isAvailable'])
         return create_response(data={'id': obj.id, 'namespaceId': obj.namespace.id if obj.namespace else 0})
     res = []

@@ -8,50 +8,13 @@ import yaml
 from typing import Optional
 from io import StringIO
 from urllib.parse import urlparse
-from web.settings import BASE_DIR, FLINK_BIN_PATH, BOOTSTRAP_SERVERS, ES_HOST
+from web.settings import BASE_DIR, FLINK_BIN_PATH
 from .models import Transform, Namespace, Resource, Functions
-
-
-def get_connector(name: str, **kwargs) -> dict:
-    def _get_es_host(host: str):
-        p = urlparse(host)
-        host_port = p.netloc.split(':', 2)
-        host, port = host_port[0], 9200 if len(host_port) == 1 else host_port[1]
-        return {'hostname': host, 'port': port, 'protocol': p.scheme}
-
-    typ = kwargs.get('type', 'kafka')
-    if typ == 'kafka':
-        return {
-            'property-version': kwargs.get('property-version', 1),
-            'type': 'kafka',
-            'version': 'universal',
-            'topic': name,
-            'properties': [
-                {'key': 'bootstrap.servers', 'value': BOOTSTRAP_SERVERS},
-                {'key': 'group.id', 'value': name}
-            ]
-
-        }
-    else:
-        return {
-            'property-version': kwargs.get('property-version', 1),
-            'type': 'elasticsearch',
-            'version': '6',
-            'index': name,
-            'document-type': kwargs.get('document-type', 'data'),
-            'hosts': [_get_es_host(x) for x in ES_HOST.split(',')],
-            'bulk-flush': {'max-actions': 10}
-
-        }
 
 
 def _create_config_from_resource(resource: Resource) -> dict:
     data = yaml.load(resource.yaml, yaml.FullLoader)
-
-    data['connector'] = get_connector(resource.name, **data.get('connector', {}))
     data['name'] = resource.name
-    data['type'] = resource.typ
-    data['update-mode'] = data.get('update-mode', 'append')
     return data
 
 

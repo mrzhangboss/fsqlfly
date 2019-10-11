@@ -19,8 +19,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV = os.environ.get
 FLINK_BIN_PATH = ENV('FLINK_BIN_PATH', '/opt/flink/bin/sql-client.sh')
 TERMINAL_WEB_HOST_FMT = ENV('TERMINAL_WEB_HOST_FMT')
-BOOTSTRAP_SERVERS = ENV('BOOTSTRAP_SERVERS')
-ES_HOST = ENV('ES_HOST')
 assert TERMINAL_WEB_HOST_FMT is not None
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
@@ -31,7 +29,7 @@ SECRET_KEY = '^a3pa48-^!1=x009+ctt+1vkzqq+p6gis16sx%+58n$+zh=da^'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 

@@ -74,7 +74,7 @@ def main():
                                           xstatic_url=tornado_xstatic.url_maker('/xstatic/'),
                                           term_manager=term_manager)
 
-    application.listen(8700, 'localhost')
+    application.listen(8700, '0.0.0.0')
     command = b64encode(b'bash /opt/flink-1.9.0/bin/sql-client.sh embedded -s {}').decode()
     run_and_show_browser("http://localhost:8700/new/?command=" + command, term_manager)
 
