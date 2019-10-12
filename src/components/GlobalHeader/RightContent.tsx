@@ -42,6 +42,7 @@ class GlobalHeaderRight extends Component<GlobalHeaderRightProps> {
         </Tooltip>
         <Avatar />
         {/*<SelectLang className={styles.action} />*/}
+        <SelectLang />
       </div>
     );
   }

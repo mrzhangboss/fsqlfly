@@ -60,11 +60,25 @@ class Step1 extends React.PureComponent<Step1Props, StepState> {
       });
     };
 
+    const isAllMatch = (s: string, namespace: string, name: string): boolean => {
+      if (s === null || s.trim().length == 0 || name === null) return false;
+      const v = /(?:ta?g?:)(\w+)\s/.exec(s);
+      if (v !== null && namespace !== undefined) {
+        const tagMatch = namespace.indexOf(v[1]) !== -1;
+        const left = /(?:ta?g?:)\w+\s+(\w+)/.exec(s);
+        if (left !== null) {
+          return name.indexOf(left[1]) !== -1;
+        } else {
+          return tagMatch;
+        }
+      }
+      if (v === null) {
+        return name.indexOf(s.trim()) !== -1;
+      }
+      return false;
+    };
     const filterSearch = (inputValue: string, item: TransferItem) => {
-      return (
-        item.title.indexOf(inputValue) !== -1 ||
-        (item.namespace !== undefined && item.namespace.indexOf(inputValue) !== -1)
-      );
+      return isAllMatch(inputValue, item.namespace, item.name);
     };
     return (
       <Fragment>

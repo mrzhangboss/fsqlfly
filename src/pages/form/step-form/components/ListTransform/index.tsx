@@ -203,7 +203,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Progress
             type="circle"
             percent={100}
-            status={isAvailable ? 'exception' : isPublish ? 'success' : 'normal'}
+            status={isAvailable ? (isPublish ? 'success' : 'normal') : 'exception'}
             strokeWidth={1}
             width={50}
             style={{ width: 180 }}
