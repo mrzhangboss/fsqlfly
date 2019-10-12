@@ -20,6 +20,7 @@ ENV = os.environ.get
 FLINK_BIN_PATH = ENV('FLINK_BIN_PATH', '/opt/flink/bin/sql-client.sh')
 TERMINAL_WEB_HOST_FMT = ENV('TERMINAL_WEB_HOST_FMT')
 assert TERMINAL_WEB_HOST_FMT is not None
+TIME_FORMAT = ENV('TIME_FORMAT', "%Y-%m-%d %H:%M:%S")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 

@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils.html import escape, mark_safe
+from web.settings import TIME_FORMAT
 
 TABLE_TYPE = (
     ("sink-table", "输出表"),
@@ -22,6 +24,27 @@ class Namespace(models.Model):
         unique_together = ["create_by", "name"]
         index_together = ["create_by", "name"]
 
+    def __str__(self):
+        return self.name
+
+    __unicode__ = __str__
+
+    def image_tag(self):
+        return mark_safe('<img src="%s" height="50" />' % self.avatar) if self.avatar else '无上传图片'
+
+    image_tag.short_description = 'Image'
+    image_tag.allow_tags = True
+
+    def _create_at(self):
+        return self.create_at.strftime(TIME_FORMAT)
+
+    _create_at.short_description = 'create'
+
+    def _update_at(self):
+        return self.update_at.strftime(TIME_FORMAT)
+
+    _update_at.short_description = 'update'
+
 
 class FileResource(models.Model):
     unique_name = models.CharField("唯一名称", max_length=128)  # make true user give unique name
@@ -38,6 +61,21 @@ class FileResource(models.Model):
         db_table = "file_resource"
         unique_together = ["create_by", "unique_name"]
         index_together = ["create_by", "unique_name"]
+
+    def __str__(self):
+        return self.unique_name
+
+    __unicode__ = __str__
+
+    def _create_at(self):
+        return self.create_at.strftime(TIME_FORMAT)
+
+    _create_at.short_description = 'create'
+
+    def _update_at(self):
+        return self.update_at.strftime(TIME_FORMAT)
+
+    _update_at.short_description = 'update'
 
 
 class Resource(models.Model):
@@ -56,24 +94,27 @@ class Resource(models.Model):
     class Meta:
         db_table = "resource"
 
+    def __str__(self):
+        return self.name
 
-PROPERTY_CATEGORY = (
-    ("connector", "连接器"),
-    ("format", "格式器"),
-    ("schema", "SQL格式")
-)
+    def _name_space_name(self):
+        if self.namespace is not None:
+            return self.namespace.name
+        return "-"
 
-PART_TYPE = (
-    # connector type
-    ("kafka", "kafka"),
-    ("filesystem", "filesystem"),
-    ("elasticsearch", "Elasticsearch"),
+    _name_space_name.short_description = "NAMESPACE"
 
-    # format type
-    ("csv", "csv"),
-    ("json", "json"),
-    ("avro", "avro"),
-)
+    __unicode__ = __str__
+
+    def _create_at(self):
+        return self.create_at.strftime(TIME_FORMAT)
+
+    _create_at.short_description = 'create'
+
+    def _update_at(self):
+        return self.update_at.strftime(TIME_FORMAT)
+
+    _update_at.short_description = 'update'
 
 
 class Functions(models.Model):
@@ -94,6 +135,24 @@ class Functions(models.Model):
         unique_together = ["create_by", "name"]
         index_together = ["create_by", "name"]
 
+    def __str__(self):
+        return self.name
+
+    __unicode__ = __str__
+
+    def _create_at(self):
+        return self.create_at.strftime(TIME_FORMAT)
+
+    _create_at.short_description = 'create'
+
+    def _update_at(self):
+        return self.update_at.strftime(TIME_FORMAT)
+
+    _update_at.short_description = 'update'
+
+    def filename(self):
+        return self.resource.name
+
 
 class Transform(models.Model):
     name = models.CharField("名字", max_length=256, db_index=True)
@@ -113,3 +172,23 @@ class Transform(models.Model):
         db_table = "transform"
         unique_together = ["create_by", "name"]
         index_together = ["create_by", "name"]
+
+    def __str__(self):
+        return self.name
+
+    __unicode__ = __str__
+
+    def _create_at(self):
+        return self.create_at.strftime(TIME_FORMAT)
+
+    _create_at.short_description = 'create'
+
+    def _update_at(self):
+        return self.update_at.strftime(TIME_FORMAT)
+
+    _update_at.short_description = 'update'
+
+    def _name_space_name(self):
+        if self.namespace is not None:
+            return self.namespace.name
+        return "-"
