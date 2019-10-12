@@ -1,6 +1,6 @@
 python-dotenv
 mysqlclient
-django
+django==2.1.0
 kafka-python
 pyyaml
 sqlparse
