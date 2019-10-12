@@ -85,6 +85,7 @@ class Step1 extends React.PureComponent<Step1Props, StepState> {
         <div>
           <TableTransfer
             showSearch
+            searchPlaceholder={'支持命名空间过滤，搜索 例如输入tag:xxx 或者t:xxx 即可过滤'}
             showSelectAll
             dataSource={sources}
             titles={['Source', 'Target']}
