@@ -21,8 +21,9 @@
 > 当前支持mysql, kafka, elasticsearch
 
     cd web 
-    python manage.py load_mysql_resource.py --host localhost --database db --namespace namespace \
+    python manage.py load_mysql_resource --host localhost --database db --namespace namespace \
     --category mysql --tables "*" --kafka-bootstrap "localhost:9092" --es-hosts http://localhost:9200 \
     --port 3306 --password xxx --username root
     
     
+ 

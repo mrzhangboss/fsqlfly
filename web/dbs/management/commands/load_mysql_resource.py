@@ -173,7 +173,7 @@ class Command(BaseCommand):
         print('name is ', name, end='')
         data['namespace_id'] = namespace_id
         data['is_publish'] = True
-        data['is_available'] = False
+        data['is_available'] = True
         if name not in resource:
             res = Resource.objects.create(**data)
             print(' create a resource', res.id, res.name)
