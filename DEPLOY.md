@@ -14,3 +14,15 @@
 4. 运行django 后台,`python manage.py runserver 0.0.0.0:8080`
 5. 运行调试后端`cd ../terminal && python named.py`
 
+
+
+## 从数据库中导入数据源
+
+> 当前支持mysql, kafka, elasticsearch
+
+    cd web 
+    python manage.py load_mysql_resource.py --host localhost --database db --namespace namespace \
+    --category mysql --tables "*" --kafka-bootstrap "localhost:9092" --es-hosts http://localhost:9200 \
+    --port 3306 --password xxx --username root
+    
+    

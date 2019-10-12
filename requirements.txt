@@ -22,3 +22,8 @@ tornado
 tornado-xstatic
 XStatic
 XStatic-term.js
+
+
+sqlalchemy
+pyyaml
+mysqlclient
