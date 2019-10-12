@@ -55,8 +55,6 @@ class Resource(models.Model):
 
     class Meta:
         db_table = "resource"
-        unique_together = ["create_by", "name"]
-        index_together = ["create_by", "name"]
 
 
 PROPERTY_CATEGORY = (
