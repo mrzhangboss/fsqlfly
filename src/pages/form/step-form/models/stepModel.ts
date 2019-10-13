@@ -67,7 +67,7 @@ const StepModel: ModelType = {
     targetKeys: [],
     resourceColumns: [],
     detailColumns: [],
-    ready: true,
+    ready: false,
   },
 
   effects: {
@@ -91,6 +91,10 @@ const StepModel: ModelType = {
       yield put({
         type: 'sourceTableInit',
         payload: res.data,
+      });
+      yield put({
+        type: 'updateLoading',
+        ready: true,
       });
     },
     *initSourceColumn({}, { put, select }) {
