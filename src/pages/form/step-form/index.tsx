@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from 'react';
-import { Card, Steps } from 'antd';
+import { Card, List, Steps } from 'antd';
 import { connect } from 'dva';
 import { PageHeaderWrapper } from '@ant-design/pro-layout';
 import Step1 from './components/Step1';
@@ -13,10 +13,12 @@ const { Step } = Steps;
 
 interface StepFormProps {
   current: IStateType['current'];
+  ready: boolean;
 }
 
 @connect(({ formStepForm }: { formStepForm: IStateType }) => ({
   current: formStepForm.current,
+  ready: formStepForm.ready,
 }))
 class StepForm extends Component<StepFormProps> {
   getCurrentStep() {
@@ -35,6 +37,7 @@ class StepForm extends Component<StepFormProps> {
 
   render() {
     const currentStep = this.getCurrentStep();
+    const { ready } = this.props;
     let stepComponent;
     if (currentStep === 1) {
       stepComponent = (
@@ -60,7 +63,8 @@ class StepForm extends Component<StepFormProps> {
                 <Step title="编写SQL" />
               </Steps>
             )}
-            {stepComponent}
+            {!ready && <List loading={true} />}
+            {ready && stepComponent}
           </Fragment>
         </Card>
       </PageHeaderWrapper>

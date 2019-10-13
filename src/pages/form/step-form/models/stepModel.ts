@@ -15,6 +15,7 @@ import { Action, Location } from 'history';
 
 export interface IStateType {
   current?: string;
+  ready: boolean;
   step?: Partial<ResourceInfo>;
   info?: Partial<TransformInfo>;
   namespaces: { name: string; id: number }[];
@@ -44,6 +45,7 @@ export interface ModelType {
     runCurrentTransform: Effect;
   };
   reducers: {
+    updateLoading: Reducer<IStateType>;
     saveStepFormData: Reducer<IStateType>;
     saveCurrentStep: Reducer<IStateType>;
     sourceTableInit: Reducer<IStateType>;
@@ -65,6 +67,7 @@ const StepModel: ModelType = {
     targetKeys: [],
     resourceColumns: [],
     detailColumns: [],
+    ready: true,
   },
 
   effects: {
@@ -88,10 +91,6 @@ const StepModel: ModelType = {
       yield put({
         type: 'sourceTableInit',
         payload: res.data,
-      });
-      yield put({
-        type: 'saveCurrentStep',
-        payload: 'list',
       });
     },
     *initSourceColumn({}, { put, select }) {
@@ -158,6 +157,12 @@ const StepModel: ModelType = {
   },
 
   reducers: {
+    updateLoading(state, { ready }) {
+      return {
+        ...state,
+        ready: ready,
+      };
+    },
     updateTarget(state, { payload }) {
       return {
         ...state,
