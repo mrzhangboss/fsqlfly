@@ -69,7 +69,7 @@ def get_info(req: HttpRequest) -> JsonResponse:
             'info': sou.info,
             'rowtime': rowtime,
             'proctime': proctime,
-            'disabled': sou.is_available,
+            'disabled': not sou.is_available,
             'avatar': sou.namespace.avatar if sou.namespace else '',
             'columns': columns,
         })

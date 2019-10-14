@@ -107,7 +107,7 @@ class Command(BaseCommand):
         return {(x.name + self.canal_after_column_suffix): self._convert_after_column(x.value, x.updated) for x in
                 columns}
 
-    def _generate_notice(self, event_type: int, row: RowData, execute_time: int) -> bytes:
+    def _generate_notice(self, event_type: int, row: RowData, execute_time: str) -> bytes:
         from canal.protocol.EntryProtocol_pb2 import EventType
         _cv = self._convert_type
         execute_time_name = self.canal_execute_time_name
@@ -135,6 +135,12 @@ class Command(BaseCommand):
         typ = self.SUPPORT_TYPE[event_type]
         return f"{database}_{table}_{typ}"
 
+    @classmethod
+    def _convert_utc_time(cls, timestamp: int) -> str:
+        date = datetime.fromtimestamp(timestamp / 1000)
+        s = date.strftime("%FT%H:%M:%S.%f")[:-3] + "Z"
+        return s
+
     def run_forever(self, client, producer):
 
         from canal.protocol import EntryProtocol_pb2
@@ -155,8 +161,9 @@ class Command(BaseCommand):
                 database = header.schemaName
                 table = header.tableName
                 event_type = header.eventType
+                row_time = self._convert_utc_time(header.executeTime)
                 for row in row_change.rowDatas:
-                    msg = self._generate_notice(event_type, row, header.executeTime)
+                    msg = self._generate_notice(event_type, row, row_time)
                     topic_name = self._generate_topic_name(database, table, event_type)
                     producer.send(topic_name, value=msg)
                     send_times += 1

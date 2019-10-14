@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from dbs.models import Resource, Namespace
+from copy import deepcopy
 import yaml
 from typing import List, Dict, Optional
 from sqlalchemy import create_engine, inspect
@@ -131,19 +132,47 @@ class Command(CanalCommand):
     def canal_event_type_name_field(self) -> dict:
         return dict(name=self.canal_event_type_name, type='INT')
 
+    @property
+    def canal_kafka_added_schema(self):
+        return self.canal_execute_time_name + " TIMESTAMP, " + self.canal_event_type_name + " INT"
+
+    def _generate_json_format(self, fields: list, category: str) -> dict:
+        def _get_schema(fs: list) -> str:
+            return 'ROW<{}>'.format(",".join(fs))
+
+        data = {"property-version": 1, "type": "json"}
+
+        if category == Category.KAFKA_DELETE_AND_CREATE:
+            fs = ["{} {}".format(x['name'], x['type']) for x in fields] + [self.canal_kafka_added_schema]
+            data["schema"] = _get_schema(fs)
+        elif category == Category.KAFKA_UPDATE:
+            fs = []
+            fmt = "{name} {type}"
+            for field in fields:
+                k, v = field['name'], field['type']
+                fs.append(fmt.format(name=k + self.canal_before_column_suffix, type=v))
+                fs.append(fmt.format(name=k + self.canal_after_column_suffix, type=v))
+                fs.append(fmt.format(name=k + self.canal_update_suffix, type="TINYINT"))
+            fs.append(self.canal_kafka_added_schema)
+            data['schema'] = _get_schema(fs)
+        else:
+            data["derive-schema"] = True
+
+        return data
+
     def _gen_schema(self, fields: List[Dict[str, str]], category: str) -> list:
         if category == Category.KAFKA_DELETE_AND_CREATE:
             fields.append(self.canal_execute_time_name_field)
             fields.append(self.canal_event_type_name_field)
             return fields
         elif category == Category.KAFKA_UPDATE:
-            fields.append(self.canal_execute_time_name_field)
             rlt = []
             for field in fields:
-                for k, v in field.items():
-                    rlt.append(dict(name=k + self.canal_before_column_suffix, type=v))
-                    rlt.append(dict(name=k + self.canal_after_column_suffix, type=v))
-                    rlt.append(dict(name=k + self.canal_update_suffix, type="TINYINT"))
+                k, v = field['name'], field['type']
+                rlt.append(dict(name=k + self.canal_before_column_suffix, type=v))
+                rlt.append(dict(name=k + self.canal_after_column_suffix, type=v))
+                rlt.append(dict(name=k + self.canal_update_suffix, type="TINYINT"))
+            rlt.append(self.canal_execute_time_name_field)
             return rlt
         else:
             return fields
@@ -188,7 +217,7 @@ class Command(CanalCommand):
         elif category.startswith(Category.KAFKA):
             data['connector'] = self._gen_kafka_connector(f"{self.NAMESPACE}_{name}_{category}", typ, category)
             data['update-mode'] = 'append'
-            data['format'] = DEFAULT_FORMAT
+            data['format'] = self._generate_json_format(fields, category)
         elif category == Category.ES:
             data['connector'] = self._gen_es_connector(f"{self.NAMESPACE}_{name}")
             data['format'] = DEFAULT_FORMAT
