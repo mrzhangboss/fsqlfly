@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from django.core.management.base import BaseCommand
 from dbs.models import Resource, Namespace
 import yaml
 from typing import List, Dict, Optional
@@ -8,19 +7,25 @@ from sqlalchemy.dialects.mysql.types import (_StringType, _FloatType, _IntegerTy
                                              BIGINT)
 
 from sqlalchemy.sql.sqltypes import DATE, _Binary
+from dbs.management.commands.canal_consumer import Command as CanalCommand
 
 
 class Category:
     MYSQL = 'mysql'
     KAFKA = 'kafka'
+    KAFKA_DELETE_AND_CREATE = 'kafka_dc'
+    KAFKA_UPDATE = 'kafka_u'
     ES = 'es'
 
 
 DEFAULT_FORMAT = {"property-version": 1, "type": "json", "derive-schema": True}
 
 
-class Command(BaseCommand):
+class Command(CanalCommand):
     help = 'Load Resource From MySQL'
+    kafka_use_row_time = True
+    kafka_row_time_name = 'mysql_row_time'
+    kafka_row_time_delay_second = 5
 
     def add_arguments(self, parser):
         parser.add_argument('--host', action='store', help='mysql host')
@@ -37,6 +42,12 @@ class Command(BaseCommand):
         parser.add_argument('--password', action='store', help='mysql password, if not set must input when running',
                             default=None)
         parser.add_argument('--username', action='store', help='mysql username', default='root')
+        parser.add_argument('--kafka_use_row_time', action='store_true', help='kafka use row time from mysql',
+                            default=True)
+        parser.add_argument('--kafka_row_time_delay_second', action='store', type=int,
+                            help='kafka row time delay second',
+                            default=None)
+        self.add_arguments_for_canal_suffix(parser)
 
     def _init_global_args(self, options: dict):
         self.NAMESPACE = options['namespace']
@@ -97,8 +108,45 @@ class Command(BaseCommand):
         }
 
     @classmethod
-    def _gen_name(cls, name: str, typ: str) -> str:
-        return name + '_' + typ.split('-')[0]
+    def _gen_name(cls, name: str, typ: str, category: str) -> str:
+        return name + '_' + typ.split('-')[0] + '_' + category
+
+    @property
+    def canal_execute_time_name_field(self) -> dict:
+        if self.kafka_use_row_time:
+            row_time = {
+                "timestamps": {
+                    "type": "from-field",
+                    "from": self.canal_execute_time_name
+                },
+                "watermarks": {
+                    "type": "periodic-bounded",
+                    "delay": self.kafka_row_time_delay_second * 1000
+                }
+            }
+            return dict(name=self.kafka_row_time_name, type='TIMESTAMP', rowtime=row_time)
+        return dict(name=self.canal_execute_time_name, type='BIGINT')
+
+    @property
+    def canal_event_type_name_field(self) -> dict:
+        return dict(name=self.canal_event_type_name, type='INT')
+
+    def _gen_schema(self, fields: List[Dict[str, str]], category: str) -> list:
+        if category == Category.KAFKA_DELETE_AND_CREATE:
+            fields.append(self.canal_execute_time_name_field)
+            fields.append(self.canal_event_type_name_field)
+            return fields
+        elif category == Category.KAFKA_UPDATE:
+            fields.append(self.canal_execute_time_name_field)
+            rlt = []
+            for field in fields:
+                for k, v in field.items():
+                    rlt.append(dict(name=k + self.canal_before_column_suffix, type=v))
+                    rlt.append(dict(name=k + self.canal_after_column_suffix, type=v))
+                    rlt.append(dict(name=k + self.canal_update_suffix, type="TINYINT"))
+            return rlt
+        else:
+            return fields
 
     def _build_yml(self, name: str, typ: str, category: str, columns: List[dict]) -> str:
         data = dict()
@@ -137,9 +185,8 @@ class Command(BaseCommand):
 
         if category == Category.MYSQL:
             data['connector'] = self._gen_mysql_connector(name)
-        elif category == Category.KAFKA:
-            fields.append(dict(name="_EVENT_TYPE", type="VARCHAR"))
-            data['connector'] = self._gen_kafka_connector(f"{self.NAMESPACE}_{name}", typ, category)
+        elif category.startswith(Category.KAFKA):
+            data['connector'] = self._gen_kafka_connector(f"{self.NAMESPACE}_{name}_{category}", typ, category)
             data['update-mode'] = 'append'
             data['format'] = DEFAULT_FORMAT
         elif category == Category.ES:
@@ -148,9 +195,8 @@ class Command(BaseCommand):
             data['update-mode'] = 'append'
         else:
             raise Exception("Not Support category")
-        data['schema'] = fields
+        data['schema'] = self._gen_schema(fields, category)
         data['type'] = typ
-        data['name'] = self._gen_name(name, typ)
 
         rlt = yaml.dump(data)
         return rlt
@@ -160,7 +206,7 @@ class Command(BaseCommand):
         print('create ', name, ' :', typ, '--', category, '@@', table_comment)
         obj = dict()
         obj['yaml'] = self._build_yml(name, typ, category, columns)
-        obj['name'] = self._gen_name(name, typ)
+        obj['name'] = self._gen_name(name, typ, category)
         obj['info'] = table_comment
         obj['typ'] = typ
         return obj
@@ -178,7 +224,7 @@ class Command(BaseCommand):
             res = Resource.objects.create(**data)
             print(' create a resource', res.id, res.name)
         else:
-            resource = Resource.objects.get(resource[name])
+            resource = Resource.objects.filter(pk=resource[name]).first()
             for k, v in data.items():
                 setattr(resource, k, v)
             resource.save()
@@ -222,6 +268,12 @@ class Command(BaseCommand):
             cs = insp.get_columns(n)
             self.create_resource(n, 'sink-table', category, resources, cs, t_comment, namespace_id)
             if category != Category.ES:
-                self.create_resource(n, 'source-table', category, resources, cs, t_comment, namespace_id)
+                if category == Category.KAFKA:
+                    self.create_resource(n, 'source-table', Category.KAFKA_DELETE_AND_CREATE, resources, cs, t_comment,
+                                         namespace_id)
+                    self.create_resource(n, 'source-table', Category.KAFKA_UPDATE, resources, cs, t_comment,
+                                         namespace_id)
+                else:
+                    self.create_resource(n, 'source-table', category, resources, cs, t_comment, namespace_id)
         table_nums = len(need_tables)
         self.stdout.write(self.style.SUCCESS(f'Successfully load {table_nums} table from {database}: {tables_str}'))

@@ -1,0 +1,186 @@
+# -*- coding: utf-8 -*-
+import time
+import os
+import sys
+import json
+from typing import Optional
+from datetime import datetime
+from random import randint
+from django.core.management.base import BaseCommand, CommandError
+
+PRINT_EACH = 600
+WAIT_TIMES = 0.5
+
+
+class Command(BaseCommand):
+    help = 'Canal Consumer'
+    bootstrap_servers = "localhost:9092"
+    canal_execute_time_name = 'MYSQL_DB_EXECUTE_TIME'
+    canal_event_type_name = 'MYSQL_DB_EVENT_TYPE'
+    canal_before_column_suffix = '_before'
+    canal_after_column_suffix = '_after'
+    canal_update_suffix = '_updated'
+
+    canal_table_filter = ".*\\\\..*"
+
+    canal_host = 'localhost'
+    canal_port = 11111
+    canal_username = None
+    canal_destination = None
+    canal_password = None
+    canal_client_id = None
+
+    def add_arguments_for_canal_suffix(self, parser):
+        parser.add_argument('--canal_execute_time_name', action='store', type=str, help='mysql execute time name',
+                            default=None)
+        parser.add_argument('--canal_event_type_name', action='store', type=str, help='mysql event type name',
+                            default=None)
+        parser.add_argument('--canal_before-column-suffix', action='store', type=str, help='kafka before column suffix',
+                            default=None)
+        parser.add_argument('--canal_after_column_suffix', action='store', type=str, help='kafka after column suffix',
+                            default=None)
+        parser.add_argument('--canal_update_suffix', action='store', type=str, help='kafka update column suffix',
+                            default=None)
+
+    def add_arguments(self, parser):
+        parser.add_argument('--bootstrap_servers', action='store', help='kafka bootstrap servers split by ,',
+                            default=None)
+        parser.add_argument('--canal_host', action='store', help='canal server host you can set in .env file',
+                            default=None)
+        parser.add_argument('--canal_port', action='store', type=int, help='canal server port you can set in .env file',
+                            default=None)
+        parser.add_argument('--canal_destination', action='store', type=int,
+                            help='canal server destination you can set in .env file',
+                            default=None)
+
+        parser.add_argument('--canal_username', action='store', type=int, help='canal instance username', default=None)
+        parser.add_argument('--canal_password', action='store', type=str,
+                            help='canal instance password you can set in .env file ', default=None)
+        parser.add_argument('--canal_client_id', action='store', type=str,
+                            help='canal instance client-id you can set in .env file ', default=str(randint(1, 1000)))
+        parser.add_argument('--canal_table_filter', action='store', type=str,
+                            help='canal instance table filter like ".*\\\\..*" you can set in .env file ', default=None)
+        self.add_arguments_for_canal_suffix(parser)
+
+    def init_global_params(self, options: dict):
+        for k, v in options.items():
+            if not hasattr(self, k) or k.endswith('_'):
+                continue
+            if v is None:
+                # overwrite by default
+                env_value = os.environ.get(k)
+                if env_value is None:
+                    default_value = getattr(self, k)
+                    if default_value is None:
+                        print('please set ', k, ' in your env or by command line')
+                        exit(1)
+                    setattr(self, k, default_value)
+                else:
+                    setattr(self, k, env_value)
+            else:
+                setattr(self, k, v)
+
+    from canal.protocol.EntryProtocol_pb2 import RowData
+    from canal.protocol.EntryProtocol_pb2 import EventType
+
+    SUPPORT_TYPE = {
+        EventType.INSERT: "kafka_dc",
+        EventType.DELETE: "kafka_dc",
+        EventType.UPDATE: "kafka_u",
+    }
+
+    @classmethod
+    def _convert_type(cls, v: any) -> any:
+        print(v, type(v))
+        return v
+
+    def _generate_by_columns(self, columns: list, name_suffix: Optional[str] = None) -> dict:
+        return {(x.name if name_suffix is None else x.name + name_suffix): self._convert_type(x.value) for x in columns}
+
+    def _convert_after_column(self, value: any, updated: bool) -> any:
+        if updated:
+            return self._convert_type(value)
+        return None
+
+    def _generate_after_columns(self, columns: list):
+        return {(x.name + self.canal_after_column_suffix): self._convert_after_column(x.value, x.updated) for x in
+                columns}
+
+    def _generate_notice(self, event_type: int, row: RowData, execute_time: int) -> bytes:
+        from canal.protocol.EntryProtocol_pb2 import EventType
+        _cv = self._convert_type
+        execute_time_name = self.canal_execute_time_name
+        event_type_name = self.canal_event_type_name
+        if event_type == EventType.DELETE:
+            data = self._generate_by_columns(row.beforeColumns)
+            data[event_type_name] = event_type
+        elif event_type == EventType.INSERT:
+            data = self._generate_by_columns(row.afterColumns)
+            data[event_type_name] = event_type
+        elif event_type == EventType.UPDATE:
+            update_suffix = self.canal_update_suffix
+            data = {x.name + update_suffix: x.updated for x in row.beforeColumns}
+            before_data = self._generate_by_columns(row.beforeColumns, self.canal_before_column_suffix)
+            after_data = self._generate_after_columns(row.afterColumns)
+            data.update(before_data)
+            data.update(after_data)
+        else:
+            raise Exception("Not support Now")
+        assert execute_time not in data
+        data[execute_time_name] = execute_time
+        return json.dumps(data).encode('utf-8')
+
+    def _generate_topic_name(self, database: str, table: str, event_type: int):
+        typ = self.SUPPORT_TYPE[event_type]
+        return f"{database}_{table}_{typ}"
+
+    def run_forever(self, client, producer):
+
+        from canal.protocol import EntryProtocol_pb2
+        from canal.protocol.EntryProtocol_pb2 import EntryType
+
+        sleep_times = 0
+        while True:
+            message = client.get(100)
+            entries = message['entries']
+            for entry in entries:
+                entry_type = entry.entryType
+                if entry_type in (EntryType.TRANSACTIONBEGIN, EntryType.TRANSACTIONEND):
+                    print('filter ', entry_type, entry.header)
+                    continue
+                row_change = EntryProtocol_pb2.RowChange()
+                row_change.MergeFromString(entry.storeValue)
+                header = entry.header
+                database = header.schemaName
+                table = header.tableName
+                event_type = header.eventType
+                for row in row_change.rowDatas:
+                    msg = self._generate_notice(event_type, row, header.executeTime)
+                    topic_name = self._generate_topic_name(database, table, event_type)
+                    producer.send(topic_name, value=msg)
+                self.stdout.write(self.style.SUCCESS(
+                    "{} send  {} msg {}.{} ".format(datetime.now(), self.SUPPORT_TYPE[event_type], database, table)))
+            if not entries:
+                time.sleep(WAIT_TIMES)
+                if sleep_times % PRINT_EACH == 0:
+                    self.stdout.write(self.style.SUCCESS("{} wait for in {}".format(datetime.now(), sleep_times)))
+
+            sleep_times += 1
+
+    def handle(self, *args, **options):
+        self.init_global_params(options)
+        from kafka import KafkaProducer
+
+        from canal.client import Client
+        try:
+            producer = KafkaProducer(bootstrap_servers=self.bootstrap_servers.split(','))
+
+            client = Client()
+            client.connect(host=self.canal_host, port=self.canal_port)
+            client.check_valid(username=self.canal_username.encode(), password=self.canal_password.encode())
+            client.subscribe(client_id=self.canal_client_id.encode(), destination=self.canal_destination.encode(),
+                             filter=self.canal_table_filter.encode())
+            self.run_forever(client, producer)
+        finally:
+            client.disconnect()
+            producer.close()
