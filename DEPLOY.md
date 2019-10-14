@@ -27,3 +27,21 @@
     
     
  
+## 支持消费Canal导入数据
+
+启动[Canal Instance](https://github.com/alibaba/canal)
+
+在.env 中填写
+
+    canal_host = 'localhost'
+    canal_port = 11111
+    canal_username = root
+    canal_destination = example
+    canal_password = xxxx
+    canal_client_id = 12123
+
+canal_username 增量MySQL数据库用户名
+canal_password 增量MySQL数据库密码
+
+    cd web
+    python manage.py canal_consumer

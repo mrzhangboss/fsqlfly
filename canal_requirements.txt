@@ -1,0 +1,3 @@
+canal-python
+kafka-python
+protobuf
