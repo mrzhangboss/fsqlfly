@@ -8,7 +8,7 @@ from datetime import datetime
 from random import randint
 from django.core.management.base import BaseCommand, CommandError
 
-PRINT_EACH = 600
+PRINT_EACH = 100
 WAIT_TIMES = 0.5
 
 
@@ -82,8 +82,7 @@ class Command(BaseCommand):
             else:
                 setattr(self, k, v)
 
-    from canal.protocol.EntryProtocol_pb2 import RowData
-    from canal.protocol.EntryProtocol_pb2 import EventType
+    from canal.protocol.EntryProtocol_pb2 import RowData, EventType, Column
 
     SUPPORT_TYPE = {
         EventType.INSERT: "kafka_dc",
@@ -92,11 +91,26 @@ class Command(BaseCommand):
     }
 
     @classmethod
-    def _convert_type(cls, v: any) -> any:
-        return v
+    def _convert_type(cls, v: Column) -> any:
+        val = v.value
+        typ = v.sqlType
+        if val is None or len(val) == 0:
+            return None
+        # type id from java.sql.Types.java
+        if typ in {-7, -6, 5, 4, -5, 16}:  # int bool 16 also parse int
+            return int(val)
+        elif typ in {6, 7, 8, 2, 3}:  # float
+            return float(val)
+        elif typ == 91:  # DATE 91
+            return val
+        elif typ == 92 and val is not None:  # TIME 92
+            return val + "Z"
+        elif typ == 93 and val is not None:  # TIMESTAMP 93
+            return val.replace(' ', 'T') + 'Z'
+        return val
 
     def _generate_by_columns(self, columns: list, name_suffix: Optional[str] = None) -> dict:
-        return {(x.name if name_suffix is None else x.name + name_suffix): self._convert_type(x.value) for x in columns}
+        return {(x.name if name_suffix is None else x.name + name_suffix): self._convert_type(x) for x in columns}
 
     def _convert_after_column(self, value: any, updated: bool) -> any:
         if updated:
@@ -104,7 +118,7 @@ class Command(BaseCommand):
         return None
 
     def _generate_after_columns(self, columns: list):
-        return {(x.name + self.canal_after_column_suffix): self._convert_after_column(x.value, x.updated) for x in
+        return {(x.name + self.canal_after_column_suffix): self._convert_after_column(x, x.updated) for x in
                 columns}
 
     def _generate_notice(self, event_type: int, row: RowData, execute_time: str) -> bytes:

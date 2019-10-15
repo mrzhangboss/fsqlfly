@@ -5,6 +5,7 @@ import yaml
 from typing import List, Dict, Optional
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.dialects.mysql.types import (_StringType, _FloatType, _IntegerType, DECIMAL, DATETIME, TIMESTAMP, BIT,
+                                             TIME,
                                              BIGINT)
 
 from sqlalchemy.sql.sqltypes import DATE, _Binary
@@ -27,6 +28,7 @@ class Command(CanalCommand):
     kafka_use_row_time = True
     kafka_row_time_name = 'mysql_row_time'
     kafka_row_time_delay_second = 5
+    kafka_connector_start_mode = "latest-offset"
 
     def add_arguments(self, parser):
         parser.add_argument('--host', action='store', help='mysql host')
@@ -47,6 +49,10 @@ class Command(CanalCommand):
                             default=True)
         parser.add_argument('--kafka_row_time_delay_second', action='store', type=int,
                             help='kafka row time delay second',
+                            default=None)
+
+        parser.add_argument('--kafka_connector_start_mode', action='store', type=int,
+                            help='kafka connector start mode',
                             default=None)
         self.add_arguments_for_canal_suffix(parser)
 
@@ -76,6 +82,7 @@ class Command(CanalCommand):
             "property-version": 1,
             "version": "universal",
             "topic": topic_name,
+            "startup-mode": self.kafka_connector_start_mode,
             "properties": [
                 {
                     "key": "bootstrap.servers",
@@ -136,6 +143,8 @@ class Command(CanalCommand):
     def canal_kafka_added_schema(self):
         return self.canal_execute_time_name + " TIMESTAMP, " + self.canal_event_type_name + " INT"
 
+    BOOLEAN_TYPE = "INT"
+
     def _generate_json_format(self, fields: list, category: str) -> dict:
         def _get_schema(fs: list) -> str:
             return 'ROW<{}>'.format(",".join(fs))
@@ -152,7 +161,7 @@ class Command(CanalCommand):
                 k, v = field['name'], field['type']
                 fs.append(fmt.format(name=k + self.canal_before_column_suffix, type=v))
                 fs.append(fmt.format(name=k + self.canal_after_column_suffix, type=v))
-                fs.append(fmt.format(name=k + self.canal_update_suffix, type="TINYINT"))
+                fs.append(fmt.format(name=k + self.canal_update_suffix, type=self.BOOLEAN_TYPE))
             fs.append(self.canal_kafka_added_schema)
             data['schema'] = _get_schema(fs)
         else:
@@ -171,7 +180,7 @@ class Command(CanalCommand):
                 k, v = field['name'], field['type']
                 rlt.append(dict(name=k + self.canal_before_column_suffix, type=v))
                 rlt.append(dict(name=k + self.canal_after_column_suffix, type=v))
-                rlt.append(dict(name=k + self.canal_update_suffix, type="TINYINT"))
+                rlt.append(dict(name=k + self.canal_update_suffix, type=self.BOOLEAN_TYPE))
             rlt.append(self.canal_execute_time_name_field)
             return rlt
         else:
@@ -192,7 +201,7 @@ class Command(CanalCommand):
             if isinstance(_t, _StringType) or isinstance(_t, _Binary):
                 t_name = "STRING"
             elif isinstance(_t, BIT):
-                t_name = "TINYINT"
+                t_name = "INT"
             elif isinstance(_t, _IntegerType):
                 t_name = "INT"
                 if isinstance(_t, BIGINT):
@@ -207,6 +216,8 @@ class Command(CanalCommand):
                 t_name = "TIMESTAMP"
             elif isinstance(_t, DATE):
                 t_name = "DATE"
+            elif isinstance(_t, TIME):
+                t_name = "TIME"
 
             assert t_name is not None
             # fields.append(dict(name=_n, type=t_name))
