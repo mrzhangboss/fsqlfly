@@ -27,6 +27,7 @@ class Command(CanalCommand):
     help = 'Load Resource From MySQL'
     kafka_use_row_time = True
     kafka_row_time_name = 'mysql_row_time'
+    kafka_process_time_name = 'flink_process_time'
     kafka_row_time_delay_second = 5
     kafka_connector_start_mode = "latest-offset"
 
@@ -53,6 +54,9 @@ class Command(CanalCommand):
 
         parser.add_argument('--kafka_connector_start_mode', action='store', type=int,
                             help='kafka connector start mode',
+                            default=None)
+        parser.add_argument('--kafka_process_time_name', action='store', type=int,
+                            help='kafka process time name',
                             default=None)
         self.add_arguments_for_canal_suffix(parser)
 
@@ -117,7 +121,7 @@ class Command(CanalCommand):
 
     @classmethod
     def _gen_name(cls, name: str, typ: str, category: str) -> str:
-        return name + '_' + typ.split('-')[0] + '_' + category
+        return name + '_' + category
 
     @property
     def canal_execute_time_name_field(self) -> dict:
@@ -138,6 +142,10 @@ class Command(CanalCommand):
     @property
     def canal_event_type_name_field(self) -> dict:
         return dict(name=self.canal_event_type_name, type='INT')
+
+    @property
+    def kafka_process_time_name_field(self) -> dict:
+        return dict(name=self.kafka_process_time_name, type='TIMESTAMP', proctime=True)
 
     @property
     def canal_kafka_added_schema(self):
@@ -173,6 +181,7 @@ class Command(CanalCommand):
         if category == Category.KAFKA_DELETE_AND_CREATE:
             fields.append(self.canal_execute_time_name_field)
             fields.append(self.canal_event_type_name_field)
+            fields.append(self.kafka_process_time_name_field)
             return fields
         elif category == Category.KAFKA_UPDATE:
             rlt = []
@@ -182,6 +191,7 @@ class Command(CanalCommand):
                 rlt.append(dict(name=k + self.canal_after_column_suffix, type=v))
                 rlt.append(dict(name=k + self.canal_update_suffix, type=self.BOOLEAN_TYPE))
             rlt.append(self.canal_execute_time_name_field)
+            rlt.append(self.kafka_process_time_name_field)
             return rlt
         else:
             return fields
@@ -306,14 +316,18 @@ class Command(CanalCommand):
                 continue
             t_comment = insp.get_table_comment(n)['text']
             cs = insp.get_columns(n)
-            self.create_resource(n, 'sink-table', category, resources, cs, t_comment, namespace_id)
+            # self.create_resource(n, 'sink-table', category, resources, cs, t_comment, namespace_id)
             if category != Category.ES:
                 if category == Category.KAFKA:
                     self.create_resource(n, 'source-table', Category.KAFKA_DELETE_AND_CREATE, resources, cs, t_comment,
                                          namespace_id)
                     self.create_resource(n, 'source-table', Category.KAFKA_UPDATE, resources, cs, t_comment,
                                          namespace_id)
+                    self.create_resource(n, 'both', category, resources, cs, t_comment, namespace_id)
                 else:
-                    self.create_resource(n, 'source-table', category, resources, cs, t_comment, namespace_id)
+                    self.create_resource(n, 'both', category, resources, cs, t_comment, namespace_id)
+            else:
+                self.create_resource(n, 'sink-table', category, resources, cs, t_comment, namespace_id)
+
         table_nums = len(need_tables)
         self.stdout.write(self.style.SUCCESS(f'Successfully load {table_nums} table from {database}: {tables_str}'))
