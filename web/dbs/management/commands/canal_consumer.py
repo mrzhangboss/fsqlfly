@@ -8,7 +8,7 @@ from datetime import datetime
 from random import randint
 from django.core.management.base import BaseCommand, CommandError
 
-PRINT_EACH = 100
+PRINT_EACH = 10
 WAIT_TIMES = 0.5
 
 
@@ -160,6 +160,7 @@ class Command(BaseCommand):
         from canal.protocol import EntryProtocol_pb2
         from canal.protocol.EntryProtocol_pb2 import EntryType
         print(datetime.now(), " start running")
+        topics = set()
         sleep_times = 0
         send_times = 0
         while True:
@@ -179,6 +180,9 @@ class Command(BaseCommand):
                 for row in row_change.rowDatas:
                     msg = self._generate_notice(event_type, row, row_time)
                     topic_name = self._generate_topic_name(database, table, event_type)
+                    if topic_name not in topics:
+                        print(topic_name)
+                        topics.add(topic_name)
                     producer.send(topic_name, value=msg)
                     send_times += 1
             if not entries:
