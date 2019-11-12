@@ -60,7 +60,8 @@ def get_info(req: HttpRequest) -> JsonResponse:
     namespaces = [{'name': x.name, 'id': x.id} for x in Namespace.objects.filter(is_deleted=False).all()]
     sources = []
     for sou in Resource.objects.filter(is_deleted=False).all():
-        rowtime, proctime, columns = get_row_proc_columns_from_yaml(sou.yaml)
+        # rowtime, proctime, columns = get_row_proc_columns_from_yaml(sou.yaml)
+        rowtime, proctime, columns = '', '', []
         sources.append({
             'id': sou.id,
             'name': sou.name,
