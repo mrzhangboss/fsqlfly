@@ -134,7 +134,7 @@ class Command(BaseCommand):
             data[event_type_name] = event_type
         elif event_type == EventType.UPDATE:
             update_suffix = self.canal_update_suffix
-            data = {x.name + update_suffix: x.updated for x in row.beforeColumns}
+            data = {x.name + update_suffix: x.updated for x in row.afterColumns}
             before_data = self._generate_by_columns(row.beforeColumns, self.canal_before_column_suffix)
             after_data = self._generate_after_columns(row.afterColumns)
             data.update(before_data)
