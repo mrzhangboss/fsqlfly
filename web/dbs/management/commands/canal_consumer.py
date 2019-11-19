@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import time
 import os
+import logging
 import sys
 import json
 from typing import Optional
@@ -152,7 +153,10 @@ class Command(BaseCommand):
     @classmethod
     def _convert_utc_time(cls, timestamp: int) -> str:
         date = datetime.fromtimestamp(timestamp / 1000)
-        s = date.strftime("%FT%H:%M:%S.%f")[:-3] + "Z"
+        # three way for parse timestamp
+        # s = date.strftime("%FT%H:%M:%S.%f")[:-3] + "Z"
+        # s = date.isoformat('T', timespec='milliseconds') + 'Z'
+        s = date.strftime("%FT%H:%M:%S.%f") + "Z"
         return s
 
     def run_forever(self, client, producer):
@@ -161,8 +165,8 @@ class Command(BaseCommand):
         from canal.protocol.EntryProtocol_pb2 import EntryType
         print(datetime.now(), " start running")
         topics = set()
-        sleep_times = 0
-        send_times = 0
+        sleep_times, send_times = 0, 0
+        last_execute_time, add_million_seconds = -1, 0
         while True:
             message = client.get(100)
             entries = message['entries']
@@ -176,7 +180,23 @@ class Command(BaseCommand):
                 database = header.schemaName
                 table = header.tableName
                 event_type = header.eventType
-                row_time = self._convert_utc_time(header.executeTime)
+
+                # try add million second when meet same execute time
+                fix_execute_time = header.executeTime
+                if last_execute_time == header.executeTime:
+                    if add_million_seconds < 999:
+                        add_million_seconds += 1
+                        fix_execute_time = header.executeTime + add_million_seconds
+                    else:
+                        print('over 1000 event in one seconds')
+                        fix_execute_time = header.executeTime + add_million_seconds
+                else:
+                    last_execute_time = header.executeTime
+                    add_million_seconds = 0
+
+                row_time = self._convert_utc_time(fix_execute_time)
+
+                logging.debug(' '.join(str(x) for x in [row_time, fix_execute_time, header.executeTime, header.logfileOffset, add_million_seconds]))
                 for row in row_change.rowDatas:
                     msg = self._generate_notice(event_type, row, row_time)
                     topic_name = self._generate_topic_name(database, table, event_type)
