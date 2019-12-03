@@ -19,6 +19,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV = os.environ.get
 FLINK_BIN_PATH = ENV('FLINK_BIN_PATH', '/opt/flink/bin/sql-client.sh')
 TERMINAL_WEB_HOST_FMT = ENV('TERMINAL_WEB_HOST_FMT')
+FLINK_API_HOST = ENV('FLINK_API_HOST')
 assert TERMINAL_WEB_HOST_FMT is not None
 TIME_FORMAT = ENV('TIME_FORMAT', "%Y-%m-%d %H:%M:%S")
 # Quick-start development settings - unsuitable for production

@@ -9,7 +9,7 @@ from requests import Session
 from datetime import datetime
 from random import randint
 from django.core.management.base import BaseCommand, CommandError
-from web.settings import ENV, TIME_FORMAT
+from web.settings import ENV, TIME_FORMAT, FLINK_API_HOST
 from dbs.workflow import run_transform
 from dbs.models import Transform
 
@@ -35,7 +35,7 @@ class Command(BaseCommand):
         sleep = options['frequency']
         session = Session()
         if host is None:
-            env_v = ENV('flink_api_host')
+            env_v = FLINK_API_HOST
             if env_v is None:
                 host = self.flink_api_host
             else:
