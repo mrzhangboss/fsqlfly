@@ -2,9 +2,12 @@
 import os
 import json
 import random
+import requests
+from requests import Session
 from datetime import datetime
+from collections import namedtuple, defaultdict
 from base64 import b64decode, b64encode
-from typing import Optional, Union
+from typing import Optional, Union, List
 from urllib.parse import quote
 import yaml
 from django.db.models import Model
@@ -154,3 +157,108 @@ def get_or_update_or_delete(req: HttpRequest, pk: int) -> JsonResponse:
         obj.yaml = data['config']
         obj.save()
     return create_response(data={'id': obj.id, 'namespaceId': obj.namespace.id if obj.namespace else 0})
+
+
+JobStatus = namedtuple('JobStatus', ['name', 'job_id', 'status'])
+
+
+class JobControl:
+    restart = 'restart'
+    stop = 'stop'
+    start = 'start'
+    RUN_STATUS = 'RUNNING'
+
+    def __contains__(self, item):
+        if hasattr(self, item):
+            return True
+        return False
+
+    def __init__(self, flink_host=None):
+        from web.settings import FLINK_API_HOST
+        if flink_host is None:
+            flink_host = FLINK_API_HOST
+        assert flink_host is not None
+        self.host = flink_host
+        self.session = Session()
+
+    @property
+    def job_status(self) -> List[JobStatus]:
+        jobs_url = self.host + '/jobs'
+        js = self.session.get(jobs_url).json()
+        all_jobs = list()
+        for x in js['jobs']:
+            j_id = x['id']
+            cache_name = '{}:flink:job:status'.format(j_id)
+            if cache.get(cache_name) is None:
+                status = self.session.get(self.host + '/jobs/' + j_id).json()
+                name = status['name'].split(':', maxsplit=1)[0]
+                cache.set(cache_name, name)
+            else:
+                name = cache.get(cache_name)
+            all_jobs.append(JobStatus(name, j_id, x['status']))
+        return all_jobs
+
+    @classmethod
+    def get_job_header(cls, transform: Transform) -> str:
+        return "{}_{}".format(transform.id, transform.name)
+
+    def handle_restart(self, transform: Transform) -> str:
+        msgs = []
+        msgs.append(self.handle_stop(transform))
+        msgs.append(self.start_flink_job(transform))
+        return '\n'.join(msgs)
+
+    def handle_stop(self, transform: Transform) -> str:
+        msgs = []
+        header = self.get_job_header(transform)
+        kill_jobs = []
+        job_status = self.job_status
+        for job in job_status:
+            if job.name == header and job.status == self.RUN_STATUS:
+                print('add a {} to kill '.format(job.name))
+                kill_jobs.append(job.job_id)
+
+        msgs.append('kill {} jobs: {}'.format(len(kill_jobs), ', '.join(str(x) for x in kill_jobs)))
+
+        self.stop_flink_jobs(kill_jobs)
+        return '\n'.join(msgs)
+
+    def handle_start(self, transform: Transform) -> str:
+        return self.start_flink_job(transform)
+
+    def stop_flink_jobs(self, job_ids: List):
+        for j_id in job_ids:
+            print('begin stop flink job', j_id)
+            res = self.session.patch(self.host + '/jobs/' + j_id + '?mode=cancel')
+            print(res.text)
+
+    @classmethod
+    def start_flink_job(cls, transform: Transform) -> str:
+        is_ok, _ = run_transform(transform)
+        return 'Job {} {}'.format(transform.name, 'success' if is_ok else 'fail')
+
+
+JobControlHandle = JobControl()
+
+
+def job_control_api(req: HttpRequest, name: str, mode: str) -> JsonResponse:
+    handle_name = 'handle_' + mode
+    if mode in JobControlHandle and handle_name in JobControlHandle:
+        transform = Transform.objects.filter(name=name).first()
+        if transform is None:
+            return create_response(code=500, msg='job {} not found!!!'.format(name))
+        return create_response(msg=getattr(JobControlHandle, handle_name)(transform))
+    else:
+        return create_response(code=500, msg=' {} not support!!!'.format(mode))
+
+
+def job_list(req: HttpRequest) -> JsonResponse:
+    jobs = defaultdict(lambda: defaultdict(int))
+    job_names = {"{}_{}".format(x.id, x.name): x.name for x in
+                 Transform.objects.all().order_by(
+                     '-id').all()}
+    for job in JobControlHandle.job_status:
+        if job.name in job_names:
+            print(job.name, job_names[job.name])
+            jobs[job.status][job_names[job.name]] += 1
+    return JsonResponse(dict(data=dict(jobs), code=0, success=0, msg=None))

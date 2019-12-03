@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from .views import create_or_get_list, update_or_delete, current_user, upload, count_view
-from .transform_view import get_info, get_list_or_create, get_or_update_or_delete as transform_update_or_delete, start_run, debug_transform
+from .transform_view import get_info, get_list_or_create, get_or_update_or_delete as transform_update_or_delete, start_run, debug_transform, job_control_api, job_list
 urlpatterns = [
     path('currentUser', current_user),
     path('count', count_view),
@@ -26,6 +26,8 @@ urlpatterns = [
     path('transform/<int:pk>', transform_update_or_delete),
     path('transform/<int:pk>/run', start_run),
     path('upload', upload),
+    path('jobs/<str:name>/<str:mode>', job_control_api),
+    path('jobs', job_list),
     path('<str:model>', create_or_get_list),
     path('<str:model>/<int:pk>', update_or_delete),
 ]
