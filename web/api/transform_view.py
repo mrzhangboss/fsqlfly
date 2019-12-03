@@ -9,6 +9,7 @@ from urllib.parse import quote
 import yaml
 from django.db.models import Model
 from django.http import HttpRequest, JsonResponse
+from django.core.cache import caches, cache
 from dbs.models import Namespace, FileResource, Functions, Transform, Resource
 from utils.response import create_response
 from utils.strings import check_yaml, dict2underline, get_schema, get_sink_config
@@ -59,21 +60,29 @@ def init_sink(transform_name: str, model: Optional[Resource], sink_yaml, namespa
 def get_info(req: HttpRequest) -> JsonResponse:
     namespaces = [{'name': x.name, 'id': x.id} for x in Namespace.objects.filter(is_deleted=False).all()]
     sources = []
-    for sou in Resource.objects.filter(is_deleted=False).all():
-        # rowtime, proctime, columns = get_row_proc_columns_from_yaml(sou.yaml)
-        rowtime, proctime, columns = '', '', []
-        sources.append({
-            'id': sou.id,
-            'name': sou.name,
-            'namespaceId': sou.namespace.id if sou.namespace else 0,
-            'namespace': sou.namespace.name if sou.namespace else 'DEFAULT',
-            'info': sou.info,
-            'rowtime': rowtime,
-            'proctime': proctime,
-            'disabled': not sou.is_available,
-            'avatar': sou.namespace.avatar if sou.namespace else '',
-            'columns': columns,
-        })
+    ids = Resource.objects.filter(is_deleted=False).values('id')
+    for sou in ids:
+        cache_name = '{}:resource:cache'.format(sou['id'])
+        if cache.get(cache_name) is not None:
+            sources.append(caches[cache_name])
+        else:
+            sou = Resource.objects.get(pk=sou['id'])
+            row_time, proc_time, columns = get_row_proc_columns_from_yaml(sou.yaml)
+            data = {
+                'id': sou.id,
+                'name': sou.name,
+                'namespaceId': sou.namespace.id if sou.namespace else 0,
+                'namespace': sou.namespace.name if sou.namespace else 'DEFAULT',
+                'info': sou.info,
+                'rowtime': row_time,
+                'proctime': proc_time,
+                'disabled': not sou.is_available,
+                'avatar': sou.namespace.avatar if sou.namespace else '',
+                'columns': columns,
+            }
+            sources.append(data)
+            cache.set(cache_name, data)
+
     return create_response(data={'namespaces': namespaces, 'columns': sources})
 
 
