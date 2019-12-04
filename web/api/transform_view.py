@@ -200,7 +200,7 @@ class JobControl:
 
     @classmethod
     def get_job_header(cls, transform: Transform, **kwargs) -> str:
-        return "{}_{}".format(transform.id, transform.name, '_' + kwargs['pt'] if 'pt' in kwargs else '')
+        return "{}_{}{}".format(transform.id, transform.name, '_' + kwargs['pt'] if 'pt' in kwargs else '')
 
     def handle_restart(self, transform: Transform, **kwargs) -> str:
         msgs = []
