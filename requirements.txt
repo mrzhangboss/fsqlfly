@@ -27,3 +27,6 @@ XStatic-term.js
 sqlalchemy
 pyyaml
 mysqlclient
+
+
+jinja2

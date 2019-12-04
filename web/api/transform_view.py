@@ -18,7 +18,7 @@ from utils.response import create_response
 from utils.strings import check_yaml, dict2underline, get_schema, get_sink_config
 from dbs.workflow import run_transform, run_debug_transform
 from web.settings import TERMINAL_WEB_HOST_FMT
-
+from dbs.workflow import handle_template
 
 def get_row_proc_columns_from_yaml(s: str) -> tuple:
     # todo: parse rowtime and proctime
@@ -70,7 +70,7 @@ def get_info(req: HttpRequest) -> JsonResponse:
             sources.append(caches[cache_name])
         else:
             sou = Resource.objects.get(pk=sou['id'])
-            row_time, proc_time, columns = get_row_proc_columns_from_yaml(sou.yaml)
+            row_time, proc_time, columns = get_row_proc_columns_from_yaml(handle_template(sou.yaml))
             data = {
                 'id': sou.id,
                 'name': sou.name,
@@ -202,13 +202,13 @@ class JobControl:
     def get_job_header(cls, transform: Transform) -> str:
         return "{}_{}".format(transform.id, transform.name)
 
-    def handle_restart(self, transform: Transform) -> str:
+    def handle_restart(self, transform: Transform, **kwargs) -> str:
         msgs = []
         msgs.append(self.handle_stop(transform))
-        msgs.append(self.start_flink_job(transform))
+        msgs.append(self.start_flink_job(transform, **kwargs))
         return '\n'.join(msgs)
 
-    def handle_stop(self, transform: Transform) -> str:
+    def handle_stop(self, transform: Transform, **kwargs) -> str:
         msgs = []
         header = self.get_job_header(transform)
         kill_jobs = []
@@ -223,8 +223,8 @@ class JobControl:
         self.stop_flink_jobs(kill_jobs)
         return '\n'.join(msgs)
 
-    def handle_start(self, transform: Transform) -> str:
-        return self.start_flink_job(transform)
+    def handle_start(self, transform: Transform, **kwargs) -> str:
+        return self.start_flink_job(transform, **kwargs)
 
     def stop_flink_jobs(self, job_ids: List):
         for j_id in job_ids:
@@ -233,8 +233,8 @@ class JobControl:
             print(res.text)
 
     @classmethod
-    def start_flink_job(cls, transform: Transform) -> str:
-        is_ok, _ = run_transform(transform)
+    def start_flink_job(cls, transform: Transform, **kwargs) -> str:
+        is_ok, _ = run_transform(transform, **kwargs)
         return 'Job {} {}'.format(transform.name, 'success' if is_ok else 'fail')
 
 
@@ -247,7 +247,11 @@ def job_control_api(req: HttpRequest, name: str, mode: str) -> JsonResponse:
         transform = Transform.objects.filter(name=name).first()
         if transform is None:
             return create_response(code=500, msg='job {} not found!!!'.format(name))
-        return create_response(msg=getattr(JobControlHandle, handle_name)(transform))
+        if req.body:
+            data = json.loads(req.body)
+        else:
+            data = dict()
+        return create_response(msg=getattr(JobControlHandle, handle_name)(transform, **data))
     else:
         return create_response(code=500, msg=' {} not support!!!'.format(mode))
 
