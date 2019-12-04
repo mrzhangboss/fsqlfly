@@ -67,7 +67,7 @@ def get_info(req: HttpRequest) -> JsonResponse:
     for sou in ids:
         cache_name = '{}:resource:cache'.format(sou['id'])
         if cache.get(cache_name) is not None:
-            sources.append(caches[cache_name])
+            sources.append(cache.get(cache_name))
         else:
             sou = Resource.objects.get(pk=sou['id'])
             row_time, proc_time, columns = get_row_proc_columns_from_yaml(handle_template(sou.yaml))
