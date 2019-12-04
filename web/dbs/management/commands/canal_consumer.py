@@ -5,11 +5,12 @@ import logging
 import sys
 import json
 from typing import Optional
+from collections import defaultdict
 from datetime import datetime
 from random import randint
 from django.core.management.base import BaseCommand, CommandError
 
-PRINT_EACH = 10
+PRINT_EACH = 100
 WAIT_TIMES = 0.5
 
 
@@ -120,7 +121,7 @@ class Command(BaseCommand):
 
     def _generate_after_columns(self, columns: list):
         return {(x.name + self.canal_after_column_suffix): self._convert_after_column(x, x.updated) for x in
-                columns}
+                columns if x.updated}
 
     def _generate_notice(self, event_type: int, row: RowData, execute_time: str) -> bytes:
         from canal.protocol.EntryProtocol_pb2 import EventType
@@ -164,7 +165,7 @@ class Command(BaseCommand):
         from canal.protocol import EntryProtocol_pb2
         from canal.protocol.EntryProtocol_pb2 import EntryType
         print(datetime.now(), " start running")
-        topics = set()
+        topics = defaultdict(int)
         sleep_times, send_times = 0, 0
         last_execute_time, add_million_seconds = -1, 0
         while True:
@@ -196,20 +197,26 @@ class Command(BaseCommand):
 
                 row_time = self._convert_utc_time(fix_execute_time)
 
-                logging.debug(' '.join(str(x) for x in [row_time, fix_execute_time, header.executeTime, header.logfileOffset, add_million_seconds]))
+                logging.debug(' '.join(str(x) for x in
+                                       [row_time, fix_execute_time, header.executeTime, header.logfileOffset,
+                                        add_million_seconds]))
                 for row in row_change.rowDatas:
                     msg = self._generate_notice(event_type, row, row_time)
                     topic_name = self._generate_topic_name(database, table, event_type)
                     if topic_name not in topics:
-                        print(topic_name)
-                        topics.add(topic_name)
+                        print(topic_name, 'get')
+                    topics[topic_name] += 1
                     producer.send(topic_name, value=msg)
                     send_times += 1
             if not entries:
                 time.sleep(WAIT_TIMES)
                 if sleep_times % PRINT_EACH == 0:
+                    for t, n in topics.items():
+                        print(' Topic: ', t, ' send ', n)
+                    topics = defaultdict(int)
                     self.stdout.write(self.style.SUCCESS(
                         "{} wait for in {} already send {}".format(datetime.now(), sleep_times, send_times)))
+
 
                 sleep_times += 1
 
