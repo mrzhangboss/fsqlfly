@@ -73,8 +73,9 @@ def run_transform(transform: Transform, **kwargs) -> (bool, str):
     print(yaml_conf, file=open(yaml_f, 'w'))
     print(sql, file=open(sql_f, 'w'))
     print('q\nexit;', file=open(sql_f, 'a+'))
+    pt = '' if 'pt' in kwargs else '_' + kwargs['pt']
     run_commands = [FLINK_BIN_PATH, 'embedded',
-                    '-s', '{}_{}'.format(transform.id, transform.name),
+                    '-s', '{}_{}{}'.format(transform.id, transform.name, pt),
                     '--environment', yaml_f,
                     _get_jar(),
                     '<', sql_f]

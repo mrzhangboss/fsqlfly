@@ -199,8 +199,8 @@ class JobControl:
         return all_jobs
 
     @classmethod
-    def get_job_header(cls, transform: Transform) -> str:
-        return "{}_{}".format(transform.id, transform.name)
+    def get_job_header(cls, transform: Transform, **kwargs) -> str:
+        return "{}_{}".format(transform.id, transform.name, '_' + kwargs['pt'] if 'pt' in kwargs else '')
 
     def handle_restart(self, transform: Transform, **kwargs) -> str:
         msgs = []
@@ -210,7 +210,7 @@ class JobControl:
 
     def handle_stop(self, transform: Transform, **kwargs) -> str:
         msgs = []
-        header = self.get_job_header(transform)
+        header = self.get_job_header(transform, **kwargs)
         kill_jobs = []
         job_status = self.job_status
         for job in job_status:
@@ -262,7 +262,8 @@ def job_list(req: HttpRequest) -> JsonResponse:
                  Transform.objects.all().order_by(
                      '-id').all()}
     for job in JobControlHandle.job_status:
-        if job.name in job_names:
-            print(job.name, job_names[job.name])
-            jobs[job.status][job_names[job.name]] += 1
+
+        if job.name in job_names or '_'.join(job.name.split('_')[:-1]) in job_names:
+            print(job.name)
+            jobs[job.status][job.name] += 1
     return JsonResponse(dict(data=dict(jobs), code=0, success=0, msg=None))
