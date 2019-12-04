@@ -45,3 +45,19 @@ canal_password 增量MySQL数据库密码
 
     cd web
     python manage.py canal_consumer
+    
+    
+# 支持功能
+
+1. yml 文件以及SQL语句都支持[jinja2](https://jinja.palletsprojects.com/en/2.10.x/)模板语法，推荐使用`Airflow`进行调度
+
+调度API为：
+    
+        url: /api/jobs/{job_name}/{method}
+        method: POST
+
+支持`restart`、`stop`、`start`三种模式，如果带有参数`pt`，可以用来区分同一SQL任务不同脚本
+由于使用Cache缓存，所以Get请求都会有10分钟的缓冲，虽然没有限制请求方法所以推荐使用`POST`来进行请求，如果发送的`json`里面包含变量，会传递给模板到`SQL`和`yaml`配置文件中
+
+2. 支持定时监控集群`SQL`job,只要把`Transform`设置为发布可用就可以一直运行，前提是配置好了`Flink`任务
+
