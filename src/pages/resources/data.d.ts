@@ -67,3 +67,30 @@ export interface IStateType<T> {
   total?: number;
   resource?: string[];
 }
+
+
+export interface Connection {
+  id : number;
+  name : string;
+  connectionUrl: string;
+  connectionType: string;
+  username: string;
+  password: string;
+  extra: string;
+  isPublish: boolean;
+  isAvailable: boolean;
+  createAt?: string;
+  updateAt?: string;
+}
+
+
+export interface Relationship {
+  id : number;
+  name : string;
+  info: string;
+  config: string;
+  isPublish: boolean;
+  isAvailable: boolean;
+  createAt?: string;
+  updateAt?: string;
+}

@@ -130,6 +130,20 @@ export default {
               component: './resources',
             },
             {
+              path: '/resouces/connection',
+              name: 'connection',
+              exact: true,
+              icon: 'database',
+              component: './resources/connection',
+            },
+            {
+              path: '/resouces/relationship',
+              name: 'relationship',
+              exact: true,
+              icon: 'api',
+              component: './resources/relationship',
+            },
+            {
               path: '/resouces/namespace',
               name: 'namespace',
               exact: true,

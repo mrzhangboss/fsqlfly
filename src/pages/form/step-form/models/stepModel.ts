@@ -58,6 +58,7 @@ export interface ModelType {
   subscriptions: { setup: Subscription };
 }
 
+// @ts-ignore
 const StepModel: ModelType = {
   namespace: 'formStepForm',
 

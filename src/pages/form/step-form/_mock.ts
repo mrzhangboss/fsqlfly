@@ -135,5 +135,6 @@ export default {
   },
   'POST  /api/transform/:id/run': mockjs.mock({
     msg: '@paragraph(1000,1000)',
+    success: true
   }),
 };

@@ -10,7 +10,7 @@ export interface ResultProps {
   extra?: React.ReactNode;
   style?: React.CSSProperties;
   title?: React.ReactNode;
-  type: 'success' | 'error';
+  type: 'success' | 'error' | 'line';
 }
 
 const Result: React.SFC<ResultProps> = ({

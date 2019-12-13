@@ -4,7 +4,8 @@ import { AnyAction, Reducer } from 'redux';
 import { EffectsCommandMap } from 'dva';
 
 import { IDObject } from './data';
-import { getAllService, createService, deleteService, updateService } from './services';
+import { getAllService, createService, deleteService, updateService, runService } from './services';
+import { runTransform } from '@/pages/form/step-form/service';
 
 type IStateType<T> = {
   list: T[];
@@ -25,6 +26,7 @@ type ModelType<T> = {
   effects: {
     fetch: Effect<T>;
     submit: Effect<T>;
+    run: Effect<T>;
   };
   reducers: {
     init: Reducer<IStateType<T>>;
@@ -80,6 +82,10 @@ function getListModel<T extends IDObject>(
             payload: res.data ? { ...payload, ...res.data } : payload,
           });
         }
+        setTimeout(callback, 100, res);
+      },
+      *run({ payload, callback }, { call }) {
+        const res = yield call(runService, { ...payload });
         setTimeout(callback, 100, res);
       },
     },

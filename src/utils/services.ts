@@ -32,3 +32,10 @@ export function deleteService(namespace: string) {
     });
   };
 }
+
+export function runService(params: { id: number, method: string, model: string }) {
+    return request(`/api/${params.model}/${params.method}/${params.id}`, {
+      method: 'POST',
+      data: params,
+    });
+}
