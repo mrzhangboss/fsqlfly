@@ -43,7 +43,7 @@ import { AnyAction } from 'redux';
 import { UploadFile } from 'antd/es/upload/interface';
 import { RadioChangeEvent } from 'antd/lib/radio/interface';
 import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
-
+const  NAMESPACE = 'resource';
 interface BasicListProps extends FormComponentProps {
   listBasicList: Resource[];
   dispatch: Dispatch<AnyAction>;
@@ -112,9 +112,13 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
   componentDidMount() {
     // @ts-ignore
+    this.doRefresh()
+  }
+
+  doRefresh = () => {
     const { dispatch } = this.props;
     dispatch({
-      type: 'resource/fetch',
+      type: `${NAMESPACE}/fetch`,
     });
   }
 
@@ -269,6 +273,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
     const extraContent = (
       <div className={styles.extraContent}>
+        <Button onClick={this.doRefresh}><Icon type="reload" /></Button>
+
         <RadioGroup defaultValue={null} onChange={this.onTagChage}>
           <RadioButton value={0}>全部</RadioButton>
           {namespaces.length > 0 &&
