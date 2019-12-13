@@ -10,7 +10,7 @@ export const UNIQUE_NAME_RULES = [
     min: 4,
   },
   {
-    message: '最长32位数',
-    max: 32,
+    message: '最长128位数',
+    max: 128,
   },
 ];
