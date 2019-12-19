@@ -239,6 +239,10 @@ class Profile extends Component<
 
   onOperationTabChange = (key: string) => {
     this.setState({ operationKey: key });
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'profile/fetchAdvanced',
+    });
   };
 
   onTabChange = (tabActiveKey: string) => {

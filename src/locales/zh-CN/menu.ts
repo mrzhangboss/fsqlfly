@@ -58,4 +58,9 @@ export default {
   'menu.resources.images': '图片管理',
   'menu.projects': 'ddd',
   'menu.step-form': '测试',
+  'menu.visualization': '数据可视化',
+  'menu.display': 'display',
+  'menu.analysis': 'analysis',
+  'menu.resources.relationship': 'relationship',
+  'menu.resources.connection': 'connection',
 };

@@ -1,3 +1,5 @@
+import { delay } from 'roadhog-api-doc';
+
 const advancedOperation1 = [
   {
     key: 'op1',
@@ -69,6 +71,8 @@ const getProfileAdvancedData = {
   advancedOperation3,
 };
 
-export default {
+const proxy = {
   'GET  /api/profile/advanced': getProfileAdvancedData,
 };
+
+export default delay(proxy, 5000);

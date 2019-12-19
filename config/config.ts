@@ -111,6 +111,12 @@ export default {
           locale: 'menu',
         },
         {
+          name: 'visualization',
+          icon: 'bulb',
+          path: '/visualization',
+          component: './visualization',
+        },
+        {
           name: 'display',
           icon: 'bulb',
           path: '/display',

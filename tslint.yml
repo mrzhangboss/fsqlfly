@@ -5,7 +5,6 @@ extends:
   - tslint-react
   - tslint-eslint-rules
   - tslint-config-prettier
-jsRules:
 rules:
   class-name: true
   eofline: true

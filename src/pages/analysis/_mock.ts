@@ -229,5 +229,5 @@ const tables = {
 
 export default {
   'GET  /api/fake_chart_data': getFakeChartData,
-  'GET /api/tables': mockjs.mock(tables),
+  'GET /api/tables/xxxxx': mockjs.mock(tables),
 };
