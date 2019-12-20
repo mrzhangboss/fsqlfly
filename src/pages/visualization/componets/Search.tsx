@@ -5,23 +5,19 @@ import { connect } from 'dva';
 
 const { Option } = Select;
 
-interface SearchConfig {
-  search: string;
-  limit: number;
-  table: string | null;
-}
-
 interface SearchProps {
   loading: boolean;
   submitting: boolean;
+  selectSubmitting: boolean;
   tables: TableMeta[];
   dispatch: Dispatch<any>;
+  selectTable: string;
+  search: string;
+  limit: number;
 }
 
 interface SearchState {
-  selectTable: string;
   currentTable: TableMeta | null;
-  searchConfig: SearchConfig;
 }
 
 @connect(
@@ -33,32 +29,34 @@ interface SearchState {
     loading: { effects: { [key: string]: boolean } };
   }) => ({
     tables: visualization.tables,
+    search: visualization.search,
+    selectTable: visualization.selectTable,
+    limit: visualization.limit,
     loading: loading.effects['visualization/fetchTables'],
     submitting: loading.effects['visualization/submitSearch'],
+    selectSubmitting: loading.effects['visualization/submitSelectTable'],
   }),
 )
 class SearchHeader extends PureComponent<SearchProps, SearchState> {
   state: SearchState = {
-    selectTable: '',
-    searchConfig: { search: '', limit: -1, table: null },
     currentTable: null,
   };
 
   handleSelectChange = (key: string) => {
-    const { tables } = this.props;
-    const { searchConfig } = this.state;
+    const { tables, dispatch } = this.props;
     const currentTable = tables.filter(x => x.tableName == key)[0];
-    this.setState({
-      selectTable: key,
-      currentTable,
-      searchConfig: { ...searchConfig, table: currentTable.tableName },
+    this.setState({ currentTable });
+    dispatch({
+      type: 'visualization/submitSelectTable',
+      payload: key,
     });
   };
 
   handleSearch = () => {
     message.loading('searching...');
-    const { searchConfig } = this.state;
-    console.log(this.state.searchConfig + '  begin....');
+    const { search, limit, selectTable } = this.props;
+    const searchConfig = { search, limit, selectTable };
+    console.log(searchConfig + '  begin....');
     const { dispatch } = this.props;
     dispatch({
       type: 'visualization/submitSearch',
@@ -67,18 +65,24 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
   };
 
   handleLimitChange = (limit: number) => {
-    const { searchConfig, selectTable } = this.state;
-    this.setState({ searchConfig: { ...searchConfig, limit } });
+    const { dispatch, selectTable } = this.props;
+    dispatch({
+      type: 'visualization/save',
+      payload: { limit },
+    });
     if (selectTable.length > 0) {
       this.handleSearch();
     }
   };
 
   handleSearchChange = (search: string) => {
-    const { searchConfig, selectTable } = this.state;
+    const { selectTable, dispatch } = this.props;
     if (selectTable.length > 0 && search.charAt(search.length - 1) == '\n') this.handleSearch();
     else {
-      this.setState({ searchConfig: { ...searchConfig, search } });
+      dispatch({
+        type: 'visualization/save',
+        payload: { search },
+      });
     }
   };
 
@@ -98,28 +102,8 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
     ));
   };
 
-  getAutoCompleteSource = () => {
-    const { currentTable } = this.state;
-
-    if (currentTable === null) return [];
-
-    return [currentTable].map(group => (
-      <AutoComplete.OptGroup key={group.tableName} label={group.tableName}>
-        {group.fields.map(opt => (
-          <AutoComplete.Option key={opt.name} value={opt.name}>
-            {opt.name}
-            <span className="certain-search-item-count">
-              {opt.primary ? <Tag>{opt.typ}</Tag> : <Badge status="success">{opt.typ} </Badge>}{' '}
-            </span>
-          </AutoComplete.Option>
-        ))}
-      </AutoComplete.OptGroup>
-    ));
-  };
-
   render() {
-    const { loading, tables, submitting } = this.props;
-    const { searchConfig } = this.state;
+    const { search, loading, tables, submitting, selectSubmitting } = this.props;
 
     const tableSource = tables.map(x => (
       // @ts-ignore
@@ -138,7 +122,7 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
       <Card loading={loading}>
         <span>
           <Select
-            disabled={submitting}
+            disabled={submitting || selectSubmitting}
             showSearch
             style={{ width: '15%' }}
             placeholder="select one table"
@@ -151,10 +135,10 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
           <Mentions
             style={{ width: '70%', marginLeft: 20 }}
             children={this.getMentionChildren()}
-            prefix={'$'}
+            prefix={['$']}
             onChange={this.handleSearchChange}
             disabled={submitting}
-            value={searchConfig.search}
+            value={search}
           />
           <span> </span>
 
@@ -167,9 +151,10 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
             onChange={this.handleLimitChange}
           >
             <Option value={-1}>all data</Option>
-            <Option value={10}>first 10</Option>
-            <Option value={100}>first 100</Option>
             <Option value={5000}>first 5000</Option>
+            <Option value={500}>first 500</Option>
+            <Option value={100}>first 100</Option>
+            <Option value={10}>first 10</Option>
           </Select>
         </span>
       </Card>

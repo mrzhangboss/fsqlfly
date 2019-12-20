@@ -7,6 +7,7 @@ interface TableField {
 
 interface TableMeta {
   name: string;
+  info: string;
   tableName: string;
   namespace: string;
   fields: TableField[];
@@ -14,4 +15,7 @@ interface TableMeta {
 
 interface VisualizationResult {
   tables: TableMeta[];
+  search: string;
+  limit: number;
+  selectTable: string;
 }
