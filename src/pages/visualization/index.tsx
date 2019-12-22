@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import { Dispatch } from 'redux';
 import SearchHeader from './componets/Search';
 import SearchBody from './componets/Result';
+import ResultBody from './componets/ResultBody';
 
 interface VisualizationState {}
 
@@ -37,6 +38,7 @@ class Visualization extends Component<VisualizationProps, VisualizationState> {
       <div>
         <SearchHeader />
         <SearchBody />
+        <ResultBody />
       </div>
     );
   }

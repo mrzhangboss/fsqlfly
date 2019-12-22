@@ -1,4 +1,5 @@
 import { delay } from 'roadhog-api-doc';
+import * as mockjs from 'mockjs';
 
 const fields = [
   { name: 'id', typ: 'number', unique: true, primary: true },
@@ -105,8 +106,33 @@ const tables = {
   ],
 };
 
+const simpleTable = {
+  typ: 'father',
+  tableName: 'father_table',
+  show: true,
+  loading: false,
+  tableInfo: 'father table info',
+  values: [
+    { typ: 'number', name: 'id', value: 1 },
+    { typ: 'string', name: 'name', value: 'I am a name' },
+    { typ: 'string', name: 'info', value: 'justInfo' },
+    { typ: 'number', name: 'money', value: 1.23 },
+    { typ: 'datetime', name: 'create_at', value: '2019-01-02 09:00:00' },
+    { typ: 'datetime', name: 'modify_at', value: '2019-01-02 09:00:00' },
+  ],
+};
+
+const sonTable = {
+  typ: 'son',
+  show: true,
+  loading: false,
+  tableName: 'son_table',
+  tableInfo: 'son table info',
+  'values|20': [{ field_a: 'field', field_b: 1, field_c: '@word', name: '@word' }],
+};
 const proxy = {
   'GET  /api/tables': tables,
+  'GET /api/table': mockjs.mock({ 'data|1': [simpleTable, sonTable] }),
 };
 
 export default delay(proxy, 1000);

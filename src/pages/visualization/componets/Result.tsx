@@ -16,8 +16,6 @@ interface ResultProps {
 interface ResultState {
   searchText: string;
   searchedColumn: string;
-  activeKey: string;
-  panes: any[];
   allSelectedRowKeys: { [key: string]: string[] };
   displayTables: Array<{ key: string; value: string[] }>;
   currentTables: Array<{ name: string; show: boolean }>;
@@ -71,15 +69,9 @@ class SearchBody extends Component<ResultProps, ResultState> {
   getInitSelectRowKeys = () => ({ father: [], son: [], other: [] });
   getInitDisplayTables = () => ALL_RELATIONS.map(x => ({ key: x, value: [] }));
 
-  newTabIndex = 3;
   state: ResultState = {
     searchedColumn: '',
     searchText: '',
-    activeKey: '',
-    panes: [
-      { title: 'Tab 1', content: 'Content of Tab Pane 1', key: '1' },
-      { title: 'Tab 2', content: 'Content of Tab Pane 2', key: '2' },
-    ],
     allSelectedRowKeys: this.getInitSelectRowKeys(),
     displayTables: this.getInitDisplayTables(),
     currentTables: [],
@@ -264,19 +256,27 @@ class SearchBody extends Component<ResultProps, ResultState> {
   start = () => {
     // ajax request after empty completing
 
+    const { dispatch } = this.props;
+
+    const displayTables = ALL_RELATIONS.map(x => ({
+      key: x,
+      value: this.state.allSelectedRowKeys[x].concat(
+        this.state.displayTables.filter(tb => tb.key === x)[0].value.length > 0
+          ? this.state.displayTables.filter(tb => tb.key === x)[0].value
+          : [],
+      ),
+    }));
+    dispatch({
+      type: 'visualization/submitSearchAll',
+      payload: displayTables,
+    });
+
     setTimeout(() => {
       this.setState({
-        displayTables: ALL_RELATIONS.map(x => ({
-          key: x,
-          value: this.state.allSelectedRowKeys[x].concat(
-            this.state.displayTables.filter(tb => tb.key === x)[0].value.length > 0
-              ? this.state.displayTables.filter(tb => tb.key === x)[0].value
-              : [],
-          ),
-        })),
+        displayTables: displayTables,
         allSelectedRowKeys: this.getInitSelectRowKeys(),
       });
-    }, 1000);
+    }, 100);
   };
 
   clearDisplay = () => {
@@ -284,32 +284,6 @@ class SearchBody extends Component<ResultProps, ResultState> {
       displayTables: this.getInitDisplayTables(),
       allSelectedRowKeys: this.getInitSelectRowKeys(),
     });
-  };
-
-  add = () => {
-    const { panes } = this.state;
-    const activeKey = `newTab${this.newTabIndex++}`;
-    panes.push({ title: 'New Tab', content: 'New Tab Pane', key: activeKey });
-    this.setState({ panes, activeKey });
-  };
-
-  remove = (targetKey: string) => {
-    let { activeKey } = this.state;
-    let lastIndex;
-    this.state.panes.forEach((pane, i) => {
-      if (pane.key === targetKey) {
-        lastIndex = i - 1;
-      }
-    });
-    const panes = this.state.panes.filter(pane => pane.key !== targetKey);
-    if (panes.length && activeKey === targetKey) {
-      if (lastIndex >= 0) {
-        activeKey = panes[lastIndex].key;
-      } else {
-        activeKey = panes[0].key;
-      }
-    }
-    this.setState({ panes, activeKey });
   };
 
   render() {
@@ -320,7 +294,8 @@ class SearchBody extends Component<ResultProps, ResultState> {
       0,
     );
     const hasSelected = hasSelectedNum > 0;
-    const clearCanSelected = displayTables.length > 0;
+    const clearCanSelected =
+      displayTables.map(x => x.value.length).reduce((a: number, b: number) => a + b, 0) > 0;
     return (
       <div style={{ marginTop: 20 }}>
         <Card loading={loading}>
@@ -366,22 +341,6 @@ class SearchBody extends Component<ResultProps, ResultState> {
             <Tabs.TabPane tab="Other" key="3">
               {this.getListTag('other')}
             </Tabs.TabPane>
-          </Tabs>
-        </Card>
-
-        <Card loading={loading} style={{ marginTop: 20 }}>
-          <Tabs
-            hideAdd
-            onChange={x => this.setState({ activeKey: x })}
-            activeKey={this.state.activeKey}
-            type="editable-card"
-            onEdit={(a, b) => this[b](a)}
-          >
-            {this.state.panes.map(pane => (
-              <Tabs.TabPane tab={pane.title} key={pane.key}>
-                {pane.content}
-              </Tabs.TabPane>
-            ))}
           </Tabs>
         </Card>
       </div>

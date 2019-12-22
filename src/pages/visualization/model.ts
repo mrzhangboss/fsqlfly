@@ -1,7 +1,7 @@
 import { AnyAction, Reducer } from 'redux';
 
 import { EffectsCommandMap } from 'dva';
-import { queryTables } from './service';
+import { queryTables, queryTable } from './service';
 import { message } from 'antd';
 
 export type Effect = (
@@ -16,9 +16,12 @@ export interface ModelType {
     fetchTables: Effect;
     submitSearch: Effect;
     submitSelectTable: Effect;
+    submitSearchAll: Effect;
+    submitSearchOne: Effect;
   };
   reducers: {
     save: Reducer<VisualizationResult>;
+    saveTableSearch: Reducer<VisualizationResult>;
   };
 }
 
@@ -27,6 +30,7 @@ const Model: ModelType = {
 
   state: {
     tables: [],
+    details: [],
     search: '',
     selectTable: '',
     limit: -1,
@@ -56,6 +60,10 @@ const Model: ModelType = {
       console.log('submitSelectTable ');
       console.log(payload);
       console.log('data is ' + response.data);
+    },
+    *submitSearchAll({ payload }, { call, put, select }) {},
+    *submitSearchOne({ payload }, { call, put }) {
+      const response = yield call(queryTable, payload);
     },
   },
 

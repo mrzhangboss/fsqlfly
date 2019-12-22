@@ -2,7 +2,6 @@ import { Badge, Button, Divider, Dropdown, Form, Icon, Menu, message } from 'ant
 import React, { useState } from 'react';
 
 import { FormComponentProps } from 'antd/es/form';
-import ProTable, { ProColumns, UseFetchDataAction } from '@ant-design/pro-table';
 import CreateForm from './components/CreateForm';
 import UpdateForm, { FormValueType } from './components/UpdateForm';
 import { TableListItem } from './data.d';
@@ -158,48 +157,6 @@ const TableList: React.FC<TableListProps> = () => {
 
   return (
     <div>
-      <ProTable<TableListItem>
-        headerTitle="查询表格"
-        onInit={setActionRef}
-        rowKey="key"
-        renderToolBar={(action, { selectedRows }) => [
-          <Button icon="plus" type="primary" onClick={() => handleModalVisible(true)}>
-            新建
-          </Button>,
-          selectedRows && selectedRows.length > 0 && (
-            <Dropdown
-              overlay={
-                <Menu
-                  onClick={async e => {
-                    if (e.key === 'remove') {
-                      await handleRemove(selectedRows);
-                      action.reload();
-                    }
-                  }}
-                  selectedKeys={[]}
-                >
-                  <Menu.Item key="remove">批量删除</Menu.Item>
-                  <Menu.Item key="approval">批量审批</Menu.Item>
-                </Menu>
-              }
-            >
-              <Button>
-                批量操作 <Icon type="down" />
-              </Button>
-            </Dropdown>
-          ),
-        ]}
-        renderTableAlert={(selectedRowKeys, selectedRows) => (
-          <div>
-            已选择 <a style={{ fontWeight: 600 }}>{selectedRowKeys.length}</a> 项&nbsp;&nbsp;
-            <span>
-              服务调用次数总计 {selectedRows.reduce((pre, item) => pre + item.callNo, 0)} 万
-            </span>
-          </div>
-        )}
-        request={params => queryRule(params)}
-        columns={columns}
-      />
       <CreateForm
         onSubmit={async value => {
           const success = await handleAdd(value);
