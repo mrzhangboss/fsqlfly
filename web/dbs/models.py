@@ -178,3 +178,56 @@ class Transform(BaseModel):
         if self.namespace is not None:
             return self.namespace.name
         return "-"
+
+
+class ConnectionType:
+    class MYSQL:
+        name = 'mysql'
+        suffix = 'ms'
+
+    class KAFKA:
+        name = 'kafka'
+        suffix = 'kf'
+
+    class HIVE:
+        name = 'hive'
+        suffix = 'hv'
+
+    @classmethod
+    def get_suffix(cls, name):
+        for ob in [cls.MYSQL, cls.KAFKA, cls.HIVE]:
+            if getattr(ob, 'name') == name:
+                return getattr(ob, 'suffix')
+        raise Exception("Not Find suffix")
+
+
+class Connection(BaseModel):
+    create_by = models.IntegerField("创建用户ID", default=0)
+    name = models.CharField("名字", max_length=256)
+    typ = models.CharField("类型", max_length=256)
+    suffix = models.CharField("自主后缀", max_length=32, null=True, blank=True)
+    username = models.CharField("用户名", max_length=64, null=True, blank=True)
+    password = models.CharField("密码", max_length=256, null=True, blank=True)
+    info = models.CharField("介绍", max_length=2048, null=True, blank=True)
+    url = models.CharField("链接信息", max_length=2048, null=True, blank=True)
+    cache = models.TextField("缓存")
+    update_interval = models.IntegerField("更新间隔（秒）", default=3600)
+
+    class Meta:
+        db_table = "connection"
+        unique_together = ["create_by", "name"]
+        index_together = ["create_by", "name"]
+
+
+class Relationship(BaseModel):
+    create_by = models.IntegerField("创建用户ID", default=0)
+    name = models.CharField("名字", max_length=256, db_index=True)
+    info = models.CharField("介绍", max_length=2048, null=True, blank=True)
+    cache = models.TextField("缓存")
+    typ = models.CharField("类型", max_length=256, choices=[('json', 'json'), ('yml', 'yml')], default='yml')
+    config = models.TextField("配置")
+
+    class Meta:
+        db_table = 'relationship'
+        unique_together = ["create_by", "name"]
+        index_together = ["create_by", "name"]
