@@ -8,16 +8,22 @@ TABLE_TYPE = (
 )
 
 
-class Namespace(models.Model):
-    name = models.CharField("名字", max_length=256, db_index=True)
-    info = models.CharField("介绍", max_length=2048, null=True, blank=True)
-    avatar = models.CharField("图片地址", max_length=2048, null=True, blank=True)
-    create_by = models.IntegerField("创建用户ID", default=0)
+class BaseModel(models.Model):
     is_deleted = models.BooleanField(default=False)
     is_publish = models.BooleanField(default=False)
     is_available = models.BooleanField(default=True)
     create_at = models.DateTimeField(auto_now_add=True)
     update_at = models.DateTimeField(auto_now=True, db_index=True)
+
+    class Meta:
+        abstract = True
+
+
+class Namespace(BaseModel):
+    name = models.CharField("名字", max_length=256, db_index=True)
+    info = models.CharField("介绍", max_length=2048, null=True, blank=True)
+    avatar = models.CharField("图片地址", max_length=2048, null=True, blank=True)
+    create_by = models.IntegerField("创建用户ID", default=0)
 
     class Meta:
         db_table = "namespace"
@@ -46,16 +52,11 @@ class Namespace(models.Model):
     _update_at.short_description = 'update'
 
 
-class FileResource(models.Model):
+class FileResource(BaseModel):
     unique_name = models.CharField("唯一名称", max_length=128)  # make true user give unique name
     info = models.CharField("介绍", max_length=1024, null=True, blank=True)
     real_path = models.CharField("文件路径", max_length=2048)
     create_by = models.IntegerField("创建用户ID", default=0)
-    is_publish = models.BooleanField(default=False)
-    is_deleted = models.BooleanField(default=False)
-    is_available = models.BooleanField(default=True)
-    create_at = models.DateTimeField(auto_now_add=True)
-    update_at = models.DateTimeField(auto_now=True, db_index=True)
 
     class Meta:
         db_table = "file_resource"
@@ -78,18 +79,13 @@ class FileResource(models.Model):
     _update_at.short_description = 'update'
 
 
-class Resource(models.Model):
+class Resource(BaseModel):
     name = models.CharField("表名", max_length=256, db_index=True)
     info = models.CharField("介绍", max_length=2048, null=True, blank=True)
     typ = models.CharField("表类型", max_length=16, choices=TABLE_TYPE)
     yaml = models.TextField("其他信息(yaml格式)", default='')
     create_by = models.IntegerField("创建用户ID", default=0)
-    is_available = models.BooleanField(default=True)
-    is_publish = models.BooleanField(default=False)
-    is_deleted = models.BooleanField(default=False)
     namespace = models.ForeignKey(Namespace, on_delete=models.DO_NOTHING, null=True, blank=True)
-    create_at = models.DateTimeField(auto_now_add=True)
-    update_at = models.DateTimeField(auto_now=True, db_index=True)
 
     class Meta:
         db_table = "resource"
@@ -117,18 +113,13 @@ class Resource(models.Model):
     _update_at.short_description = 'update'
 
 
-class Functions(models.Model):
+class Functions(BaseModel):
     name = models.CharField("名字", max_length=256, db_index=True)
     function_from = models.CharField("来源", max_length=16, default="class")
     class_name = models.CharField("类名", max_length=256)
     constructor_config = models.CharField("构造器", max_length=2048)
     create_by = models.IntegerField("创建用户ID", default=0)
     resource = models.ForeignKey(FileResource, on_delete=models.DO_NOTHING)
-    is_publish = models.BooleanField(default=False)
-    is_deleted = models.BooleanField(default=False)
-    is_available = models.BooleanField(default=True)
-    create_at = models.DateTimeField(auto_now_add=True)
-    update_at = models.DateTimeField(auto_now=True, db_index=True)
 
     class Meta:
         db_table = "functions"
@@ -154,7 +145,7 @@ class Functions(models.Model):
         return self.resource.name
 
 
-class Transform(models.Model):
+class Transform(BaseModel):
     name = models.CharField("名字", max_length=256, db_index=True)
     info = models.CharField("介绍", max_length=2048, null=True, blank=True)
     sql = models.TextField("SQL")
@@ -162,11 +153,6 @@ class Transform(models.Model):
     yaml = models.TextField("其他信息(yaml格式)", default='')
     namespace = models.ForeignKey(Namespace, on_delete=models.DO_NOTHING, blank=True, null=True)
     create_by = models.IntegerField("创建用户ID", default=0)
-    is_publish = models.BooleanField(default=False)
-    is_deleted = models.BooleanField(default=False)
-    is_available = models.BooleanField(default=True)
-    create_at = models.DateTimeField(auto_now_add=True)
-    update_at = models.DateTimeField(auto_now=True, db_index=True)
 
     class Meta:
         db_table = "transform"
