@@ -231,6 +231,11 @@ class SearchBody extends Component<ResultProps, ResultState> {
 
   hiddenTable = (key: string, check: boolean) => {
     console.log(key, check);
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'visualization/hiddenTableDetail',
+      payload: { tableName: key, check: check },
+    });
   };
 
   getListTag = (index: string) => {
@@ -266,6 +271,7 @@ class SearchBody extends Component<ResultProps, ResultState> {
           : [],
       ),
     }));
+    console.log(displayTables);
     dispatch({
       type: 'visualization/submitSearchAll',
       payload: displayTables,

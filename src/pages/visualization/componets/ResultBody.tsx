@@ -1,12 +1,14 @@
 import React, { Component, ReactNode } from 'react';
-import { Card, Tabs } from 'antd';
+import { Card, Descriptions, Divider, Empty, Icon, Table, Tabs, Tooltip } from 'antd';
 import { connect } from 'dva';
 import { Dispatch } from 'redux';
+import { GridContent } from '@ant-design/pro-layout';
+import { ColumnFilterItem } from 'antd/lib/table/interface';
 
 interface ResultProp {
   loading: boolean;
   submitting: boolean;
-  tables: TableMeta[];
+  tables: TableDetail[];
   dispatch: Dispatch<any>;
 }
 
@@ -23,7 +25,7 @@ interface ResultState {
     visualization: VisualizationResult;
     loading: { effects: { [key: string]: boolean } };
   }) => ({
-    tables: visualization.tables,
+    tables: visualization.details,
     loading: loading.effects['visualization/fetchTables'],
     submitting: loading.effects['visualization/submitSelectTable'],
   }),
@@ -64,24 +66,128 @@ class ResultBody extends Component<ResultProp, ResultState> {
     this.setState({ panes, activeKey });
   };
 
+  generateTableColumn = (source: TableDetail) => {
+    const fields = source.fields.map(fd => {
+      if (fd.typ === 'number') {
+        return {
+          title: fd.name,
+          dataIndex: fd.name,
+          key: fd.name,
+          sorter: (a, b) => a[fd.name] - b[fd.name],
+        };
+      } else if (fd.typ === 'choose') {
+        // @ts-ignore
+        const chooseFilter: ColumnFilterItem[] = [
+          ...new Set(source.values.map(x => x[fd.name])),
+        ].map(ss => ({
+          text: ss,
+          value: ss,
+        }));
+        return {
+          title: fd.name,
+          dataIndex: fd.name,
+          key: fd.name,
+          filters: chooseFilter,
+          onFilter: (value: string, record: TableMeta) => record[fd.name].indexOf(value) === 0,
+          sorter: (a: TableMeta, b: TableMeta) => a[fd.name].length - b[fd.name].length,
+          sortDirections: ['descend'],
+        };
+      } else {
+        return {
+          title: fd.name,
+          dataIndex: fd.name,
+          key: fd.name,
+        };
+      }
+    });
+    return fields;
+  };
+
+  getListBody = (source: TableDetail) => {
+    // @ts-ignore
+    return (
+      <Table
+        rowKey={'tableName'}
+        columns={this.generateTableColumn(source)}
+        dataSource={source.values}
+        loading={source.loading}
+      />
+    );
+  };
+
+  getDetailBody = (source: TableDetail) => {
+    return (
+      <div>
+        <Descriptions style={{ marginBottom: 24 }}>
+          {source.values.map(fd => (
+            <Descriptions.Item label={fd.name}>{fd.value}</Descriptions.Item>
+          ))}
+        </Descriptions>
+      </div>
+    );
+  };
+
+  generateTableDetail = (tab: TableDetail) => {
+    if (!tab.show) {
+      return <></>;
+    } else if (tab.loading) {
+      <Card
+        key={tab.tableName}
+        title={tab.tableName}
+        style={{ marginBottom: 24 }}
+        bordered={false}
+        loading={tab.loading}
+      >
+        {' '}
+        <Empty />
+      </Card>;
+    } else if (tab.typ === 'father') {
+      return (
+        <Card
+          key={tab.tableName}
+          title={tab.tableName}
+          style={{ marginBottom: 24 }}
+          bordered={false}
+          loading={tab.loading}
+        >
+          {this.getDetailBody(tab)}
+        </Card>
+      );
+    } else {
+      return (
+        <Card
+          key={tab.tableName}
+          title={tab.tableName}
+          style={{ marginBottom: 24 }}
+          bordered={false}
+          loading={tab.loading}
+        >
+          {this.getListBody(tab)}
+        </Card>
+      );
+    }
+  };
+
   render() {
-    const { loading } = this.props;
+    const { loading, tables } = this.props;
 
     return (
       <Card loading={loading} style={{ marginTop: 20 }}>
-        <Tabs
-          hideAdd
-          onChange={x => this.setState({ activeKey: x })}
-          activeKey={this.state.activeKey}
-          type="editable-card"
-          onEdit={(a, b) => this[b](a)}
-        >
-          {this.state.panes.map(pane => (
-            <Tabs.TabPane tab={pane.title} key={pane.key}>
-              {pane.content}
-            </Tabs.TabPane>
-          ))}
-        </Tabs>
+        {/*<Tabs*/}
+        {/*  hideAdd*/}
+        {/*  onChange={x => this.setState({ activeKey: x })}*/}
+        {/*  activeKey={this.state.activeKey}*/}
+        {/*  type="editable-card"*/}
+        {/*  onEdit={(a, b) => this[b](a)}*/}
+        {/*>*/}
+        {/*  {this.state.panes.map(pane => (*/}
+        {/*    <Tabs.TabPane tab={pane.title} key={pane.key}>*/}
+        {/*      {pane.content}*/}
+        {/*    </Tabs.TabPane>*/}
+        {/*  ))}*/}
+
+        {/*</Tabs>*/}
+        {tables.map(x => this.generateTableDetail(x))}
       </Card>
     );
   }

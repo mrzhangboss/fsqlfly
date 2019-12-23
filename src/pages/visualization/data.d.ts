@@ -22,6 +22,7 @@ interface TableDetail {
   values:
     | Array<{ typ: string; name: string; value: string | number }>
     | Array<{ [key: string]: number | string }>;
+  fields: Array<{ name: string; typ: 'number' | 'choose' | 'text' | 'date' | 'datetime' }>;
 }
 
 interface VisualizationResult {
