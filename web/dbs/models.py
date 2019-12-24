@@ -209,8 +209,8 @@ class Connection(BaseModel):
     username = models.CharField("用户名", max_length=64, null=True, blank=True)
     password = models.CharField("密码", max_length=256, null=True, blank=True)
     info = models.CharField("介绍", max_length=2048, null=True, blank=True)
-    url = models.CharField("链接信息", max_length=2048, null=True, blank=True)
-    cache = models.TextField("缓存")
+    url = models.CharField("链接信息", max_length=2048)
+    cache = models.TextField("缓存", null=True, blank=True)
     update_interval = models.IntegerField("更新间隔（秒）", default=3600)
 
     class Meta:
@@ -223,7 +223,7 @@ class Relationship(BaseModel):
     create_by = models.IntegerField("创建用户ID", default=0)
     name = models.CharField("名字", max_length=256, db_index=True)
     info = models.CharField("介绍", max_length=2048, null=True, blank=True)
-    cache = models.TextField("缓存")
+    cache = models.TextField("缓存", null=True, blank=True)
     typ = models.CharField("类型", max_length=256, choices=[('json', 'json'), ('yml', 'yml')], default='yml')
     config = models.TextField("配置")
 
