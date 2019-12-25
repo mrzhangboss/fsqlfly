@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import attr
+import warnings
 from typing import List, Union, Any, Optional
 from copy import deepcopy
 from collections import defaultdict
@@ -8,7 +9,7 @@ from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.result import ResultProxy
 from sqlalchemy.types import TypeDecorator
-
+from sqlalchemy import exc as sa_exc
 
 @attr.s
 class ColumnInfo:
@@ -74,14 +75,17 @@ class Crawler:
     @classmethod
     def get_all_database(cls, engine: Engine):
         filter_dbs = {'information_schema', 'mysql', 'performance_schema', 'sys'}
-        return [x[0] for x in cls.execute_sql(engine, 'show databases;') if x[0] not in filter_dbs]
+        return [x[0] for x in cls.execute_sql(engine, 'show databases') if x[0] not in filter_dbs]
 
     def get_cache(self, connection_url: str, suffix: str, typ: str) -> TableCache:
-        if typ == 'mysql':
-            return self.get_mysql_cache(connection_url, suffix)
-        raise NotImplementedError("Not Support Generate {} Cache".format(typ))
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=sa_exc.SAWarning)
+            warnings.filterwarnings("ignore", category=ImportWarning)
+            if typ in {'mysql', 'hive'}:
+                return self.get_db_cache(connection_url, suffix, typ)
+            raise NotImplementedError("Not Support Generate {} Cache".format(typ))
 
-    def get_mysql_cache(self, connection_url: str, suffix: str) -> TableCache:
+    def get_db_cache(self, connection_url: str, suffix: str, typ: str) -> TableCache:
         url = make_url(connection_url)
 
         engine = create_engine(url)
@@ -93,12 +97,12 @@ class Crawler:
 
             table_names = set(insp.get_table_names(db))
             for n in table_names:
-                t_comment = insp.get_table_comment(n, db)['text']
+                t_comment = insp.get_table_comment(n, db)['text'] if typ == 'mysql' else None
                 columns = [ColumnInfo(**x) for x in insp.get_columns(n, db)]
-                foreign_keys = [ForeignKey(**x) for x in insp.get_foreign_keys(n, db)]
-                unique_keys = [UniqueKey(**x) for x in insp.get_unique_constraints(n, db)]
+                foreign_keys = [ForeignKey(**x) for x in insp.get_foreign_keys(n, db)] if typ == 'mysql' else []
+                unique_keys = [UniqueKey(**x) for x in insp.get_unique_constraints(n, db)]  if typ == 'mysql' else []
                 indexes = [IndexKey(**x) for x in insp.get_indexes(n, db)]
-                primary_keys = insp.get_primary_keys(n, db)
+                primary_keys = insp.get_primary_keys(n, db) if typ == 'mysql' else []
                 table_info = TableInfo(name=n, database=db, columns=columns,
                                        foreign_keys=foreign_keys,
                                        primary_keys=primary_keys,

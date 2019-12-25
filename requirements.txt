@@ -30,3 +30,4 @@ mysqlclient
 
 
 jinja2
+
