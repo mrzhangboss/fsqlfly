@@ -6,7 +6,7 @@ from pprint import pprint
 from web.settings import ENV
 import unittest
 
-
+NAME = 'TEST'
 class MyTestCase(unittest.TestCase):
 
     def test_mysql(self):
@@ -14,7 +14,7 @@ class MyTestCase(unittest.TestCase):
         if url is None:
             return self.assertEqual(True, True)
         crawler = Crawler()
-        cache = crawler.get_cache(url, 'ms', 'mysql')
+        cache = crawler.get_cache(url, 'ms', 'mysql', NAME)
         pprint(attr.asdict(cache))
         data = pickle.dumps(cache)
         assert data is not None
@@ -24,7 +24,7 @@ class MyTestCase(unittest.TestCase):
         if url is None:
             return self.assertEqual(True, True)
         crawler = Crawler()
-        cache = crawler.get_cache(url, 'hv', 'hive')
+        cache = crawler.get_cache(url, 'hv', 'hive', NAME)
         pprint(attr.asdict(cache))
         data = pickle.dumps(cache)
         assert data is not None
@@ -36,7 +36,7 @@ class MyTestCase(unittest.TestCase):
 
         crawler = Crawler()
         crawler.generate_topic_info('guoshuLogUserlogininfo',  url)
-        cache = crawler.get_cache(url, 'kf', 'kafka')
+        cache = crawler.get_cache(url, 'kf', 'kafka', NAME)
         pprint(attr.asdict(cache))
         data = pickle.dumps(cache)
         assert data is not None

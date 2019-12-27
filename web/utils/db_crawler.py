@@ -3,19 +3,19 @@ import attr
 import kafka
 import warnings
 import json
-from typing import List, Union, Any, Optional, Set, Tuple, Dict
+from base64 import b64encode
+from typing import List, Any, Optional, Set, Tuple, Dict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import defaultdict, Counter
-from copy import deepcopy
-from collections import defaultdict
 from sqlalchemy import create_engine, inspect
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.engine import Engine
-from sqlalchemy.engine.result import ResultProxy
-from sqlalchemy.types import TypeDecorator, TypeEngine
+from sqlalchemy.types import TypeEngine
 from sqlalchemy import exc as sa_exc
 from kafka.consumer.fetcher import ConsumerRecord
 from kafka import TopicPartition
+from kafka import SimpleClient
+from kafka.common import OffsetRequestPayload
 
 
 @attr.s
@@ -57,6 +57,7 @@ class IndexKey:
 @attr.s(auto_attribs=True)
 class TableInfo:
     name: str = attr.ib()
+    connection_url: str = attr.ib()
     database: str = attr.ib()
     comment: Optional[str] = attr.ib()
     columns: List[ColumnInfo] = attr.Factory(list)
@@ -81,6 +82,7 @@ class TopicInfo:
 
 @attr.s(auto_attribs=True)
 class TableCache:
+    name: str = attr.ib()
     typ: str = attr.ib()
     suffix: str = attr.ib()
     tables: List[TableInfo] = attr.Factory(list)
@@ -99,22 +101,22 @@ class Crawler:
         filter_dbs = {'information_schema', 'mysql', 'performance_schema', 'sys'}
         return [x[0] for x in cls.execute_sql(engine, 'show databases') if x[0] not in filter_dbs]
 
-    def get_cache(self, connection_url: str, suffix: str, typ: str) -> TableCache:
+    def get_cache(self, connection_url: str, suffix: str, typ: str, name: str) -> TableCache:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=sa_exc.SAWarning)
             warnings.filterwarnings("ignore", category=ImportWarning)
             if typ in {'mysql', 'hive'}:
-                return self.get_db_cache(connection_url, suffix, typ)
+                return self.get_db_cache(name, connection_url, suffix, typ)
             if typ == 'kafka':
-                return self.get_kafka_cache(connection_url, suffix)
+                return self.get_kafka_cache(connection_url, suffix, name)
             raise NotImplementedError("Not Support Generate {} Cache".format(typ))
 
-    def get_db_cache(self, connection_url: str, suffix: str, typ: str) -> TableCache:
+    def get_db_cache(self, name: str, connection_url: str, suffix: str, typ: str) -> TableCache:
         url = make_url(connection_url)
 
         engine = create_engine(url)
         databases = self.get_all_database(engine)
-        cache = TableCache(suffix=suffix, typ=typ)
+        cache = TableCache(suffix=suffix, typ=typ, name=name)
         insp = inspect(engine)
         cache.databases = databases
         for db in databases:
@@ -132,7 +134,8 @@ class Crawler:
                                        primary_keys=primary_keys,
                                        unique_keys=unique_keys,
                                        indexes=indexes,
-                                       comment=t_comment)
+                                       comment=t_comment,
+                                       connection_url=b64encode(connection_url.encode()).decode())
                 cache.tables.append(table_info)
 
         return cache
@@ -146,9 +149,6 @@ class Crawler:
 
     @classmethod
     def get_topic_offset(cls, topic: str, brokers: str) -> List[Tuple[int, int]]:
-        from kafka import SimpleClient
-        from kafka.protocol.offset import OffsetRequest, OffsetResetStrategy
-        from kafka.common import OffsetRequestPayload
 
         client = SimpleClient(brokers)
 
@@ -159,8 +159,8 @@ class Crawler:
         return [(r.partition, r.offsets[0]) for r in offsets_responses]
 
     @classmethod
-    def get_topic_last_msg(cls, topic: str, offsets: List[Tuple[int, int]], brokers: str, nums: int = 10) -> List[
-        Dict[TopicPartition, List[ConsumerRecord]]]:
+    def get_topic_last_msg(cls, topic: str, offsets: List[Tuple[int, int]],
+                           brokers: str, nums: int = 10) -> List[Dict[TopicPartition, List[ConsumerRecord]]]:
         consumer = kafka.KafkaConsumer(bootstrap_servers=brokers.split(','))
 
         try:
@@ -185,7 +185,7 @@ class Crawler:
             for m in msgs:
                 try:
                     data = json.loads(m)
-                except json.JSONDecodeError as error:
+                except json.JSONDecodeError as _:
                     return TopicInfo(name=topic, is_json=False)
                 else:
                     if isinstance(data, dict):
@@ -219,9 +219,9 @@ class Crawler:
 
         return TopicInfo(name=topic, fields=columns)
 
-    def get_kafka_cache(self, connection_url: str, suffix: str) -> TableCache:
+    def get_kafka_cache(self, connection_url: str, suffix: str, name: str) -> TableCache:
         with ThreadPoolExecutor() as executor:
-            cache = TableCache(suffix=suffix, typ='kafka')
+            cache = TableCache(suffix=suffix, typ='kafka', name=name)
             topics = self.get_kafka_topics(connection_url)
             tasks = []
             for x in topics:
