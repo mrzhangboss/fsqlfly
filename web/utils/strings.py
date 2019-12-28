@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import re
 import yaml
+import sqlparse
+from typing import Optional
+from collections import namedtuple
 from io import StringIO
 from typing import Callable, List, Tuple
 
@@ -81,3 +84,55 @@ def generate_yaml(source: List[Tuple[str, str]], is_sink: bool = False) -> str:
     }
     out = yaml.dump(data)
     return out
+
+
+SqlProps = namedtuple('SqlProps', ['name', 'value'])
+
+SQL_COMMENT_PATTERN = re.compile(r'/\*(.*?)(?=\*/)', re.DOTALL)
+SQL_COMMENT_PATTERN_CLEAN = re.compile(r'/\*.*?(?=\*/)\*/', re.DOTALL)
+
+
+def parse_sql(sql: str) -> List[SqlProps]:
+    res = []
+    for x in SQL_COMMENT_PATTERN.findall(sql):
+        if '=' in x:
+            k, v = map(str.strip, x.split('=', maxsplit=1))
+            if v.startswith("'") or v.startswith('"'):
+                v = v[1:-1]
+            elif re.findall('\d+\.\d+', v):
+                v = float(v)
+            elif v.isdigit():
+                v = int(v)
+            res.append(SqlProps(k, v))
+        else:
+            res.append(SqlProps(x.strip(), True))
+    return res
+
+
+def clean_sql(sql: str) -> str:
+    return SQL_COMMENT_PATTERN_CLEAN.sub('', sql).strip()
+
+
+def sql_safe_check(sql: str):
+    for statement in sqlparse.parse(sql):
+        if statement.get_type() != 'SELECT':
+            raise Exception("SQL SAFE CHECK FAIL {}".format(sql))
+
+
+def build_select_sql(sql: str, table_name: str, limit: int = -1, offset: Optional[int] = None,
+                     safe_check: bool = True) -> str:
+    sql = clean_sql(sql).replace('$', table_name + '.')
+    where_condition = 'where {}'.format(sql) if sql.strip() else ''
+    if limit > 0:
+        if offset is None:
+            limit_condition = f" limit {limit}"
+        else:
+            limit_condition = f" limit {offset}, {limit}"
+    else:
+        limit_condition = ""
+
+    full_sql = f"select * from {table_name} {where_condition}{limit_condition}"
+    if safe_check:
+        sql_safe_check(full_sql)
+
+    return full_sql
