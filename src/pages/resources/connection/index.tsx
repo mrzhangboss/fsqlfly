@@ -17,7 +17,8 @@ import {
   Col,
   Switch,
   Select,
-  Tag, Radio,
+  Tag,
+  Radio,
 } from 'antd';
 import { FormComponentProps } from 'antd/es/form';
 import { Connection } from '../data';
@@ -30,7 +31,7 @@ const { Search } = Input;
 import { AnyAction } from 'redux';
 import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
 // @ts-ignore
-import styles from "../style.less";
+import styles from '../style.less';
 import { RadioChangeEvent } from 'antd/lib/radio/interface';
 
 interface BasicListProps extends FormComponentProps {
@@ -56,15 +57,15 @@ interface BasicListState {
 
 const RadioGroup = Radio.Group;
 const RadioButton = Radio.Button;
-const NAMESPACE = 'connection'
+const NAMESPACE = 'connection';
 
 @connect(
   ({
-     connection,
+    connection,
     loading,
     total,
   }: {
-    connection: { list: Connection[]; };
+    connection: { list: Connection[] };
     loading: {
       models: { [key: string]: boolean };
     };
@@ -104,7 +105,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
   componentDidMount() {
     // @ts-ignore
-    this.doRefresh()
+    this.doRefresh();
   }
 
   doRefresh = () => {
@@ -112,10 +113,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     dispatch({
       type: `${NAMESPACE}/fetch`,
     });
-  }
-
-
-
+  };
 
   showModal = () => {
     this.setState({
@@ -142,7 +140,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const { dispatch } = this.props;
     dispatch({
       type: `${NAMESPACE}/run`,
-      payload: {method: mode, model: NAMESPACE, id: item.id},
+      payload: { method: mode, model: NAMESPACE, id: item.id },
       callback: (res: { msg: string; success: boolean }) => {
         this.setState({
           msg: res.msg,
@@ -152,7 +150,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       },
     });
   };
-
 
   handleDone = () => {
     setTimeout(() => this.addBtn && this.addBtn.blur(), 0);
@@ -185,7 +182,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       if (err) return;
       this.setState({ submitted: true });
 
-
       dispatch({
         type: `${NAMESPACE}/submit`,
         payload: { ...current, ...fieldsValue },
@@ -216,7 +212,10 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   getFilterPageData = () => {
     const { search, tag } = this.state;
     const { listBasicList } = this.props;
-    const res =  listBasicList.filter(x => (search.length === 0 ||  x.name.indexOf(search) >= 0 )&& (tag.length === 0 || tag === x.connectionType));
+    const res = listBasicList.filter(
+      x =>
+        (search.length === 0 || x.name.indexOf(search) >= 0) && (tag.length === 0 || tag === x.typ),
+    );
     console.log(res.length);
     console.log(res);
     return res;
@@ -238,7 +237,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   render() {
-    const supportConnectionType = ['mysql', 'hiveServer2Thrift', 'kafka']
+    const supportConnectionType = ['mysql', 'hiveServer2Thrift', 'kafka'];
     const { loading } = this.props;
     const {
       form: { getFieldDecorator },
@@ -287,7 +286,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
     const extraContent = (
       <div className={styles.extraContent}>
-        <Button onClick={this.doRefresh}><Icon type="reload" /></Button>
+        <Button onClick={this.doRefresh}>
+          <Icon type="reload" />
+        </Button>
         <RadioGroup defaultValue={null} onChange={this.onTagChage}>
           <RadioButton value={''}>全部</RadioButton>
           {supportConnectionType.map(x => {
@@ -307,14 +308,14 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       </div>
     );
     const ListContent = ({
-      data: { name, connectionType , isAvailable, isPublish, createAt, updateAt },
+      data: { name, typ, isAvailable, isPublish, createAt, updateAt },
     }: {
       data: Connection;
     }) => (
       <div className={styles.listContent}>
         <div className={styles.listContentItem}>
           <p>
-            <Tag>{connectionType}</Tag>
+            <Tag>{typ}</Tag>
           </p>
         </div>
         <div className={styles.listContentItem}>
@@ -345,8 +346,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         overlay={
           <Menu onClick={({ key }) => editAndDelete(key, item)}>
             <Menu.Item key="delete">删除</Menu.Item>
-            <Menu.Item key="update">UpdateDataSource</Menu.Item>
-            <Menu.Item key="upgrade">UpgradeDataSource</Menu.Item>
+            <Menu.Item key="update">更新</Menu.Item>
           </Menu>
         }
       >
@@ -381,13 +381,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             })(<Input placeholder="请输入" />)}
           </FormItem>
 
-
-
-
-
           <FormItem label="类型" {...this.formLayout}>
-            {getFieldDecorator('connectionType', {
-              initialValue: 'mysql',
+            {getFieldDecorator('typ', {
+              initialValue: current.typ,
               rules: [
                 {
                   required: true,
@@ -395,21 +391,31 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               ],
             })(
               <Select placeholder="请选择" size="default" style={{ width: 120 }}>
-                {
-                supportConnectionType.map((x: string) => {
-                    return (
-                      <SelectOption key={x} value={x}>
-                        {x}
-                      </SelectOption>
-                    );
-                  })}
+                {supportConnectionType.map((x: string) => {
+                  return (
+                    <SelectOption key={x} value={x}>
+                      {x}
+                    </SelectOption>
+                  );
+                })}
               </Select>,
             )}
           </FormItem>
 
           <FormItem label="connectionUrl" {...this.formLayout}>
-            {getFieldDecorator('connection_url', {
-              initialValue: current.connectionUrl,
+            {getFieldDecorator('url', {
+              initialValue: current.url,
+              rules: [
+                {
+                  required: true,
+                },
+              ],
+            })(<Input placeholder="请输入" />)}
+          </FormItem>
+
+          <FormItem label="后缀" {...this.formLayout}>
+            {getFieldDecorator('suffix', {
+              initialValue: current.suffix,
               rules: [
                 {
                   required: true,
@@ -438,6 +444,17 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 },
               ],
             })(<Input type="password" placeholder="请输入" />)}
+          </FormItem>
+
+          <FormItem label="自动更新周期（s）" {...this.formLayout}>
+            {getFieldDecorator('updateInterval', {
+              initialValue: current.updateInterval,
+              rules: [
+                {
+                  required: true,
+                },
+              ],
+            })(<Input type="number" placeholder="请输入" />)}
           </FormItem>
 
           <FormItem label="其他" {...this.formLayout}>
@@ -504,10 +521,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       <MoreBtn key="more" item={item} />,
                     ]}
                   >
-                    <List.Item.Meta
-                      title={<a href="#">{item.name}</a>}
-                      description={item.extra}
-                    />
+                    <List.Item.Meta title={<a href="#">{item.name}</a>} description={item.info} />
                     <ListContent data={item} />
                   </List.Item>
                 )}

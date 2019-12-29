@@ -119,11 +119,11 @@ const Model: ModelType = {
     },
     //@ts-ignore
     saveTableSearch(state, { payload }) {
-      if (state?.details.filter(x => x.tableName === payload.tableName).length === 0) {
+      if (state.details.filter(x => x.tableName === payload.tableName).length === 0) {
         const newDetail = [...state.details, payload];
         return { ...state, details: newDetail };
       } else {
-        const newDetails = state?.details.map(x => {
+        const newDetails = state.details.map(x => {
           if (x.tableName === payload.tableName) return payload;
           return x;
         });

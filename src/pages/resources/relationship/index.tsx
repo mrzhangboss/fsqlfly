@@ -27,7 +27,7 @@ const { Search } = Input;
 import { AnyAction } from 'redux';
 import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
 // @ts-ignore
-import styles from "../style.less";
+import styles from '../style.less';
 import { RadioChangeEvent } from 'antd/lib/radio/interface';
 import AceEditor from 'react-ace';
 
@@ -52,16 +52,15 @@ interface BasicListState {
   currentPage: number;
 }
 
-
-const NAMESPACE = 'relationship'
+const NAMESPACE = 'relationship';
 
 @connect(
   ({
-     relationship,
+    relationship,
     loading,
     total,
   }: {
-    relationship: { list: Relationship[]; };
+    relationship: { list: Relationship[] };
     loading: {
       models: { [key: string]: boolean };
     };
@@ -101,7 +100,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
   componentDidMount() {
     // @ts-ignore
-    this.doRefresh()
+    this.doRefresh();
   }
 
   doRefresh = () => {
@@ -109,7 +108,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     dispatch({
       type: `${NAMESPACE}/fetch`,
     });
-  }
+  };
 
   showModal = () => {
     this.setState({
@@ -136,7 +135,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const { dispatch } = this.props;
     dispatch({
       type: `${NAMESPACE}/run`,
-      payload: {...item, method: mode, model: NAMESPACE, id: item.id},
+      payload: { ...item, method: mode, model: NAMESPACE, id: item.id },
       callback: (res: { msg: string; success: boolean }) => {
         this.setState({
           msg: res.msg,
@@ -146,7 +145,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       },
     });
   };
-
 
   handleDone = () => {
     setTimeout(() => this.addBtn && this.addBtn.blur(), 0);
@@ -179,7 +177,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       if (err) return;
       this.setState({ submitted: true });
 
-
       dispatch({
         type: `${NAMESPACE}/submit`,
         payload: { ...current, ...fieldsValue },
@@ -210,7 +207,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   getFilterPageData = () => {
     const { search } = this.state;
     const { listBasicList } = this.props;
-    const res =  listBasicList.filter(x => (search.length === 0 ||  x.name.indexOf(search) >= 0 ));
+    const res = listBasicList.filter(x => search.length === 0 || x.name.indexOf(search) >= 0);
     return res;
   };
 
@@ -282,7 +279,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
     const extraContent = (
       <div className={styles.extraContent}>
-        <Button onClick={this.doRefresh}><Icon type="reload" /></Button>
+        <Button onClick={this.doRefresh}>
+          <Icon type="reload" />
+        </Button>
         <Search
           defaultValue={search}
           className={styles.extraContentSearch}
@@ -297,7 +296,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       data: Relationship;
     }) => (
       <div className={styles.listContent}>
-
         <div className={styles.listContentItem}>
           <span>创建时间</span>
           <p>{moment(createAt).format('YYYY-MM-DD HH:mm')}</p>
@@ -326,8 +324,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         overlay={
           <Menu onClick={({ key }) => editAndDelete(key, item)}>
             <Menu.Item key="delete">删除</Menu.Item>
-            <Menu.Item key="update">UpdateDataSource</Menu.Item>
-            <Menu.Item key="upgrade">UpgradeDataSource</Menu.Item>
+            <Menu.Item key="update">更新</Menu.Item>
           </Menu>
         }
       >
@@ -362,7 +359,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             })(<Input placeholder="请输入" />)}
           </FormItem>
 
-
           <FormItem label="Info" {...this.formLayout}>
             {getFieldDecorator('info', {
               initialValue: current.info,
@@ -382,13 +378,21 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               editorProps={{ $blockScrolling: true }}
               readOnly={false}
               placeholder={'请输入Yaml配置'}
-              defaultValue={
-                current.config === '' ? '' : current.config
-              }
+              defaultValue={current.config === '' ? '' : current.config}
               value={current.config}
               // width={'765'}
               // height={'650'}
             />
+          </FormItem>
+          <FormItem label="自动更新周期（s）" {...this.formLayout}>
+            {getFieldDecorator('updateInterval', {
+              initialValue: current.updateInterval,
+              rules: [
+                {
+                  required: true,
+                },
+              ],
+            })(<Input type="number" placeholder="请输入" />)}
           </FormItem>
 
           <FormItem label="其他" {...this.formLayout}>
@@ -455,10 +459,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       <MoreBtn key="more" item={item} />,
                     ]}
                   >
-                    <List.Item.Meta
-                      title={<a href="#">{item.name}</a>}
-                      description={item.info}
-                    />
+                    <List.Item.Meta title={<a href="#">{item.name}</a>} description={item.info} />
                     <ListContent data={item} />
                   </List.Item>
                 )}
