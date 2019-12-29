@@ -76,6 +76,7 @@ class TopicField:
 @attr.s(auto_attribs=True)
 class TopicInfo:
     name: str = attr.ib()
+    connection_url: str = attr.ib()
     is_json: bool = attr.ib(default=True)
     fields: List[TopicField] = attr.Factory(list)
 
@@ -217,7 +218,7 @@ class Crawler:
                     column = TopicField(name=key, typ=data[0])
             columns.append(column)
 
-        return TopicInfo(name=topic, fields=columns)
+        return TopicInfo(name=topic, fields=columns, connection_url=brokers)
 
     def get_kafka_cache(self, connection_url: str, suffix: str, name: str) -> TableCache:
         with ThreadPoolExecutor() as executor:
