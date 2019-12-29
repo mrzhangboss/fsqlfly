@@ -121,7 +121,7 @@ def sql_safe_check(sql: str):
 
 def build_select_sql(sql: str, table_name: str, limit: int = -1, offset: Optional[int] = None,
                      safe_check: bool = True) -> str:
-    sql = clean_sql(sql).replace('$', table_name + '.')
+    sql = clean_sql(sql).replace('$', 'a.')
     where_condition = 'where {}'.format(sql) if sql.strip() else ''
     if limit > 0:
         if offset is None:
@@ -131,7 +131,7 @@ def build_select_sql(sql: str, table_name: str, limit: int = -1, offset: Optiona
     else:
         limit_condition = ""
 
-    full_sql = f"select * from {table_name} {where_condition}{limit_condition}"
+    full_sql = f"select * from {table_name} a {where_condition}{limit_condition}"
     if safe_check:
         sql_safe_check(full_sql)
 
