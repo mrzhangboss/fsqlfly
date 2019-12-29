@@ -73,7 +73,7 @@ class DBConnector:
         return self._engines[table.connection_url]
 
     def search(self, table: DBTableRelation, search: str, limit: int) -> DBResult:
-        if table.typ != DBType.mysql:
+        if table.typ == DBType.kafka:
             raise NotSupportException(f"{table.typ} not support in search")
         engine = self.get_db_engine(table)
         table_name = f'{table.table.database}.{table.table.name}'
@@ -194,8 +194,6 @@ class DBProxy:
         cache = DBCache(tables=tables)
 
         for ca in self._caches:
-            if ca.typ != DBType.mysql:
-                raise CacheGenerateNotSupportException("Not Support {} type Cache".format(ca.typ))
             for tb in chain(ca.tables, ca.topics):
 
                 table_name = self.get_global_table_name(tb, ca.suffix)
@@ -251,7 +249,7 @@ class DBProxy:
         if source_table not in self.sources.tables:
             return None
         real_table = self.sources.tables[source_table]
-        if table_name not in real_table.relations:
+        if table_name != source_table and table_name not in real_table.relations:
             return None
 
         source = self.get_search_table(search, self.sources.tables[source_table], limit=limit)
