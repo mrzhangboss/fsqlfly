@@ -26,9 +26,9 @@ class MyTestCase(unittest.TestCase):
         django_admin = ENV('TEST_DJANGO_USER_NAME', 'admin')
         source_tb = gen_real_db_name('auth_user')
         search_tb = gen_real_db_name('django_admin_log')
-        data = proxy.get_table(source_tb, search=f" $username = '{django_admin}' /* mode= xx */", table_name=source_tb,
+        data = proxy.get_table(source_tb, search=f" $username = '{django_admin}' /* mode= xx */", table_name=search_tb,
                                limit=100)
-        self.assertTrue(len(data) > 1)
+        self.assertEqual(data.tableName, search_tb)
 
     def test_sql_function(self):
         for sql, res in [

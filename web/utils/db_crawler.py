@@ -128,7 +128,7 @@ class Crawler:
                 foreign_keys = [ForeignKey(**x) for x in insp.get_foreign_keys(n, db)] if typ != 'hive' else []
                 unique_keys = [UniqueKey(**x) for x in insp.get_unique_constraints(n, db)] if typ != 'hive' else []
                 indexes = [IndexKey(**x) for x in insp.get_indexes(n, db)]
-                primary_keys = insp.get_primary_keys(n, db) if typ != 'hive' else []
+                primary_keys = insp.get_pk_constraint(n, db) if typ != 'hive' else []
                 table_info = TableInfo(name=n, database=db, columns=columns,
                                        foreign_keys=foreign_keys,
                                        primary_keys=primary_keys,
