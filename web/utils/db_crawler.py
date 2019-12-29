@@ -187,7 +187,7 @@ class Crawler:
                 try:
                     data = json.loads(m)
                 except json.JSONDecodeError as _:
-                    return TopicInfo(name=topic, is_json=False)
+                    return TopicInfo(name=topic, is_json=False, connection_url=brokers)
                 else:
                     if isinstance(data, dict):
                         for k, v in data.items():
@@ -205,7 +205,7 @@ class Crawler:
 
                             fields[k][typ] += 1
                     else:
-                        return TopicInfo(name=topic, is_json=False)
+                        return TopicInfo(name=topic, is_json=False, connection_url=brokers)
         columns = []
         for key, field in fields.items():
             if len(field.keys()) == 1:

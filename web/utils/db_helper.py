@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import attr
 import warnings
+import kafka
+import json
 from typing import List, Any, Optional, Dict, Set, Tuple, Union
 from collections import namedtuple, defaultdict
 from datetime import datetime, date
@@ -10,7 +12,8 @@ from itertools import chain
 from utils.db_crawler import TableCache, TableInfo, TopicInfo, ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-from utils.strings import build_select_sql, parse_sql
+from utils.strings import build_select_sql, parse_sql, clean_sql
+from api.search_utils import build_function
 
 
 class CacheGenerateException(Exception):
@@ -72,9 +75,37 @@ class DBConnector:
         self._engines[table.connection_url] = create_engine(connection_url)
         return self._engines[table.connection_url]
 
+    def search_kafka(self, table: DBTableRelation, search: str, limit: int) -> DBResult:
+        params = dict(parse_sql(search))
+        auto_offset_reset = params.get('mode', 'latest')  # other earliest
+        assert auto_offset_reset in ('latest', 'earliest')
+        consumer = kafka.KafkaConsumer(table.table.name, bootstrap_servers=table.connection_url.split(','),
+                                       auto_offset_reset=auto_offset_reset)
+        msgs = consumer.poll(timeout_ms=1000, max_records=None if limit < 0 else limit, update_offsets=False)
+        res = DBResult(tableName=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
+                        search=search, limit=limit)
+        fields = None
+        Cell = None
+        func = build_function(clean_sql(search))
+        for k, v in msgs.items():
+            for msg in v:
+                data = json.loads(msg.value.decode('utf-8', errors='ignore'))
+                if fields is None:
+                    fields = list(data.keys())
+                Cell = namedtuple('Cell', list(data.keys()))
+                if func(Cell(**data)):
+                    res.data.append(data)
+
+        if fields:
+            res.fieldNames = fields
+
+        consumer.close()
+
+        return res
+
     def search(self, table: DBTableRelation, search: str, limit: int) -> DBResult:
         if table.typ == DBType.kafka:
-            raise NotSupportException(f"{table.typ} not support in search")
+            return self.search_kafka(table, search, limit)
         engine = self.get_db_engine(table)
         table_name = f'{table.table.database}.{table.table.name}'
         params = dict(parse_sql(search))
@@ -99,7 +130,8 @@ class DBConnector:
 class DBProxy:
     source_cache_name = '__source'
 
-    def __init__(self, caches: List[TableCache], assigned_relations: Optional[List[DBRelation]] = None, default_limit: int = 500):
+    def __init__(self, caches: List[TableCache], assigned_relations: Optional[List[DBRelation]] = None,
+                 default_limit: int = 500):
         self._caches = caches
         self._connector = DBConnector(caches)
         self._assigned_relations = assigned_relations
@@ -178,6 +210,10 @@ class DBProxy:
             return f"{suffix}.{tb.name}"
         else:
             return f"{tb.database}{suffix}.{tb.name}"
+
+    @classmethod
+    def get_global_kafka_table_name(cls, name: str, suffix: str):
+        return f"{suffix}.{name}"
 
     @classmethod
     def get_global_foreign_table_name(cls, foreign_key: ForeignKey, table: Union[TopicInfo, TableInfo],

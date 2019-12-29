@@ -39,12 +39,20 @@ class MyTestCase(unittest.TestCase):
         cache = Crawler().get_cache(hive_url, suffix, 'hive', NAME)
         proxy = DBProxy([cache])
 
-        def gen_real_db_name(tb_name: str) -> str:
-            return db_name + suffix + '.' + tb_name
-
         data = proxy.get_table(table_name, search=table_search, table_name=table_name,
                                limit=100)
         self.assertEqual(data.tableName, table_name)
+
+    def test_get_kafka_table(self):
+        url = ENV('TEST_KAFKA_CONNECTION_URL')
+        suffix = 'kafka'
+        cache = Crawler().get_cache(url, suffix, 'kafka', NAME)
+        proxy = DBProxy([cache])
+        table_name = ENV('TEST_KAFKA_TABLE_NAME')
+        table_search = ENV('TEST_KAFKA_TABLE_SEARCH')
+
+        data = proxy.get_table(table_name, search=table_search, table_name=table_name,
+                               limit=100)
 
     def test_sql_function(self):
         for sql, res in [
