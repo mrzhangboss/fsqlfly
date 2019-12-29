@@ -10,7 +10,7 @@ from django.core import serializers
 from utils.strings import dict2camel, dict2underline
 from web.settings import BASE_DIR
 from tempfile import mkstemp
-from dbs.models import Namespace, FileResource, Functions, Transform, Resource
+from dbs.models import Namespace, FileResource, Functions, Transform, Resource, Relationship, Connection
 from utils.response import create_response
 from utils.strings import check_yaml
 
@@ -55,7 +55,8 @@ def upload(req: HttpRequest) -> JsonResponse:
 
 
 def current_user(req: HttpRequest) -> JsonResponse:
-    return JsonResponse(data={"name": "Flink User", "avatar": 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',})
+    return JsonResponse(data={"name": "Flink User",
+                              "avatar": 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png', })
 
 
 _MODELS = {
@@ -64,6 +65,8 @@ _MODELS = {
     'resource': Resource,
     'transform': Transform,
     'file': FileResource,
+    'relationship': Relationship,
+    'connection': Connection,
 }
 
 NOT_USED_FIELD = ['is_deleted', 'create_by']
@@ -111,3 +114,8 @@ def update_or_delete(req: HttpRequest, model: str, pk: int) -> JsonResponse:
         res = create_response(data=dict2camel(serialize_model_fields(obj)))
     obj.save()
     return res
+
+
+def run_model_command(req: HttpRequest, model: str, method: str, pk: int) -> JsonResponse:
+    print(model, method, pk)
+    return create_response()

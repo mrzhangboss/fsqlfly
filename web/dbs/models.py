@@ -183,15 +183,15 @@ class Transform(BaseModel):
 class ConnectionType:
     class MYSQL:
         name = 'mysql'
-        suffix = 'ms'
+        suffix = '_ms'
 
     class KAFKA:
         name = 'kafka'
-        suffix = 'kf'
+        suffix = '_kf'
 
     class HIVE:
         name = 'hive'
-        suffix = 'hv'
+        suffix = '_hive'
 
     @classmethod
     def get_suffix(cls, name):
@@ -226,6 +226,7 @@ class Relationship(BaseModel):
     cache = models.TextField("缓存", null=True, blank=True)
     typ = models.CharField("类型", max_length=256, choices=[('json', 'json'), ('yml', 'yml')], default='yml')
     config = models.TextField("配置")
+    update_interval = models.IntegerField("更新间隔（秒）", default=3600)
 
     class Meta:
         db_table = 'relationship'
