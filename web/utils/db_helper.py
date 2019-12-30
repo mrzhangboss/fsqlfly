@@ -14,7 +14,7 @@ from utils.db_crawler import TableCache, TableInfo, TopicInfo, ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from utils.strings import build_select_sql, parse_sql, clean_sql
-from utils.function_helper import build_function
+from utils.function_helper import build_function, Dict2Obj
 
 
 class CacheGenerateException(Exception):
@@ -84,20 +84,16 @@ class DBConnector:
                                        auto_offset_reset=auto_offset_reset)
         msgs = consumer.poll(timeout_ms=1000, max_records=None if limit < 0 else limit, update_offsets=False)
         res = DBResult(tableName=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
-                       search=search, limit=limit)
-        fields = None
+                       search=search, limit=limit,
+                       fieldNames=[x.name for x in table.table.fields])
         func = build_function(clean_sql(search))
         for k, v in msgs.items():
             for msg in v:
                 data = json.loads(msg.value.decode('utf-8', errors='ignore'))
-                if fields is None:
-                    fields = list(data.keys())
-                Cell = namedtuple('Cell', list(data.keys()))
-                if func(Cell(**data)):
-                    res.data.append(data)
 
-        if fields:
-            res.fieldNames = fields
+                cell = Dict2Obj(**data)
+                if func(cell):
+                    res.data.append(data)
 
         consumer.close()
 
