@@ -55,7 +55,7 @@ class Command(BaseCommand):
             for con in Connection.objects.filter(is_deleted=False, is_publish=True, is_available=True).all():
                 if is_need_run(con):
                     print('begin update ', con.typ, ' as ', con.name, con.suffix)
-                    cache = safe_run(crawler.get_cache, con.url, con.suffix, con.typ, con.name)
+                    cache = safe_run(crawler.get_cache, con.url, con.suffix, con.typ, con.name, con.table_regex, con.table_exclude_regex)
                     if cache is not None:
                         con.cache = pickle.dumps(cache)
                         con.save()
