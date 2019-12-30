@@ -1,14 +1,17 @@
+import unittest
+
 from collections import namedtuple
 from datetime import datetime, date, time, timedelta
 from decimal import Decimal
+
 from django.test import TestCase
-from api.search_utils import build_function
+from utils.function_helper import build_function
 
 Sample = namedtuple('Sample', ['a', 'b', 'c', 'd', 'e', 'f', 'g'])
 
 
 # Create your tests here.
-class SearchTestCase(TestCase):
+class SearchTestCase(unittest.TestCase):
     def generate_test_function(self, code='$a > 0 and $b == 1'):
         return build_function(code)
 

@@ -5,6 +5,7 @@ import kafka
 import json
 from typing import List, Any, Optional, Dict, Set, Tuple, Union
 from collections import namedtuple, defaultdict
+from functools import total_ordering
 from datetime import datetime, date
 from heapq import nsmallest
 from base64 import b64decode
@@ -13,7 +14,7 @@ from utils.db_crawler import TableCache, TableInfo, TopicInfo, ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from utils.strings import build_select_sql, parse_sql, clean_sql
-from api.search_utils import build_function
+from utils.function_helper import build_function
 
 
 class CacheGenerateException(Exception):
@@ -83,7 +84,7 @@ class DBConnector:
                                        auto_offset_reset=auto_offset_reset)
         msgs = consumer.poll(timeout_ms=1000, max_records=None if limit < 0 else limit, update_offsets=False)
         res = DBResult(tableName=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
-                        search=search, limit=limit)
+                       search=search, limit=limit)
         fields = None
         func = build_function(clean_sql(search))
         for k, v in msgs.items():

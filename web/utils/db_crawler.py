@@ -1,7 +1,6 @@
 # -*- coding:utf-8 -*-
 import attr
 import re
-import traceback
 import warnings
 import json
 import kafka
@@ -136,6 +135,7 @@ class Crawler:
                 return self.get_kafka_cache(connection_url, suffix, name, table_regex, table_exclude_regex)
             raise NotImplementedError("Not Support Generate {} Cache".format(typ))
 
+
     def get_db_cache(self, name: str, connection_url: str, suffix: str, typ: str,
                      table_regex: Optional[str] = None,
                      table_exclude_regex: Optional[str] = None
@@ -225,6 +225,8 @@ class Crawler:
                                 typ = 'null'
                             elif isinstance(v, str):
                                 typ = 'string'
+                                if len(v) < 32:
+                                    typ = 'choose'
                             elif isinstance(v, int) or isinstance(v, float):
                                 typ = 'number'
                             elif isinstance(v, bool):
