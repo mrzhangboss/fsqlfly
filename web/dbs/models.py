@@ -211,6 +211,8 @@ class Connection(BaseModel):
     name = models.CharField("名字", max_length=256)
     typ = models.CharField("类型", max_length=256)
     suffix = models.CharField("自主后缀", max_length=32, null=True, blank=True)
+    table_regex = models.CharField("真实数据库与表名过滤正则(逗号分隔)", max_length=1024, null=True, blank=True)
+    table_exclude_regex = models.CharField("真实数据库与表名排除正则(逗号分隔)", max_length=1024, null=True, blank=True)
     username = models.CharField("用户名", max_length=64, null=True, blank=True)
     password = models.CharField("密码", max_length=256, null=True, blank=True)
     info = models.CharField("介绍", max_length=2048, null=True, blank=True)
