@@ -1,6 +1,11 @@
+import json
+import yaml
+import pickle
+from typing import List
 from django.db import models
 from django.utils.html import escape, mark_safe
 from web.settings import TIME_FORMAT
+from utils.db_helper import DBRelation
 
 TABLE_TYPE = (
     ("sink-table", "输出表"),
@@ -232,3 +237,24 @@ class Relationship(BaseModel):
         db_table = 'relationship'
         unique_together = ["create_by", "name"]
         index_together = ["create_by", "name"]
+
+    def generate_cache(self) -> List[DBRelation]:
+        if self.typ == 'json':
+            data = json.loads(self.config)
+
+        else:
+            data = yaml.load(self.config)
+
+        assert isinstance(data, dict)
+        assert isinstance(data['relations'], list)
+        return [DBRelation(**x) for x in data['relations']]
+
+    def get_cache(self) -> List[DBRelation]:
+        if self.cache is None:
+            return self.generate_cache()
+        else:
+            return pickle.loads(self.cache)
+
+    def save(self, *args, **kwargs):
+        self.cache = pickle.dumps(self.generate_cache())
+        super(Relationship, self).save(*args, **kwargs)
