@@ -1,11 +1,12 @@
 # -*- coding:utf-8 -*-
 import attr
+import re
 import traceback
 import warnings
 import json
 import kafka
 from base64 import b64encode
-from typing import List, Any, Optional, Set, Tuple, Dict
+from typing import List, Any, Optional, Set, Tuple, Dict, Pattern
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import defaultdict, Counter
 from sqlalchemy import create_engine, inspect
@@ -92,6 +93,27 @@ class TableCache:
     topics: List[TopicInfo] = attr.Factory(list)
 
 
+class RegexHelper:
+    def __init__(self, regex: Optional[str], exclude: Optional[str]):
+        self._regex = self.build(regex)
+        self._exclude = self.build(exclude)
+
+    @classmethod
+    def build(cls, regex: Optional[str]) -> Optional[List[Pattern]]:
+        return list(map(re.compile, regex.strip().split(','))) if regex else None
+
+    def is_filter(self, s: str) -> bool:
+        if self._regex is None and self._exclude is None:
+            return False
+        if self._regex:
+            if not any(map(lambda x: x.search(s) is not None, self._regex)):
+                return True
+        if self._exclude:
+            if any(map(lambda x: x.search(s) is not None, self._exclude)):
+                return True
+        return False
+
+
 class Crawler:
     @classmethod
     def execute_sql(cls, engine: Engine, sql: str) -> list:
@@ -103,17 +125,21 @@ class Crawler:
         filter_dbs = {'information_schema', 'mysql', 'performance_schema', 'sys'}
         return [x[0] for x in cls.execute_sql(engine, 'show databases') if x[0] not in filter_dbs]
 
-    def get_cache(self, connection_url: str, suffix: str, typ: str, name: str) -> TableCache:
+    def get_cache(self, connection_url: str, suffix: str, typ: str, name: str, table_regex: Optional[str] = None,
+                  table_exclude_regex: Optional[str] = None) -> TableCache:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=sa_exc.SAWarning)
             warnings.filterwarnings("ignore", category=ImportWarning)
             if typ in {'mysql', 'hive'}:
-                return self.get_db_cache(name, connection_url, suffix, typ)
+                return self.get_db_cache(name, connection_url, suffix, typ, table_regex, table_exclude_regex)
             if typ == 'kafka':
-                return self.get_kafka_cache(connection_url, suffix, name)
+                return self.get_kafka_cache(connection_url, suffix, name, table_regex, table_exclude_regex)
             raise NotImplementedError("Not Support Generate {} Cache".format(typ))
 
-    def get_db_cache(self, name: str, connection_url: str, suffix: str, typ: str) -> TableCache:
+    def get_db_cache(self, name: str, connection_url: str, suffix: str, typ: str,
+                     table_regex: Optional[str] = None,
+                     table_exclude_regex: Optional[str] = None
+                     ) -> TableCache:
         url = make_url(connection_url)
 
         engine = create_engine(url)
@@ -121,11 +147,12 @@ class Crawler:
         cache = TableCache(suffix=suffix, typ=typ, name=name)
         insp = inspect(engine)
         cache.databases = databases
+        filter_helper = RegexHelper(table_regex, table_exclude_regex)
         for db in databases:
 
             table_names = set(insp.get_table_names(db))
             for n in table_names:
-                try:
+                if not filter_helper.is_filter(db + '.' + n):
                     t_comment = insp.get_table_comment(n, db)['text'] if typ != 'hive' else None
                     columns = [ColumnInfo(**x) for x in insp.get_columns(n, db)]
                     foreign_keys = [ForeignKey(**x) for x in insp.get_foreign_keys(n, db)] if typ != 'hive' else []
@@ -140,9 +167,6 @@ class Crawler:
                                            comment=t_comment,
                                            connection_url=b64encode(connection_url.encode()).decode())
                     cache.tables.append(table_info)
-                except Exception as e:
-                    print("meet exception ", e)
-                    traceback.print_exc()
 
         return cache
 
@@ -225,13 +249,18 @@ class Crawler:
 
         return TopicInfo(name=topic, fields=columns, connection_url=brokers)
 
-    def get_kafka_cache(self, connection_url: str, suffix: str, name: str) -> TableCache:
+    def get_kafka_cache(self, connection_url: str, suffix: str, name: str, table_regex: Optional[str] = None,
+                        table_exclude_regex: Optional[str] = None) -> TableCache:
+        filter_helper = RegexHelper(table_regex, table_exclude_regex)
+
         with ThreadPoolExecutor() as executor:
             cache = TableCache(suffix=suffix, typ='kafka', name=name)
             topics = self.get_kafka_topics(connection_url)
             tasks = []
             for x in topics:
-                tasks.append(executor.submit(self.generate_topic_info, x, connection_url))
+                if not filter_helper.is_filter(x):
+
+                    tasks.append(executor.submit(self.generate_topic_info, x, connection_url))
 
             for future in as_completed(tasks):
                 data = future.result()
