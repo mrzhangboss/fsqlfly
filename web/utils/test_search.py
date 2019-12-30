@@ -5,7 +5,7 @@ from datetime import datetime, date, time, timedelta
 from decimal import Decimal
 
 from django.test import TestCase
-from utils.function_helper import build_function
+from utils.function_helper import build_function, Dict2Obj
 
 Sample = namedtuple('Sample', ['a', 'b', 'c', 'd', 'e', 'f', 'g'])
 
@@ -41,3 +41,29 @@ class SearchTestCase(unittest.TestCase):
                 generate_func = build_function(fake)
                 assert generate_func(x) == real_func(x)
                 print(x, real_func(x))
+
+    def test_function_with_null_field(self):
+        for sql in [
+            '$a > 5' ,
+            '$a >= 5' ,
+            '$a < 5' ,
+            '$a <= 5' ,
+            '$a == 5' ,
+        ]:
+            function = build_function(sql)
+            self.assertFalse(function(Dict2Obj(**dict(c=1))))
+
+    def test_function_deal_with_dict(self):
+        data = [
+            dict(a=1, b=2),
+            dict(a=10, b=2),
+            dict(ab=2),
+            dict(a=None),
+        ]
+        sql = '$a > 5'
+        func = build_function(sql)
+        res = []
+        for x in data:
+            if func(Dict2Obj(**x)):
+                res.append(x)
+        self.assertEqual(len(res), 1)
