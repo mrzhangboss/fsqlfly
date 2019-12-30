@@ -85,7 +85,6 @@ class DBConnector:
         res = DBResult(tableName=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
                         search=search, limit=limit)
         fields = None
-        Cell = None
         func = build_function(clean_sql(search))
         for k, v in msgs.items():
             for msg in v:

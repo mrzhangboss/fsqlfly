@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
 import attr
-import kafka
+import traceback
 import warnings
 import json
+import kafka
 from base64 import b64encode
 from typing import List, Any, Optional, Set, Tuple, Dict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -124,20 +125,24 @@ class Crawler:
 
             table_names = set(insp.get_table_names(db))
             for n in table_names:
-                t_comment = insp.get_table_comment(n, db)['text'] if typ != 'hive' else None
-                columns = [ColumnInfo(**x) for x in insp.get_columns(n, db)]
-                foreign_keys = [ForeignKey(**x) for x in insp.get_foreign_keys(n, db)] if typ != 'hive' else []
-                unique_keys = [UniqueKey(**x) for x in insp.get_unique_constraints(n, db)] if typ != 'hive' else []
-                indexes = [IndexKey(**x) for x in insp.get_indexes(n, db)]
-                primary_keys = insp.get_pk_constraint(n, db) if typ != 'hive' else []
-                table_info = TableInfo(name=n, database=db, columns=columns,
-                                       foreign_keys=foreign_keys,
-                                       primary_keys=primary_keys,
-                                       unique_keys=unique_keys,
-                                       indexes=indexes,
-                                       comment=t_comment,
-                                       connection_url=b64encode(connection_url.encode()).decode())
-                cache.tables.append(table_info)
+                try:
+                    t_comment = insp.get_table_comment(n, db)['text'] if typ != 'hive' else None
+                    columns = [ColumnInfo(**x) for x in insp.get_columns(n, db)]
+                    foreign_keys = [ForeignKey(**x) for x in insp.get_foreign_keys(n, db)] if typ != 'hive' else []
+                    unique_keys = [UniqueKey(**x) for x in insp.get_unique_constraints(n, db)] if typ != 'hive' else []
+                    indexes = [IndexKey(**x) for x in insp.get_indexes(n, db)]
+                    primary_keys = insp.get_pk_constraint(n, db) if typ != 'hive' else []
+                    table_info = TableInfo(name=n, database=db, columns=columns,
+                                           foreign_keys=foreign_keys,
+                                           primary_keys=primary_keys,
+                                           unique_keys=unique_keys,
+                                           indexes=indexes,
+                                           comment=t_comment,
+                                           connection_url=b64encode(connection_url.encode()).decode())
+                    cache.tables.append(table_info)
+                except Exception as e:
+                    print("meet exception ", e)
+                    traceback.print_exc()
 
         return cache
 

@@ -1,5 +1,6 @@
 import os
 import json
+import pickle
 from typing import Optional, Union
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import render
@@ -13,6 +14,7 @@ from tempfile import mkstemp
 from dbs.models import Namespace, FileResource, Functions, Transform, Resource, Relationship, Connection
 from utils.response import create_response
 from utils.strings import check_yaml
+from utils.db_crawler import Crawler
 
 example = create_response()
 support_upload = ['logo', 'file']
@@ -117,5 +119,16 @@ def update_or_delete(req: HttpRequest, model: str, pk: int) -> JsonResponse:
 
 
 def run_model_command(req: HttpRequest, model: str, method: str, pk: int) -> JsonResponse:
-    print(model, method, pk)
+    if method == 'update':
+        if model == 'relationship':
+            relation = Relationship.objects.get(pk=pk)
+            relation.save()
+        if model == 'connection':
+            crawler = Crawler()
+            con = Connection.objects.get(pk=pk)
+            cache = crawler.get_cache( con.url, con.suffix, con.typ, con.name)
+            if cache is not None:
+                con.cache = pickle.dumps(cache)
+                con.save()
+                updated = True
     return create_response()
