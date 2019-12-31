@@ -359,6 +359,7 @@ class DBProxy:
         if source_table == target_table:
             return source
         father = source
+        # TODO: Faster speed by use mysql join instead of search by where
         for i, x in enumerate(relations):
             if father.isEmpty:
                 return DBResult(target_table, isEmpty=True, search=target_search, lostTable=x.s_table)
