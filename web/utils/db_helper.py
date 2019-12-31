@@ -55,13 +55,35 @@ class DBCache:
 
 @attr.s(auto_attribs=True)
 class DBResult:
-    tableName: str = attr.ib()
+    table_name: str = attr.ib()
     search: str = attr.ib()
     limit: int = attr.ib(default=-1)
-    isEmpty: bool = attr.ib(default=False)
+    is_empty: bool = attr.ib(default=False)
     data: List[Dict[str, Any]] = attr.Factory(list)
-    fieldNames: List[str] = attr.Factory(list)
-    lostTable: Optional[str] = attr.ib(default=None)
+    field_names: List[str] = attr.Factory(list)
+    lost_table: Optional[str] = attr.ib(default=None)
+
+
+@attr.s(auto_attribs=True)
+class WebResTableField:
+    name: str = attr.ib()
+    typ: str = attr.ib()
+    unique: bool = attr.ib(default=False)
+    primary: bool = attr.ib(default=False)
+
+
+@attr.s(auto_attribs=True)
+class WebResTable:
+    table_name: str = attr.ib()
+    name: str = attr.ib()
+    info: str = attr.ib()
+    namespace: str = attr.ib()
+    fields: List[WebResTableField] = attr.Factory(list)
+
+
+@attr.s(auto_attribs=True)
+class WebResTables:
+    data: List[WebResTable] = attr.Factory(list)
 
 
 class DBConnector:
@@ -86,9 +108,9 @@ class DBConnector:
 
         fields = params.get('fields', '*')
         field_names = [x.name for x in table.table.fields] if fields == '*' else fields.split(',')
-        res = DBResult(tableName=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
+        res = DBResult(table_name=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
                        search=search, limit=limit,
-                       fieldNames=field_names)
+                       field_names=field_names)
         func = build_function(clean_sql(search))
         for k, v in msgs.items():
             for msg in v:
@@ -122,8 +144,8 @@ class DBConnector:
         with engine.connect() as con:
             data = con.execute(full_sql).fetchall()
             is_empty = len(data) == 0
-            result = DBResult(tableName=DBProxy.get_global_table_name(table.table, table.suffix),
-                              isEmpty=is_empty,
+            result = DBResult(table_name=DBProxy.get_global_table_name(table.table, table.suffix),
+                              is_empty=is_empty,
                               search=search,
                               limit=limit)
             field_names = None
@@ -133,7 +155,7 @@ class DBConnector:
                 result.data.append(dict(zip(x.keys(), x.values())))
 
             if field_names is not None:
-                result.fieldNames = field_names
+                result.field_names = field_names
 
         return result
 
@@ -249,6 +271,8 @@ class DBProxy:
                         f"At least Two Same database and table with same suffix, Error Table is {tb.database}.{tb.name} ")
                 tables[table_name] = self.generate_table_cache(tb, ca.typ, ca.suffix)
 
+        print(' update cache in ', datetime.now())
+
         setattr(self, self.source_cache_name, cache)
         return cache
 
@@ -257,6 +281,63 @@ class DBProxy:
         if hasattr(self, self.source_cache_name):
             return getattr(self, self.source_cache_name)
         return self.build_source_cache()
+
+    __table_meta_cache_name = '__TABLE_META_CACHE_NAME'
+
+    def build_all_table_metas_cache(self) -> List[WebResTable]:
+        data = list()
+
+        for table_name, relation in self.sources.tables.items():
+            table = relation.table
+            fields = []
+            if relation.typ == DBType.kafka:
+                namespace = relation.suffix
+                for x in table.fields:
+                    fields.append(WebResTableField(name=x.name, typ=x.typ))
+            else:
+                namespace = table.database + relation.suffix
+                primaries = set(table.primary_keys)
+
+                unique = set()
+
+                for x in table.unique_keys:
+                    for k in x.column_names:
+                        unique.add(k)
+
+                for x in table.columns:
+                    fields.append(
+                        WebResTableField(name=x.name, typ=str(x.type), unique=x.name in unique, primary=x in primaries))
+
+            data.append(WebResTable(table_name=table_name,
+                                    name=table.name,
+                                    namespace=namespace,
+                                    fields=fields))
+
+        setattr(self, self.__table_meta_cache_name, data)
+        return data
+
+    def rebuild_cache(self, caches: List[TableCache]):
+        self._caches = caches
+        self.build_source_cache()
+        self.build_all_table_metas_cache()
+
+    @property
+    def all_table_metas(self):
+        if hasattr(self, self.__table_meta_cache_name):
+            return self.build_all_table_metas_cache()
+        return getattr(self, self.__table_meta_cache_name)
+
+    def api_get_all_table_metas(self):
+        return WebResTables(data=self.all_table_metas)
+
+    def api_get_related_table_metas(self, table_name: str) -> WebResTables:
+        if table_name not in self.sources.tables:
+            return WebResTables(data=[])
+        tables = set(list(self.sources.tables[table_name].relations.keys()))
+        return WebResTables(data=[x for x in self.all_table_metas if x.table_name in tables])
+
+    def api_search_table(self, source_table: str, search: str, target_table: str, limit: int) -> DBResult:
+        return self.get_table(source_table, search, target_table, limit)
 
     def get_search_table(self, search: str, table: DBTableRelation, limit: int):
 
@@ -361,8 +442,8 @@ class DBProxy:
         father = source
         # TODO: Faster speed by use mysql join instead of search by where
         for i, x in enumerate(relations):
-            if father.isEmpty:
-                return DBResult(target_table, isEmpty=True, search=target_search, lostTable=x.s_table)
+            if father.is_empty:
+                return DBResult(target_table, is_empty=True, search=target_search, lost_table=x.s_table)
             target_search = self.build_search(father, x)
 
             target_limit = self._default_limit
