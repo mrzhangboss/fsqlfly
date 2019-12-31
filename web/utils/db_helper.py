@@ -359,14 +359,15 @@ class DBProxy:
         if source_table == target_table:
             return source
         father = source
-        for x in relations:
+        for i, x in enumerate(relations):
             if father.isEmpty:
                 return DBResult(target_table, isEmpty=True, search=target_search, lostTable=x.s_table)
             target_search = self.build_search(father, x)
 
             target_limit = self._default_limit
             if x.t_table != target_table:
-                target_search += ' /* fields = {} */ '.format(','.join(x.t_fields))
+                assert relations[i + 1].s_table == x.t_table
+                target_search += ' /* fields = {} */ '.format(','.join(relations[i + 1].s_fields))
                 target_limit = -1
 
             father = self.get_search_table(target_search, self.sources.tables[x.t_table], target_limit)
