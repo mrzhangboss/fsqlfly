@@ -77,6 +77,8 @@ export interface Connection {
   username: string;
   password: string;
   info: string;
+  tableRegex: string;
+  tableExcludeRegex: string;
   updateInterval: number;
   isPublish: boolean;
   isAvailable: boolean;

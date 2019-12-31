@@ -2,7 +2,6 @@ import React, { Component, ReactNode } from 'react';
 import { Card, Descriptions, Divider, Empty, Icon, Table, Tabs, Tooltip } from 'antd';
 import { connect } from 'dva';
 import { Dispatch } from 'redux';
-import { GridContent } from '@ant-design/pro-layout';
 import { ColumnFilterItem } from 'antd/lib/table/interface';
 
 interface ResultProp {
@@ -127,23 +126,30 @@ class ResultBody extends Component<ResultProp, ResultState> {
     );
   };
 
+  activeTable = (tableName: string) => {
+    console.log(tableName);
+  };
+
   generateTableDetail = (tab: TableDetail) => {
     if (!tab.show) {
       return <></>;
     } else if (tab.loading) {
       <Card
+        hoverable
+        onClick={x => this.activeTable(tab.tableName)}
         key={tab.tableName}
         title={tab.tableName}
         style={{ marginBottom: 24 }}
         bordered={false}
         loading={tab.loading}
       >
-        {' '}
         <Empty />
       </Card>;
     } else if (tab.typ === 'father') {
       return (
         <Card
+          hoverable
+          onDoubleClick={x => this.activeTable(tab.tableName)}
           key={tab.tableName}
           title={tab.tableName}
           style={{ marginBottom: 24 }}
@@ -156,6 +162,8 @@ class ResultBody extends Component<ResultProp, ResultState> {
     } else {
       return (
         <Card
+          hoverable
+          onDoubleClick={x => this.activeTable(tab.tableName)}
           key={tab.tableName}
           title={tab.tableName}
           style={{ marginBottom: 24 }}
@@ -173,20 +181,6 @@ class ResultBody extends Component<ResultProp, ResultState> {
 
     return (
       <Card loading={loading} style={{ marginTop: 20 }}>
-        {/*<Tabs*/}
-        {/*  hideAdd*/}
-        {/*  onChange={x => this.setState({ activeKey: x })}*/}
-        {/*  activeKey={this.state.activeKey}*/}
-        {/*  type="editable-card"*/}
-        {/*  onEdit={(a, b) => this[b](a)}*/}
-        {/*>*/}
-        {/*  {this.state.panes.map(pane => (*/}
-        {/*    <Tabs.TabPane tab={pane.title} key={pane.key}>*/}
-        {/*      {pane.content}*/}
-        {/*    </Tabs.TabPane>*/}
-        {/*  ))}*/}
-
-        {/*</Tabs>*/}
         {tables.map(x => this.generateTableDetail(x))}
       </Card>
     );

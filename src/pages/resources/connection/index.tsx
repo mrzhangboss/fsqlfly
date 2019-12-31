@@ -424,6 +424,28 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             })(<Input placeholder="请输入" />)}
           </FormItem>
 
+          <FormItem label="表过滤正则" {...this.formLayout}>
+            {getFieldDecorator('tableRegex', {
+              initialValue: current.tableRegex,
+              rules: [
+                {
+                  required: false,
+                },
+              ],
+            })(<Input placeholder="使用逗号分割多个正则表达" />)}
+          </FormItem>
+
+          <FormItem label="表排除正则" {...this.formLayout}>
+            {getFieldDecorator('tableExcludeRegex', {
+              initialValue: current.tableExcludeRegex,
+              rules: [
+                {
+                  required: false,
+                },
+              ],
+            })(<Input placeholder="使用逗号分割多个正则表达" />)}
+          </FormItem>
+
           <FormItem label="username" {...this.formLayout}>
             {getFieldDecorator('username', {
               initialValue: current.username,

@@ -1,3 +1,5 @@
+import { ButtonType } from 'antd/lib/button/button';
+
 interface TableField {
   name: string;
   typ: string;
@@ -13,21 +15,28 @@ interface TableMeta {
   fields: TableField[];
 }
 
+interface Field {
+  name: string;
+  typ: 'number' | 'string' | 'text' | 'date' | 'datetime';
+  buttonType?: ButtonType;
+}
+
 interface TableDetail {
   typ: string;
   show: boolean;
   loading: boolean;
   tableName: string;
   tableInfo: string;
-  values:
-    | Array<{ typ: string; name: string; value: string | number }>
-    | Array<{ [key: string]: number | string }>;
-  fields: Array<{ name: string; typ: 'number' | 'choose' | 'text' | 'date' | 'datetime' }>;
+  search: string;
+  limit: number;
+  values: Array<{ [key: string]: number | string }>;
+  fields: Array<Field>;
 }
 
 interface VisualizationResult {
   tables: TableMeta[];
   details: TableDetail[];
+  current?: TableDetail;
   search: string;
   limit: number;
   selectTable: string;
