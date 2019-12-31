@@ -100,13 +100,21 @@ class DBConnector:
         return res
 
     def search(self, table: DBTableRelation, search: str, limit: int) -> DBResult:
+        """
+
+        :param table:
+        :param search: support offset, fields
+        :param limit:
+        :return:
+        """
         if table.typ == DBType.kafka:
             return self.search_kafka(table, search, limit)
         engine = self.get_db_engine(table)
         table_name = f'{table.table.database}.{table.table.name}'
         params = dict(parse_sql(search))
         offset = params.get('offset')
-        full_sql = build_select_sql(search, table_name, limit=limit, offset=offset)
+        fields = params.get('fields', '*')
+        full_sql = build_select_sql(search, table_name, limit=limit, offset=offset, fields=fields)
 
         with engine.connect() as con:
             data = con.execute(full_sql).fetchall()
@@ -265,10 +273,11 @@ class DBProxy:
             def convert_t(v: Any) -> str:
                 if isinstance(v, str):
                     return f"'{v}'"
-                elif isinstance(v, date):
-                    return v.strftime('%Y-%m-%d')
                 elif isinstance(v, datetime):
                     return v.strftime('%Y-%m-%d %H:%M:%S')
+                elif isinstance(v, date):
+                    return v.strftime('%Y-%m-%d')
+
                 return str(v)
 
             for i, f in enumerate(relation.t_fields):
