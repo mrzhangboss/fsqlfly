@@ -71,14 +71,20 @@ _MODELS = {
     'connection': Connection,
 }
 
-NOT_USED_FIELD = ['is_deleted', 'create_by']
+NOT_USED_FIELD = ['is_deleted', 'create_by', 'cache']
 
 
 def serialize_model_fields(_obj: Model, not_used=None) -> dict:
+    if hasattr(_obj, 'cache'):
+        cache_back = getattr(_obj, 'cache')
+        _obj.cache = None
     if not_used is None:
         not_used = NOT_USED_FIELD
     model_ = json.loads(
         serializers.serialize('json', [_obj, ], use_natural_foreign_keys=True, use_natural_primary_keys=True))[0]
+    if hasattr(_obj, 'cache'):
+        _obj.cache = cache_back
+
     return dict(id=model_['pk'],
                 **{k if k != 'namespace' else k + '_id': v for k, v in model_['fields'].items() if k not in not_used})
 
@@ -126,7 +132,7 @@ def run_model_command(req: HttpRequest, model: str, method: str, pk: int) -> Jso
         if model == 'connection':
             crawler = Crawler()
             con = Connection.objects.get(pk=pk)
-            cache = crawler.get_cache( con.url, con.suffix, con.typ, con.name)
+            cache = crawler.get_cache(con.url, con.suffix, con.typ, con.name, con.table_regex, con.table_exclude_regex)
             if cache is not None:
                 con.cache = pickle.dumps(cache)
                 con.save()
