@@ -26,9 +26,25 @@ class MyTestCase(unittest.TestCase):
         django_admin = ENV('TEST_DJANGO_USER_NAME', 'admin')
         source_tb = gen_real_db_name('auth_user')
         search_tb = gen_real_db_name('django_admin_log')
-        data = proxy.get_table(source_tb, search=f" $username = '{django_admin}' /* mode= xx */", table_name=search_tb,
+        data = proxy.get_table(source_tb, search=f" $username = '{django_admin}' /* mode= xx */", target_table=search_tb,
                                limit=100)
         self.assertEqual(data.tableName, search_tb)
+
+    def test_get_multi_field_mysql_table(self):
+        url = ENV('TEST_MYSQL_CONNECTION_URL')
+
+        suffix = '_my'
+        cache = Crawler().get_cache(url, suffix, 'mysql', NAME)
+        proxy = DBProxy([cache])
+
+
+        source_tb = ENV('TEST_SOURCE_MULTI_FOREIGN_KEY_FIELD_MYSQL_TABLE')
+        search_tb = ENV('TEST_TARGET_MULTI_FOREIGN_KEY_FIELD_MYSQL_TABLE')
+        search = ENV('TEST_MULTI_FOREIGN_KEY_FIELD_MYSQL_TABLE_SEARCH')
+        data = proxy.get_table(source_tb, search=search, target_table=search_tb,
+                               limit=100)
+        self.assertTrue(data is not None)
+        self.assertEqual(len(data.data), 1)
 
     def test_get_hive_table(self):
         db_name = ENV('TEST_HIVE_DB_NAME')
@@ -39,7 +55,7 @@ class MyTestCase(unittest.TestCase):
         cache = Crawler().get_cache(hive_url, suffix, 'hive', NAME)
         proxy = DBProxy([cache])
 
-        data = proxy.get_table(table_name, search=table_search, table_name=table_name,
+        data = proxy.get_table(table_name, search=table_search, target_table=table_name,
                                limit=100)
         self.assertEqual(data.tableName, table_name)
 
@@ -51,7 +67,7 @@ class MyTestCase(unittest.TestCase):
         table_name = ENV('TEST_KAFKA_TABLE_NAME')
         table_search = ENV('TEST_KAFKA_TABLE_SEARCH')
 
-        data = proxy.get_table(table_name, search=table_search, table_name=table_name,
+        data = proxy.get_table(table_name, search=table_search, target_table=table_name,
                                limit=100)
 
     def test_sql_function(self):
@@ -72,9 +88,10 @@ class MyTestCase(unittest.TestCase):
     def test_build_sql(self):
         header = 'select * from '
         for params, out in [
-            (('$id = 1 /* mode = latest */', 'ab'), header + 'ab where ab.id = 1'),
-            (('$id = 1 /* mode = latest */', 'ab', 10), header + 'ab where ab.id = 1 limit 10'),
-            (('$id = 1 /* mode = latest */', 'ab', 100, 10), header + 'ab where ab.id = 1 limit 10, 100'),
+            (('$id = 1 /* mode = latest */', 'ab'), header + 'ab a where a.id = 1'),
+            (('$id = 1 /* mode = latest */', 'ab', 10), header + 'ab a where a.id = 1 limit 10'),
+            (('$id = 1 /* mode = latest */', 'ab', 100, 10), header + 'ab a where a.id = 1 limit 10, 100'),
+            (('$id = 1 /* fields = a,b,c */', 'ab', 100, 10, True, 'a,b,c'),  'select a,b,c ' + 'from ab a where a.id = 1 limit 10, 100'),
             (('$id = 1 ;drop table ab;select * from ab where 1 = 1', 'ab', 100, 10), Exception("xx")),
         ]:
             if isinstance(out, Exception):

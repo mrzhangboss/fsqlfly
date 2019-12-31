@@ -83,9 +83,12 @@ class DBConnector:
         consumer = kafka.KafkaConsumer(table.table.name, bootstrap_servers=table.connection_url.split(','),
                                        auto_offset_reset=auto_offset_reset)
         msgs = consumer.poll(timeout_ms=1000, max_records=None if limit < 0 else limit, update_offsets=False)
+
+        fields = params.get('fields', '*')
+        field_names = [x.name for x in table.table.fields] if fields == '*' else fields.split(',')
         res = DBResult(tableName=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
                        search=search, limit=limit,
-                       fieldNames=[x.name for x in table.table.fields])
+                       fieldNames=field_names)
         func = build_function(clean_sql(search))
         for k, v in msgs.items():
             for msg in v:
@@ -123,10 +126,14 @@ class DBConnector:
                               isEmpty=is_empty,
                               search=search,
                               limit=limit)
+            field_names = None
             for x in data:
-                fields = x.keys()
-                result.fieldNames = fields
+                if field_names is None:
+                    field_names = list(x.keys())
                 result.data.append(dict(zip(x.keys(), x.values())))
+
+            if field_names is not None:
+                result.fieldNames = field_names
 
         return result
 
@@ -255,54 +262,113 @@ class DBProxy:
 
         return self._connector.search(table, search, limit)
 
+    @classmethod
+    def get_symbal_define(cls, t_type: str) -> Tuple[str, str]:
+        v_equal, v_null = '=', 'null'
+        if t_type == DBType.kafka:
+            v_equal, v_null = '==', 'None'
+        return v_equal, v_null
+
     def build_search(self, father: DBResult, relation: DBRelation) -> str:
         assert len(relation.t_fields) == len(relation.s_fields)
+        assert relation.t_table in self.sources.tables
+
+        def convert_t(v: Any) -> str:
+            if isinstance(v, str):
+                return f"'{v}'"
+            elif isinstance(v, datetime):
+                return v.strftime("'%Y-%m-%d %H:%M:%S'")
+            elif isinstance(v, date):
+                return v.strftime("'%Y-%m-%d'")
+
+            return str(v)
+
         fields = [[] for _ in range(len(relation.t_fields))]
         for x in father.data:
             for i, f in enumerate(relation.s_fields):
-                fields[i].append(x[f])
+                fields[i].append(x.get(f))
 
-        names = []
-        if len(father.data) == 1:
-            for i, f in enumerate(relation.t_fields):
-                value = fields[i][0]
-                names.append(f'${f} = {value}')
+        v_equal, v_null = self.get_symbal_define(self.sources.tables[relation.t_table].typ)
 
+        def equal_line(k: str, v: Any) -> str:
+            if v is None:
+                return f"`{k}` is {v_null}"
+            else:
+                v = convert_t(v)
+                return f"`{k}` {v_equal} {v}"
 
+        def in_line(k: str, vs: List[Any]) -> str:
+            contain_null = False
+            unique = set()
+            for x in vs:
+                if x is None:
+                    contain_null = True
+                else:
+                    unique.add(convert_t(x))
+            out = []
+            if unique:
+                u_value = ' , '.join(unique)
+                out.append("( `{k}` in ({value}) )".format(k=k, value=u_value))
+            if contain_null:
+                out.append(f" ( `{k}` is {v_null} )")
+
+            return " or ".join(out)
+
+        source_sum = len(father.data)
+        field_sum = len(fields)
+        assert field_sum > 0 and source_sum > 0
+        if field_sum == 1:
+            field_name = relation.t_fields[0]
+            if source_sum == 1:
+                k, v = field_name, fields[0][0]
+                conditions = equal_line(k, v)
+            else:
+                k, vs = field_name, fields[0]
+                conditions = in_line(k, vs)
         else:
-            def convert_t(v: Any) -> str:
-                if isinstance(v, str):
-                    return f"'{v}'"
-                elif isinstance(v, datetime):
-                    return v.strftime('%Y-%m-%d %H:%M:%S')
-                elif isinstance(v, date):
-                    return v.strftime('%Y-%m-%d')
+            columns = set()
+            for i in range(source_sum):
+                line = []
+                for j in range(field_sum):
+                    field_name, field_value = relation.t_fields[j], fields[j][i]
+                    line.append(equal_line(field_name, field_value))
+                columns.add("( {} )".format(" and  ".join(line)))
 
-                return str(v)
+            conditions = "( {} )".format("  or  ".join(columns))
 
-            for i, f in enumerate(relation.t_fields):
-                value = ' , '.join(map(convert_t, fields[i]))
-                names.append(f'${f} in ({value})')
-        return ' and '.join(names)
+        return conditions
 
-    def get_table(self, source_table: str, search: str, table_name: str, limit: int, *args, **kwargs) -> Optional[
+    def get_table(self, source_table: str, search: str, target_table: str, limit: int, *args, **kwargs) -> Optional[
         DBResult]:
         if source_table not in self.sources.tables:
             return None
         real_table = self.sources.tables[source_table]
-        if table_name != source_table and table_name not in real_table.relations:
+        if target_table != source_table and target_table not in real_table.relations:
             return None
 
-        source = self.get_search_table(search, self.sources.tables[source_table], limit=limit)
-        if source_table == table_name:
-            return source
-        relations = real_table.relations[table_name]
-        father = source
+        relations = real_table.relations[target_table]
+
         target_search = search
+        target_limit = limit
+        if target_search != source_table:
+            assert len(relations) > 0
+            target_search += ' /* fields = {} */ '.format(','.join(relations[0].s_fields))
+            target_limit = -1
+
+        source = self.get_search_table(target_search, real_table, limit=target_limit)
+        if source_table == target_table:
+            return source
+        father = source
         for x in relations:
             if father.isEmpty:
-                return DBResult(table_name, isEmpty=True, search=target_search, lostTable=x.s_table)
+                return DBResult(target_table, isEmpty=True, search=target_search, lostTable=x.s_table)
             target_search = self.build_search(father, x)
-            father = self.get_search_table(target_search, self.sources.tables[x.t_table], self._default_limit)
+
+            target_limit = self._default_limit
+            if x.t_table != target_table:
+                target_search += ' /* fields = {} */ '.format(','.join(x.t_fields))
+                target_limit = -1
+
+            father = self.get_search_table(target_search, self.sources.tables[x.t_table], target_limit)
 
         return father
