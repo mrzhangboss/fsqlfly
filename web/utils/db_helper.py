@@ -76,8 +76,8 @@ class WebResTableField:
 class WebResTable:
     table_name: str = attr.ib()
     name: str = attr.ib()
-    info: str = attr.ib()
     namespace: str = attr.ib()
+    info: Optional[str] = attr.ib(default=None)
     fields: List[WebResTableField] = attr.Factory(list)
 
 
@@ -306,24 +306,27 @@ class DBProxy:
 
                 for x in table.columns:
                     fields.append(
-                        WebResTableField(name=x.name, typ=str(x.type), unique=x.name in unique, primary=x in primaries))
+                        WebResTableField(name=x.name, typ=str(x.type), unique=x.name in unique,
+                                         primary=x.name in primaries))
 
             data.append(WebResTable(table_name=table_name,
                                     name=table.name,
                                     namespace=namespace,
-                                    fields=fields))
+                                    fields=fields,
+                                    info=table.comment if relation.typ != DBType.kafka else None))
 
         setattr(self, self.__table_meta_cache_name, data)
         return data
 
-    def rebuild_cache(self, caches: List[TableCache]):
+    def rebuild_cache(self, caches: List[TableCache], assigned_relations: Optional[List[DBRelation]]):
         self._caches = caches
+        self._assigned_relations = assigned_relations
         self.build_source_cache()
         self.build_all_table_metas_cache()
 
     @property
     def all_table_metas(self):
-        if hasattr(self, self.__table_meta_cache_name):
+        if not hasattr(self, self.__table_meta_cache_name):
             return self.build_all_table_metas_cache()
         return getattr(self, self.__table_meta_cache_name)
 
@@ -427,11 +430,10 @@ class DBProxy:
         if target_table != source_table and target_table not in real_table.relations:
             return None
 
-        relations = real_table.relations[target_table]
-
         target_search = search
         target_limit = limit
-        if target_search != source_table:
+        if target_table != source_table:
+            relations = real_table.relations[target_table]
             assert len(relations) > 0
             target_search += ' /* fields = {} */ '.format(','.join(relations[0].s_fields))
             target_limit = -1

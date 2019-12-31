@@ -18,11 +18,13 @@ from django.urls import path
 from .views import create_or_get_list, update_or_delete, current_user, upload, count_view, run_model_command
 from .transform_view import get_info, get_list_or_create, get_or_update_or_delete as transform_update_or_delete, \
     start_run, debug_transform, job_control_api, job_list
-from .dispaly_view import search
+from .dispaly_view import search, list_tables, get_related_tables
 
 urlpatterns = [
     path('currentUser', current_user),
-    path('search', search),
+    path('search/<str:table_name>', search),
+    path('tables', list_tables),
+    path('table/<str:table_name>', get_related_tables),
     path('count', count_view),
     path('transform', get_list_or_create),
     path('transform/debug', debug_transform),
