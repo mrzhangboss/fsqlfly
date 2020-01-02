@@ -3,7 +3,7 @@ import attr
 import warnings
 import kafka
 import json
-from typing import List, Any, Optional, Dict, Set, Tuple, Union
+from typing import List, Any, Optional, Dict, Set, Tuple, Union, Iterable
 from collections import namedtuple, defaultdict
 from functools import total_ordering
 from datetime import datetime, date
@@ -141,6 +141,14 @@ class DBConnector:
         fields = params.get('fields', '*')
         full_sql = build_select_sql(search, table_name, limit=limit, offset=offset, fields=fields)
 
+        def type_warp(vs: Iterable[Any]) -> List[Any]:
+            def _warp(v: Any) -> Any:
+                if isinstance(v, bytes):
+                    return v.decode('utf-8', errors='ignore')
+                return v
+
+            return (_warp(x) for x in vs)
+
         with engine.connect() as con:
             data = con.execute(full_sql).fetchall()
             is_empty = len(data) == 0
@@ -152,7 +160,7 @@ class DBConnector:
             for x in data:
                 if field_names is None:
                     field_names = list(x.keys())
-                result.data.append(dict(zip(x.keys(), x.values())))
+                result.data.append(dict(zip(x.keys(), type_warp(list(x.values())))))
 
             if field_names is not None:
                 result.fieldNames = field_names
