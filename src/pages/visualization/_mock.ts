@@ -115,34 +115,6 @@ const tables = {
   ],
 };
 
-const simpleFields = [
-  { typ: 'number', name: 'money' },
-  { typ: 'number', name: 'id' },
-  { typ: 'choose', name: 'name' },
-  { typ: 'string', name: 'info' },
-  { typ: 'datetime', name: 'create_at' },
-  { typ: 'datetime', name: 'modify_at' },
-];
-
-function getSimpleTable(tabname: string) {
-  return {
-    typ: 'father',
-    tableName: tabname,
-    show: true,
-    loading: false,
-    tableInfo: 'father table info',
-    fields: simpleFields,
-    values: [
-      { typ: 'number', name: 'id', value: 1 },
-      { typ: 'string', name: 'name', value: '@word' },
-      { typ: 'string', name: 'info', value: 'justInfo' },
-      { typ: 'number', name: 'money', value: 1.23 },
-      { typ: 'datetime', name: 'create_at', value: '2019-01-02 09:00:00' },
-      { typ: 'datetime', name: 'modify_at', value: '2019-01-02 09:00:00' },
-    ],
-  };
-}
-
 const sonField = [
   { name: 'field_a', typ: 'string' },
   { name: 'field_b', typ: 'number' },
@@ -152,20 +124,19 @@ const sonField = [
 
 function getSonTable(tabname: string) {
   return {
-    typ: 'son',
-    show: true,
     tableName: tabname,
-    loading: false,
     tableInfo: 'son table info',
     search: '$id = 1 ',
     limit: 500,
-    values: [
-      { field_a: '@word', field_b: 1, field_c: '@word', name: '@word' },
-      { field_a: '@word', field_b: 2, field_c: '@word', name: '@word' },
-      { field_a: '@word', field_b: 3, field_c: '@word', name: '@word' },
-      { field_a: '@word', field_b: 4, field_c: '@word', name: '@word' },
+    data: [
+      { field_a: '@word', 'field_b|+1': 1, field_c: '@word', name: '@word' },
+      { field_a: '@word', 'field_b|+1': 2, field_c: '@word', name: '@word' },
+      { field_a: '@word', 'field_b|+1': 3, field_c: '@word', name: '@word' },
+      { field_a: '@word', 'field_b|+1': 4, field_c: '@word', name: '@word' },
+      { field_a: '@word', 'field_b|+1': 5, field_c: '@word', name: '@word' },
+      { field_a: '@word', 'field_b|+1': 6, field_c: '@word', name: '@word' },
+      { field_a: '@word', 'field_b|+1': 7, field_c: '@word', name: '@word' },
     ],
-    fields: sonField,
     fieldNames: sonField.map(x => x.name),
   };
 }

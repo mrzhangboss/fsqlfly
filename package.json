@@ -45,7 +45,6 @@
   ],
   "dependencies": {
     "@ant-design/pro-layout": "^4.4.2",
-    "@ant-design/pro-table": "^1.0.13",
     "@antv/data-set": "^0.10.2",
     "@types/lodash.debounce": "^4.0.6",
     "@types/mockjs": "^1.0.2",
@@ -117,7 +116,6 @@
     "eslint-plugin-react": "^7.13.0",
     "gh-pages": "^2.0.1",
     "husky": "^2.3.0",
-    "jest-puppeteer": "^4.2.0",
     "jsdom-global": "^3.0.2",
     "less": "^3.9.0",
     "lint-staged": "^8.1.7",
@@ -138,9 +136,7 @@
     "tslint-react": "^4.0.0",
     "webpack-theme-color-replacer": "^1.1.5"
   },
-  "optionalDependencies": {
-    "puppeteer": "^1.17.0"
-  },
+  "optionalDependencies": {},
   "engines": {
     "node": ">=10.0.0"
   },

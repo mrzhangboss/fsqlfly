@@ -270,15 +270,6 @@ class SearchBody extends Component<ResultProps, ResultState> {
     });
   };
 
-  clearDisplay = () => {
-    const { dispatch } = this.props;
-
-    dispatch({
-      type: 'visualization/save',
-      payload: { selectRelatedTableKeys: [], currentDisplayTables: [] },
-    });
-  };
-
   render() {
     const { loading, submitting, tables, selectedRowKeys, tableLoading } = this.props;
     const hasSelectedNum = selectedRowKeys.length;
@@ -289,17 +280,9 @@ class SearchBody extends Component<ResultProps, ResultState> {
         <Card loading={loading}>
           <div style={{ marginBottom: 16 }}>
             <Button type="primary" onClick={this.start} disabled={!hasSelected} loading={loading}>
-              Show
+              展示
             </Button>
-            <Button
-              type="danger"
-              style={{ marginLeft: 8 }}
-              onClick={this.clearDisplay}
-              disabled={!clearCanSelected}
-              loading={loading}
-            >
-              Clear
-            </Button>
+
             <span style={{ marginLeft: 8 }}>
               {hasSelected ? `Selected ${hasSelectedNum} items` : ''}
             </span>

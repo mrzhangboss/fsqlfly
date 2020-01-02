@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { PureComponent } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
 import { Card, Empty, Switch } from 'antd';
@@ -36,7 +36,7 @@ interface ResultState {
     submitting: loading.effects['visualization/submitSelectTable'],
   }),
 )
-class DrawResult extends Component<ResultProps, ResultState> {
+class DrawResult extends PureComponent<ResultProps, ResultState> {
   state: ResultState = {
     selectedRowKeys: [],
     searchText: '',
@@ -50,6 +50,7 @@ class DrawResult extends Component<ResultProps, ResultState> {
 
   generateTableColumn = (source: TableDetail) => {
     const allValue = {};
+    if (!Array.isArray(source.data)) return [];
     for (let i = 0; i < source.data.length; i++) {
       const value = source.data[i];
       for (const name in value) {
@@ -164,7 +165,7 @@ class DrawResult extends Component<ResultProps, ResultState> {
         title={'当前表: ' + (current === undefined ? '_' : current.tableName)}
         extra={
           <span>
-            <a href="#">Add</a>{' '}
+            <a href="#">添加</a>{' '}
             <Switch
               checkedChildren={<Icon type="check" />}
               unCheckedChildren={<Icon type="close" />}

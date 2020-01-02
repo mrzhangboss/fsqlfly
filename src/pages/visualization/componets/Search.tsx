@@ -1,5 +1,5 @@
 import { Card, Mentions, Select, Tag, message, Icon, Button } from 'antd';
-import React, { PureComponent, ReactNode } from 'react';
+import React, { Component, ReactNode } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
 import { TableMeta, VisualizationResult } from '../data';
@@ -38,12 +38,12 @@ interface SearchState {
     selectSubmitting: loading.effects['visualization/submitSelectTable'],
   }),
 )
-class SearchHeader extends PureComponent<SearchProps, SearchState> {
+class SearchHeader extends Component<SearchProps, SearchState> {
   state: SearchState = {
     currentTable: null,
   };
 
-  inputDocument: ReactNode;
+  inputDocument: ReactNode = document;
 
   handleSelectChange = (key: string) => {
     const { tables, dispatch } = this.props;

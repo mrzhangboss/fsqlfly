@@ -28,6 +28,7 @@ export interface ModelType {
     save: Reducer<VisualizationResult>;
     saveTableSearch: Reducer<VisualizationResult, { payload: TableDetail; type: string }>;
     changeCurrentTable: Reducer<VisualizationResult, { tableName: string; type: string }>;
+    deleteTable: Reducer<VisualizationResult, { tableName: string; type: string }>;
   };
 }
 
@@ -123,7 +124,7 @@ const Model: ModelType = {
       const response = yield call(searchTable, payload.params.table, payload.params);
       yield put({
         type: 'saveTableSearch',
-        payload: { ...response.data, loading: false, show: true },
+        payload: { ...response.data, loading: false },
       });
     },
     *startChangeCurrentTable({ tableName }, { call, put, select }) {
@@ -134,7 +135,7 @@ const Model: ModelType = {
           payload: tableName,
         });
       }
-      put({
+      yield put({
         type: 'changeCurrentTable',
         tableName: tableName,
       });
@@ -190,6 +191,10 @@ const Model: ModelType = {
         }
       }
       return state;
+    },
+    // @ts-ignore
+    deleteTable(state, { tableName }) {
+      return { ...state, details: state.details.filter(x => x.tableName !== tableName) };
     },
   },
 };

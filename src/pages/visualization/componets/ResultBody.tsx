@@ -1,5 +1,16 @@
 import React, { Component, ReactNode } from 'react';
-import { Card, Descriptions, Divider, Empty, Icon, Table, Tabs, Tooltip } from 'antd';
+import {
+  Button,
+  Card,
+  Descriptions,
+  Divider,
+  Empty,
+  Icon,
+  Switch,
+  Table,
+  Tabs,
+  Tooltip,
+} from 'antd';
 import { connect } from 'dva';
 import { Dispatch } from 'redux';
 import { ColumnFilterItem } from 'antd/lib/table/interface';
@@ -67,6 +78,8 @@ class ResultBody extends Component<ResultProp, ResultState> {
   };
 
   generateTableColumn = (source: TableDetail) => {
+    if (source.loading) return [];
+    if (!Array.isArray(source.fieldNames)) return [];
     const fields = source.fieldNames.map(fd => {
       return {
         title: fd,
@@ -98,37 +111,34 @@ class ResultBody extends Component<ResultProp, ResultState> {
     });
   };
 
+  deleteTable = (tableName: string) => {
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'visualization/deleteTable',
+      tableName: tableName,
+    });
+  };
+
   // @ts-ignore
   generateTableDetail = (tab: TableDetail) => {
-    if (!tab.show) {
-      return <></>;
-    } else if (tab.loading) {
+    return (
       <Card
         hoverable
-        onClick={x => this.activeTable(tab.tableName)}
+        onDoubleClick={x => this.activeTable(tab.tableName)}
         key={tab.tableName}
         title={tab.tableName}
         style={{ marginBottom: 24 }}
         bordered={false}
         loading={tab.loading}
+        extra={
+          <Button type="danger" onClick={x => this.deleteTable(tab.tableName)}>
+            删除{' '}
+          </Button>
+        }
       >
-        <Empty />
-      </Card>;
-    } else {
-      return (
-        <Card
-          hoverable
-          onDoubleClick={x => this.activeTable(tab.tableName)}
-          key={tab.tableName}
-          title={tab.tableName}
-          style={{ marginBottom: 24 }}
-          bordered={false}
-          loading={tab.loading}
-        >
-          {this.getListBody(tab)}
-        </Card>
-      );
-    }
+        {this.getListBody(tab)}
+      </Card>
+    );
   };
 
   render() {
