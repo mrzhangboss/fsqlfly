@@ -3,6 +3,7 @@ import { Card, Descriptions, Divider, Empty, Icon, Table, Tabs, Tooltip } from '
 import { connect } from 'dva';
 import { Dispatch } from 'redux';
 import { ColumnFilterItem } from 'antd/lib/table/interface';
+import { TableDetail, VisualizationResult, TableMeta } from '../data';
 
 interface ResultProp {
   loading: boolean;
@@ -66,38 +67,12 @@ class ResultBody extends Component<ResultProp, ResultState> {
   };
 
   generateTableColumn = (source: TableDetail) => {
-    const fields = source.fields.map(fd => {
-      if (fd.typ === 'number') {
-        return {
-          title: fd.name,
-          dataIndex: fd.name,
-          key: fd.name,
-          sorter: (a, b) => a[fd.name] - b[fd.name],
-        };
-      } else if (fd.typ === 'choose') {
-        // @ts-ignore
-        const chooseFilter: ColumnFilterItem[] = [
-          ...new Set(source.values.map(x => x[fd.name])),
-        ].map(ss => ({
-          text: ss,
-          value: ss,
-        }));
-        return {
-          title: fd.name,
-          dataIndex: fd.name,
-          key: fd.name,
-          filters: chooseFilter,
-          onFilter: (value: string, record: TableMeta) => record[fd.name].indexOf(value) === 0,
-          sorter: (a: TableMeta, b: TableMeta) => a[fd.name].length - b[fd.name].length,
-          sortDirections: ['descend'],
-        };
-      } else {
-        return {
-          title: fd.name,
-          dataIndex: fd.name,
-          key: fd.name,
-        };
-      }
+    const fields = source.fieldNames.map(fd => {
+      return {
+        title: fd,
+        dataIndex: fd,
+        key: fd,
+      };
     });
     return fields;
   };
@@ -108,28 +83,22 @@ class ResultBody extends Component<ResultProp, ResultState> {
       <Table
         rowKey={'tableName'}
         columns={this.generateTableColumn(source)}
-        dataSource={source.values}
+        dataSource={source.data}
         loading={source.loading}
       />
     );
   };
 
-  getDetailBody = (source: TableDetail) => {
-    return (
-      <div>
-        <Descriptions style={{ marginBottom: 24 }}>
-          {source.values.map(fd => (
-            <Descriptions.Item label={fd.name}>{fd.value}</Descriptions.Item>
-          ))}
-        </Descriptions>
-      </div>
-    );
-  };
-
   activeTable = (tableName: string) => {
     console.log(tableName);
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'visualization/startChangeCurrentTable',
+      tableName: tableName,
+    });
   };
 
+  // @ts-ignore
   generateTableDetail = (tab: TableDetail) => {
     if (!tab.show) {
       return <></>;
@@ -145,20 +114,6 @@ class ResultBody extends Component<ResultProp, ResultState> {
       >
         <Empty />
       </Card>;
-    } else if (tab.typ === 'father') {
-      return (
-        <Card
-          hoverable
-          onDoubleClick={x => this.activeTable(tab.tableName)}
-          key={tab.tableName}
-          title={tab.tableName}
-          style={{ marginBottom: 24 }}
-          bordered={false}
-          loading={tab.loading}
-        >
-          {this.getDetailBody(tab)}
-        </Card>
-      );
     } else {
       return (
         <Card

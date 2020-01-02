@@ -1,7 +1,8 @@
-import { Badge, Card, Mentions, Select, Tag, AutoComplete, message } from 'antd';
-import React, { PureComponent } from 'react';
+import { Card, Mentions, Select, Tag, message, Icon, Button } from 'antd';
+import React, { PureComponent, ReactNode } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
+import { TableMeta, VisualizationResult } from '../data';
 
 const { Option } = Select;
 
@@ -42,6 +43,8 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
     currentTable: null,
   };
 
+  inputDocument: ReactNode;
+
   handleSelectChange = (key: string) => {
     const { tables, dispatch } = this.props;
     const currentTable = tables.filter(x => x.tableName == key)[0];
@@ -51,6 +54,28 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
       payload: key,
     });
   };
+
+  doRefresh = () => {
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'visualization/fetchTables',
+    });
+  };
+
+  shouldComponentUpdate(
+    nextProps: Readonly<SearchProps>,
+    nextState: Readonly<SearchState>,
+    nextContext: any,
+  ): boolean {
+    const { selectTable } = this.props;
+    if (nextProps.selectTable !== selectTable) {
+      if (this.inputDocument !== undefined && this.inputDocument !== null) {
+        // @ts-ignore
+        this.inputDocument.focus();
+      }
+    }
+    return true;
+  }
 
   handleSearch = () => {
     message.loading('searching...');
@@ -103,24 +128,44 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
   };
 
   render() {
-    const { search, loading, tables, submitting, selectSubmitting } = this.props;
+    const { search, loading, tables, submitting, selectSubmitting, limit } = this.props;
 
+    const generateName = (name: string, namespace: string) => {
+      if (name.length < 9) {
+        return (
+          <>
+            <span role="img" aria-label={namespace}>
+              <Tag>{namespace}</Tag>
+            </span>
+            {name}
+          </>
+        );
+      } else {
+        return (
+          <>
+            <div>
+              <span role="img" aria-label={namespace}>
+                <Tag>{namespace}</Tag>
+              </span>
+            </div>
+            <div>{name}</div>
+          </>
+        );
+      }
+    };
     const tableSource = tables.map(x => (
       // @ts-ignore
-      <Option
-        value={x.tableName}
-        label={x.name.length > 9 ? x.name.substring(0, 9) + '...' : x.name}
-      >
-        <span role="img" aria-label={x.namespace}>
-          <Tag>{x.namespace}</Tag>
-        </span>
-        {x.name}
+      <Option value={x.tableName} label={x.name}>
+        {generateName(x.name, x.namespace)}
       </Option>
     ));
 
     return (
       <Card loading={loading}>
-        <span>
+        <div></div>
+
+        <div>
+          <span> </span>
           <Select
             disabled={submitting || selectSubmitting}
             showSearch
@@ -129,10 +174,11 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
             children={tableSource}
             onChange={this.handleSelectChange}
             optionLabelProp="label"
+            maxTagTextLength={64}
           />
           <span> </span>
-
           <Mentions
+            ref={x => (this.inputDocument = x)}
             style={{ width: '70%', marginLeft: 20 }}
             children={this.getMentionChildren()}
             prefix={['$']}
@@ -140,14 +186,14 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
             disabled={submitting}
             value={search}
           />
-          <span> </span>
+          <span></span>
 
           <Select
             disabled={submitting}
             style={{ width: '8%', marginLeft: 20 }}
             showSearch
             placeholder="Select Result"
-            defaultValue={-1}
+            defaultValue={limit}
             onChange={this.handleLimitChange}
           >
             <Option value={-1}>all data</Option>
@@ -156,7 +202,12 @@ class SearchHeader extends PureComponent<SearchProps, SearchState> {
             <Option value={100}>first 100</Option>
             <Option value={10}>first 10</Option>
           </Select>
-        </span>
+
+          <span style={{ marginLeft: 2 }}></span>
+          <Button onClick={this.doRefresh}>
+            <Icon type="reload" />
+          </Button>
+        </div>
       </Card>
     );
   }

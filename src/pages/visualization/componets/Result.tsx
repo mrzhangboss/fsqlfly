@@ -1,23 +1,26 @@
 import React, { Component, ReactNode } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
-import { Card, Collapse, List, Mentions, Skeleton, Tabs, Tag, Typography, Empty } from 'antd';
+import { Card, Collapse, List, Tag, Empty } from 'antd';
 import { Table, Input, Button, Icon } from 'antd';
+// @ts-ignore
 import Highlighter from 'react-highlight-words';
 import { ColumnFilterItem } from 'antd/lib/table/interface';
+import { TableMeta, VisualizationResult } from '../data';
 
 interface ResultProps {
   loading: boolean;
+  tableLoading: boolean;
   submitting: boolean;
   tables: TableMeta[];
+  selectedRowKeys: string[];
+  displayTables: string[];
   dispatch: Dispatch<any>;
 }
 
 interface ResultState {
   searchText: string;
   searchedColumn: string;
-  allSelectedRowKeys: { [key: string]: string[] };
-  displayTables: Array<{ key: string; value: string[] }>;
   currentTables: Array<{ name: string; show: boolean }>;
 }
 
@@ -50,8 +53,6 @@ class MyTag extends React.PureComponent<TagProp, { checked: boolean }> {
   }
 }
 
-const ALL_RELATIONS = ['father', 'son', 'other'];
-
 @connect(
   ({
     visualization,
@@ -60,20 +61,18 @@ const ALL_RELATIONS = ['father', 'son', 'other'];
     visualization: VisualizationResult;
     loading: { effects: { [key: string]: boolean } };
   }) => ({
-    tables: visualization.tables,
+    tables: visualization.relatedTables,
+    selectedRowKeys: visualization.selectRelatedTableKeys,
+    displayTables: visualization.currentDisplayTables,
     loading: loading.effects['visualization/fetchTables'],
+    tableLoading: loading.effects['visualization/submitSearchOne'],
     submitting: loading.effects['visualization/submitSelectTable'],
   }),
 )
 class SearchBody extends Component<ResultProps, ResultState> {
-  getInitSelectRowKeys = () => ({ father: [], son: [], other: [] });
-  getInitDisplayTables = () => ALL_RELATIONS.map(x => ({ key: x, value: [] }));
-
   state: ResultState = {
     searchedColumn: '',
     searchText: '',
-    allSelectedRowKeys: this.getInitSelectRowKeys(),
-    displayTables: this.getInitDisplayTables(),
     currentTables: [],
   };
 
@@ -172,7 +171,15 @@ class SearchBody extends Component<ResultProps, ResultState> {
     );
   };
 
-  getListBody = (source: Array<TableMeta>, loading: boolean, index: string) => {
+  onSelectRowChange = (selectedRowKeys: any[], selectedRows: TableMeta[]) => {
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'visualization/save',
+      payload: { selectRelatedTableKeys: selectedRowKeys },
+    });
+  };
+
+  getListBody = (source: Array<TableMeta>, loading: boolean) => {
     const namespaceFilters: ColumnFilterItem[] = [...new Set(source.map(x => x.namespace))].map(
       x => ({
         text: x,
@@ -206,15 +213,11 @@ class SearchBody extends Component<ResultProps, ResultState> {
       },
     ];
     const rowSelection = {
-      selectedRowKeys: this.state.allSelectedRowKeys[index],
-      onChange: (selectedRowKeys: any[], selectedRows: TableMeta[]) => {
-        const { allSelectedRowKeys } = this.state;
-        this.setState({ allSelectedRowKeys: { ...allSelectedRowKeys, [index]: selectedRowKeys } });
-      },
+      selectedRowKeys: this.props.selectedRowKeys,
+      onChange: this.onSelectRowChange,
     };
-    const showSource = this.state.displayTables.filter(x => x.key === index);
-    const showTableNames = showSource.length > 0 ? showSource[0].value : [];
-    const dataSource = source.filter(x => !showTableNames.includes(x.tableName));
+    const { displayTables } = this.props;
+    const dataSource = source.filter(x => !displayTables.includes(x.tableName));
     // @ts-ignore
     return (
       <Table
@@ -238,21 +241,18 @@ class SearchBody extends Component<ResultProps, ResultState> {
     });
   };
 
-  getListTag = (index: string) => {
-    const { displayTables } = this.state;
-    const colors = { father: 'gold', son: 'blue', other: 'lime' };
-    const tags = displayTables.filter(x => x.key === index);
+  getListTag = () => {
+    const { displayTables } = this.props;
+    const tags = displayTables;
     if (tags.length === 0) {
       return <></>;
     }
-    const allTags = tags[0].value;
     // @ts-ignore
-    const color = colors[index];
 
     return (
       <div>
-        {allTags.map(x => (
-          <MyTag key={index + x} handler={this.hiddenTable} tableName={x}></MyTag>
+        {displayTables.map(x => (
+          <MyTag key={x} handler={this.hiddenTable} tableName={x}></MyTag>
         ))}
       </div>
     );
@@ -261,47 +261,29 @@ class SearchBody extends Component<ResultProps, ResultState> {
   start = () => {
     // ajax request after empty completing
 
-    const { dispatch } = this.props;
+    const { dispatch, selectedRowKeys } = this.props;
 
-    const displayTables = ALL_RELATIONS.map(x => ({
-      key: x,
-      value: this.state.allSelectedRowKeys[x].concat(
-        this.state.displayTables.filter(tb => tb.key === x)[0].value.length > 0
-          ? this.state.displayTables.filter(tb => tb.key === x)[0].value
-          : [],
-      ),
-    }));
-    console.log(displayTables);
+    console.log(selectedRowKeys);
     dispatch({
       type: 'visualization/submitSearchAll',
-      payload: displayTables,
+      payload: selectedRowKeys,
     });
-
-    setTimeout(() => {
-      this.setState({
-        displayTables: displayTables,
-        allSelectedRowKeys: this.getInitSelectRowKeys(),
-      });
-    }, 100);
   };
 
   clearDisplay = () => {
-    this.setState({
-      displayTables: this.getInitDisplayTables(),
-      allSelectedRowKeys: this.getInitSelectRowKeys(),
+    const { dispatch } = this.props;
+
+    dispatch({
+      type: 'visualization/save',
+      payload: { selectRelatedTableKeys: [], currentDisplayTables: [] },
     });
   };
 
   render() {
-    const { loading, submitting, tables } = this.props;
-    const { displayTables } = this.state;
-    const hasSelectedNum = ALL_RELATIONS.map(x => this.state.allSelectedRowKeys[x].length).reduce(
-      (a: number, b: number) => a + b,
-      0,
-    );
+    const { loading, submitting, tables, selectedRowKeys, tableLoading } = this.props;
+    const hasSelectedNum = selectedRowKeys.length;
     const hasSelected = hasSelectedNum > 0;
-    const clearCanSelected =
-      displayTables.map(x => x.value.length).reduce((a: number, b: number) => a + b, 0) > 0;
+    const clearCanSelected = hasSelectedNum > 0;
     return (
       <div style={{ marginTop: 20 }}>
         <Card loading={loading}>
@@ -324,31 +306,15 @@ class SearchBody extends Component<ResultProps, ResultState> {
           </div>
 
           <Collapse bordered={false}>
-            <Collapse.Panel header="直系" key="1" disabled={submitting}>
-              {this.getListBody(tables, submitting, 'father')}
-            </Collapse.Panel>
-            <Collapse.Panel header="子系" key="2" disabled={submitting}>
-              {this.getListBody(tables, submitting, 'son')}
-            </Collapse.Panel>
-            <Collapse.Panel header="相关" key="3" disabled={submitting}>
-              {this.getListBody(tables, submitting, 'other')}
+            <Collapse.Panel header="关联表" key="1" disabled={submitting}>
+              {this.getListBody(tables, submitting || tableLoading)}
             </Collapse.Panel>
           </Collapse>
         </Card>
 
-        <Card loading={loading} style={{ marginTop: 20 }}>
-          <Tabs defaultActiveKey="1">
-            <Tabs.TabPane tab="Father" key="1">
-              {this.getListTag('father')}
-            </Tabs.TabPane>
-            <Tabs.TabPane tab="Son" key="2">
-              {this.getListTag('son')}
-            </Tabs.TabPane>
-            <Tabs.TabPane tab="Other" key="3">
-              {this.getListTag('other')}
-            </Tabs.TabPane>
-          </Tabs>
-        </Card>
+        {/*<Card loading={loading} style={{ marginTop: 20 }}>*/}
+        {/*  {this.getListTag()}*/}
+        {/*</Card>*/}
       </div>
     );
   }

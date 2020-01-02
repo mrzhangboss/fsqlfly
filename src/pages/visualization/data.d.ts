@@ -9,7 +9,7 @@ interface TableField {
 
 interface TableMeta {
   name: string;
-  info: string;
+  info?: string;
   tableName: string;
   namespace: string;
   fields: TableField[];
@@ -26,15 +26,36 @@ interface TableDetail {
   show: boolean;
   loading: boolean;
   tableName: string;
-  tableInfo: string;
   search: string;
   limit: number;
-  values: Array<{ [key: string]: number | string }>;
-  fields: Array<Field>;
+  isEmpty: boolean;
+  data: Array<{ [key: string]: number | string }>;
+  fieldNames: Array<string>;
+}
+
+interface TableShortCut {
+  tableName: string;
+  search: string;
+  limit: number;
+  typ: string;
+  visible: boolean;
+}
+
+interface TabTables {
+  search: string;
+  limit: number;
+  selectTable: string;
+  selectRelatedTableKeys: string[];
+  relatedTables: TableMeta[];
+  currentDisplayTables: TableShortCut[];
+  current?: TableDetail;
 }
 
 interface VisualizationResult {
   tables: TableMeta[];
+  relatedTables: TableMeta[];
+  selectRelatedTableKeys: string[];
+  currentDisplayTables: string[];
   details: TableDetail[];
   current?: TableDetail;
   search: string;

@@ -5,6 +5,7 @@ import SearchHeader from './componets/Search';
 import SearchBody from './componets/Result';
 import ResultBody from './componets/ResultBody';
 import DrawResult from './componets/DrawResult';
+import { VisualizationResult } from './data';
 
 interface VisualizationState {}
 

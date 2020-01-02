@@ -1,23 +1,11 @@
-import React, { Component, ReactNode } from 'react';
+import React, { Component } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
-import {
-  Card,
-  Collapse,
-  List,
-  Mentions,
-  Skeleton,
-  Tabs,
-  Tag,
-  Typography,
-  Empty,
-  Switch,
-} from 'antd';
-import { Table, Input, Button, Icon } from 'antd';
-import Highlighter from 'react-highlight-words';
+import { Card, Empty, Switch } from 'antd';
+import { Table, Icon } from 'antd';
 import { ColumnFilterItem } from 'antd/lib/table/interface';
 import { PaginationConfig } from 'antd/lib/pagination';
-import { ButtonType } from 'antd/lib/button/button';
+import { TableDetail, VisualizationResult } from '../data';
 
 interface ResultProps {
   loading: boolean;
@@ -31,38 +19,8 @@ interface ResultState {
   searchedColumn: string;
   selectedRowKeys: string[];
   paging: false | PaginationConfig;
+  hiddenOverflow: boolean;
   columns: { name: string; buttonType: string }[];
-}
-
-interface ColumnButtonProps {
-  name: string;
-  buttonType: ButtonType;
-  handleColumnStateChange: (name: string, buttonType: string) => void;
-}
-
-const ButtonState = ['primary', 'default', 'dashed'];
-
-class ColumnButton extends Component<ColumnButtonProps, {}> {
-  onClick = (times: number) => {
-    const { name, buttonType, handleColumnStateChange } = this.props;
-    const index = ButtonState.indexOf(buttonType);
-    const newType = ButtonState[(index + times) % 3];
-    handleColumnStateChange(name, newType);
-  };
-
-  render() {
-    const { name, buttonType } = this.props;
-    return (
-      <Button
-        size="small"
-        type={buttonType}
-        onClick={x => this.onClick(1)}
-        onDoubleClick={x => this.onClick(2)}
-      >
-        {name}
-      </Button>
-    );
-  }
 }
 
 @connect(
@@ -73,7 +31,7 @@ class ColumnButton extends Component<ColumnButtonProps, {}> {
     visualization: VisualizationResult;
     loading: { effects: { [key: string]: boolean } };
   }) => ({
-    current: visualization.details.length > 0 ? visualization.details[0] : null,
+    current: visualization.current,
     loading: loading.effects['visualization/fetchTables'],
     submitting: loading.effects['visualization/submitSelectTable'],
   }),
@@ -83,42 +41,100 @@ class DrawResult extends Component<ResultProps, ResultState> {
     selectedRowKeys: [],
     searchText: '',
     searchedColumn: '',
-    paging: false,
+    paging: 'bottom',
     columns: [],
+    hiddenOverflow: true,
   };
 
+  currentCard: Document = document;
+
   generateTableColumn = (source: TableDetail) => {
-    const fields = source.fields.map((fd, index) => {
-      if (fd.typ === 'number') {
-        return {
-          title: fd.name,
-          dataIndex: fd.name,
-          key: fd.name,
-          sorter: (a, b) => a[fd.name] - b[fd.name],
-        };
-      } else if (fd.typ === 'choose') {
+    const allValue = {};
+    for (let i = 0; i < source.data.length; i++) {
+      const value = source.data[i];
+      for (const name in value) {
+        if (allValue[name] === undefined) {
+          allValue[name] = new Set([value[name]]);
+        } else {
+          allValue[name].add(value[name]);
+        }
+      }
+    }
+    const allValueType = {};
+    const chooseValueType = {};
+    for (const name in allValue) {
+      let numberCount = 0;
+      let stringCount = 0;
+      allValue[name].forEach((x: any) => {
+        if (typeof x === 'string') {
+          stringCount++;
+        } else if (typeof x === 'number') {
+          numberCount++;
+        }
+      });
+      let vType: string = 'object';
+      if (numberCount > stringCount) {
+        vType = 'number';
+      } else if (numberCount < stringCount) {
+        vType = 'string';
+      }
+      allValueType[name] = vType;
+
+      if (allValue[name].size <= 10) {
+        chooseValueType[name] = 'choose';
+      }
+    }
+    const { hiddenOverflow } = this.state;
+
+    const fields = source.fieldNames.map((fd, index) => {
+      let sorter;
+      if (allValueType[fd] === 'string') {
+        sorter = (a: any, b: any) =>
+          a[fd] !== null && b[fd] !== null ? a[fd].length - b[fd].length : -9999999;
+      } else if (allValueType[fd] == 'number') {
+        sorter = (a: any, b: any) => (a[fd] !== null && b[fd] !== null ? a[fd] - b[fd] : -9999999);
+      } else {
+        sorter = undefined;
+      }
+
+      if (chooseValueType[fd] === 'choose') {
         // @ts-ignore
-        const chooseFilter: ColumnFilterItem[] = [
-          ...new Set(source.values.map(x => x[fd.name])),
-        ].map(ss => ({
-          text: ss,
-          value: ss,
-        }));
+        const chooseFilter: ColumnFilterItem[] = [...allValue[fd]]
+          .filter(x => x !== null)
+          .map(ss => ({
+            text: ss,
+            value: ss,
+          }));
         return {
-          title: fd.name,
-          dataIndex: fd.name,
-          key: fd.name,
+          title: fd,
+          dataIndex: fd,
+          key: fd,
           filters: chooseFilter,
-          onFilter: (value: string, record: TableMeta) => record[fd.name].indexOf(value) === 0,
-          sorter: (a: TableMeta, b: TableMeta) => a[fd.name].length - b[fd.name].length,
+          onFilter: (value: string | number, record: any) =>
+            value !== null && record[fd] !== null
+              ? allValueType[fd] === 'string'
+                ? record[fd] === value
+                : record[fd] === value
+              : false,
+          sorter: sorter,
           sortDirections: ['descend'],
+          ellipsis: hiddenOverflow,
+        };
+      } else if (allValueType[fd] === 'string' || allValueType[fd] === 'number') {
+        return {
+          title: fd,
+          dataIndex: fd,
+          key: fd,
+          width: 200,
+          sorter: sorter,
+          ellipsis: hiddenOverflow,
         };
       } else {
         return {
-          title: fd.name,
-          dataIndex: fd.name,
-          key: fd.name,
-          width: 200,
+          title: fd,
+          dataIndex: fd,
+          key: fd,
+          ellipsis: hiddenOverflow,
         };
       }
     });
@@ -131,7 +147,7 @@ class DrawResult extends Component<ResultProps, ResultState> {
       <Table
         rowKey={'tableName'}
         columns={this.generateTableColumn(source)}
-        dataSource={source.values}
+        dataSource={source.data}
         loading={source.loading}
         pagination={this.state.paging}
       />
@@ -140,20 +156,12 @@ class DrawResult extends Component<ResultProps, ResultState> {
 
   setButtonType = (name: string, buttonType: string) => {};
 
-  render():
-    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-    | string
-    | number
-    | {}
-    | React.ReactNodeArray
-    | React.ReactPortal
-    | boolean
-    | null
-    | undefined {
+  render() {
     const { current } = this.props;
     return (
       <Card
-        title={'Current'}
+        ref={'currentCard'}
+        title={'当前表: ' + (current === undefined ? '_' : current.tableName)}
         extra={
           <span>
             <a href="#">Add</a>{' '}
@@ -165,10 +173,18 @@ class DrawResult extends Component<ResultProps, ResultState> {
                 this.setState({ paging: checked ? 'bottom' : false })
               }
             />
+            <Switch
+              checkedChildren="隐藏"
+              unCheckedChildren="显示"
+              defaultChecked={this.state.hiddenOverflow}
+              onChange={(checked: boolean, event: MouseEvent) =>
+                this.setState({ hiddenOverflow: checked })
+              }
+            />
           </span>
         }
       >
-        {current !== null && current !== undefined && !current.loading ? (
+        {current !== null && current !== undefined && !current.loading && !current.isEmpty ? (
           this.getListBody(current)
         ) : (
           <Empty />

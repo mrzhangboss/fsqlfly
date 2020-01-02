@@ -103,6 +103,15 @@ const tables = {
       info: '测试表4',
       fields: fields,
     },
+    {
+      tableName:
+        'longduokan.longlongreallong15longlonglonglonglongreallong15longlonglonglonglongreallong15longlonglong',
+      name:
+        'longlongreallong15longlonglonglonglongreallong15longlonglonglonglongreallong15longlonglong',
+      namespace: 'longduokan',
+      info: '测试表4',
+      fields: fields,
+    },
   ],
 };
 
@@ -140,6 +149,7 @@ const sonField = [
   { name: 'field_c', typ: 'choose' },
   { name: 'name', typ: 'choose' },
 ];
+
 function getSonTable(tabname: string) {
   return {
     typ: 'son',
@@ -147,6 +157,8 @@ function getSonTable(tabname: string) {
     tableName: tabname,
     loading: false,
     tableInfo: 'son table info',
+    search: '$id = 1 ',
+    limit: 500,
     values: [
       { field_a: '@word', field_b: 1, field_c: '@word', name: '@word' },
       { field_a: '@word', field_b: 2, field_c: '@word', name: '@word' },
@@ -154,16 +166,32 @@ function getSonTable(tabname: string) {
       { field_a: '@word', field_b: 4, field_c: '@word', name: '@word' },
     ],
     fields: sonField,
+    fieldNames: sonField.map(x => x.name),
   };
 }
+
 const proxy = {
-  'GET  /api/tables': tables,
+  'GET  /api/tables': { data: tables },
   'GET /api/table/:tableName': (
+    req: { params: { tableName: string } },
+    res: { send: (arg0: { data: any; code: number; msg: string }) => void },
+  ) => {
+    if (Math.random() > 0.1) {
+      res.send({
+        data: { data: tables.data.filter(x => x.tableName !== req.params.tableName) },
+        code: 0,
+        msg: '',
+      });
+    } else {
+      res.send(mockjs.mock({ data: { data: null }, code: 500, msg: '@paragraph' }));
+    }
+  },
+  'POST /api/search/:tableName': (
     req: { params: { tableName: string } },
     res: { send: (arg0: { data: any }) => void },
   ) => {
     if (Math.random() > 0.5) {
-      res.send({ data: mockjs.mock(getSimpleTable(req.params.tableName)) });
+      res.send({ data: mockjs.mock(getSonTable(req.params.tableName)) });
     } else {
       res.send({ data: mockjs.mock(getSonTable(req.params.tableName)) });
     }

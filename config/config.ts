@@ -117,18 +117,6 @@ export default {
           component: './visualization',
         },
         {
-          name: 'display',
-          icon: 'bulb',
-          path: '/display',
-          component: './display',
-        },
-        {
-          name: 'analysis',
-          icon: 'bulb',
-          path: '/analysis',
-          component: './analysis',
-        },
-        {
           path: '/transform',
           name: 'transform',
           exact: true,
@@ -190,12 +178,6 @@ export default {
               component: './resources/functions',
             },
           ],
-        },
-        {
-          name: 'profile',
-          icon: 'smile',
-          path: '/profile',
-          component: './profile',
         },
       ],
     },

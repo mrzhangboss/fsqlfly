@@ -2,7 +2,8 @@ import request from 'umi-request';
 
 export function getAllService(namespace: string) {
   return (params: any) => {
-    return request(`/api/${namespace}`, { params });
+    const t = new Date().getTime();
+    return request(`/api/${namespace}?_time=${t}`, { params });
   };
 }
 
@@ -33,9 +34,9 @@ export function deleteService(namespace: string) {
   };
 }
 
-export function runService(params: { id: number, method: string, model: string }) {
-    return request(`/api/${params.model}/${params.method}/${params.id}`, {
-      method: 'POST',
-      data: params,
-    });
+export function runService(params: { id: number; method: string; model: string }) {
+  return request(`/api/${params.model}/${params.method}/${params.id}`, {
+    method: 'POST',
+    data: params,
+  });
 }

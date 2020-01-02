@@ -41,6 +41,7 @@ function getListModel<T extends IDObject>(
   namespace: string,
   dependNamespce?: string,
 ): ModelType<T> {
+  // @ts-ignore
   return {
     namespace: namespace,
     state: {
@@ -97,7 +98,7 @@ function getListModel<T extends IDObject>(
         return { ...state, dependence: data };
       },
       createOne(state, { payload }) {
-        return { ...state, list: [payload, ...state.list] };
+        return state === undefined ? state : { ...state, list: [payload, ...state.list] };
       },
       updateList(state, { payload }) {
         return {
