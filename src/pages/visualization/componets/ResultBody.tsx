@@ -1,20 +1,8 @@
-import React, { Component, ReactNode } from 'react';
-import {
-  Button,
-  Card,
-  Descriptions,
-  Divider,
-  Empty,
-  Icon,
-  Switch,
-  Table,
-  Tabs,
-  Tooltip,
-} from 'antd';
+import React, { Component } from 'react';
+import { Button, Card, Table, Tag } from 'antd';
 import { connect } from 'dva';
 import { Dispatch } from 'redux';
-import { ColumnFilterItem } from 'antd/lib/table/interface';
-import { TableDetail, VisualizationResult, TableMeta } from '../data';
+import { TableDetail, VisualizationResult } from '../data';
 
 interface ResultProp {
   loading: boolean;
@@ -23,10 +11,7 @@ interface ResultProp {
   dispatch: Dispatch<any>;
 }
 
-interface ResultState {
-  activeKey: string;
-  panes: any[];
-}
+interface ResultState {}
 
 @connect(
   ({
@@ -42,40 +27,7 @@ interface ResultState {
   }),
 )
 class ResultBody extends Component<ResultProp, ResultState> {
-  state: ResultState = {
-    activeKey: '',
-    panes: [
-      { title: 'Tab 1', content: 'Content of Tab Pane 1', key: '1' },
-      { title: 'Tab 2', content: 'Content of Tab Pane 2', key: '2' },
-    ],
-  };
-  newTabIndex = 3;
-
-  add = () => {
-    const { panes } = this.state;
-    const activeKey = `newTab${this.newTabIndex++}`;
-    panes.push({ title: 'New Tab', content: 'New Tab Pane', key: activeKey });
-    this.setState({ panes, activeKey });
-  };
-
-  remove = (targetKey: string) => {
-    let { activeKey } = this.state;
-    let lastIndex;
-    this.state.panes.forEach((pane, i) => {
-      if (pane.key === targetKey) {
-        lastIndex = i - 1;
-      }
-    });
-    const panes = this.state.panes.filter(pane => pane.key !== targetKey);
-    if (panes.length && activeKey === targetKey) {
-      if (lastIndex >= 0) {
-        activeKey = panes[lastIndex].key;
-      } else {
-        activeKey = panes[0].key;
-      }
-    }
-    this.setState({ panes, activeKey });
-  };
+  state: ResultState = {};
 
   generateTableColumn = (source: TableDetail) => {
     if (source.loading) return [];
@@ -119,6 +71,18 @@ class ResultBody extends Component<ResultProp, ResultState> {
     });
   };
 
+  generateTableTitle = (tab: TableDetail) => {
+    const typ = tab.typ;
+    const color = typ === 'mysql' ? 'blue' : typ === 'hive' ? 'cyan' : 'orange';
+    const tag = <Tag color={color}>{tab.tableName.split('.')[0]}</Tag>;
+    return (
+      <div>
+        {tag}
+        {tab.tableName.split('.')[1]}
+      </div>
+    );
+  };
+
   // @ts-ignore
   generateTableDetail = (tab: TableDetail) => {
     return (
@@ -126,7 +90,7 @@ class ResultBody extends Component<ResultProp, ResultState> {
         hoverable
         onDoubleClick={x => this.activeTable(tab.tableName)}
         key={tab.tableName}
-        title={tab.tableName}
+        title={this.generateTableTitle(tab)}
         style={{ marginBottom: 24 }}
         bordered={false}
         loading={tab.loading}

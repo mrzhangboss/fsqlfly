@@ -9,6 +9,7 @@ interface TableField {
 
 interface TableMeta {
   name: string;
+  typ: 'kafka' | 'mysql' | 'hive';
   info?: string;
   tableName: string;
   namespace: string;
@@ -61,4 +62,7 @@ interface VisualizationResult {
   search: string;
   limit: number;
   selectTable: string;
+  errorDisplay: boolean;
+  errorMsg: string;
+  errorCode: number;
 }

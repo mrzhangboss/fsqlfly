@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
-import { Card, Empty, Switch } from 'antd';
+import { Card, Empty, Switch, Tag, Tooltip } from 'antd';
 import { Table, Icon } from 'antd';
 import { ColumnFilterItem } from 'antd/lib/table/interface';
 import { PaginationConfig } from 'antd/lib/pagination';
@@ -41,6 +41,7 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
     selectedRowKeys: [],
     searchText: '',
     searchedColumn: '',
+    //@ts-ignore
     paging: 'bottom',
     columns: [],
     hiddenOverflow: true,
@@ -147,6 +148,7 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
     return (
       <Table
         rowKey={'tableName'}
+        // @ts-ignore
         columns={this.generateTableColumn(source)}
         dataSource={source.data}
         loading={source.loading}
@@ -155,14 +157,36 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
     );
   };
 
-  setButtonType = (name: string, buttonType: string) => {};
+  generateTitle = (current?: TableDetail) => {
+    const text = current === undefined ? '' : current.fieldNames.join(' ');
+    const cur = (
+      <Tooltip placement="top" title={text}>
+        <Icon type="home" />
+      </Tooltip>
+    );
+    if (current === undefined) {
+      return cur;
+    } else {
+      const typ = current.typ;
+      const color = typ === 'mysql' ? 'blue' : typ === 'hive' ? 'cyan' : 'orange';
+      const tag = <Tag color={color}>{current.tableName.split('.')[0]}</Tag>;
+      return (
+        <div>
+          {cur}
+
+          {tag}
+          {current.tableName.split('.')[1]}
+        </div>
+      );
+    }
+  };
 
   render() {
     const { current } = this.props;
     return (
       <Card
         ref={'currentCard'}
-        title={'当前表: ' + (current === undefined ? '_' : current.tableName)}
+        title={this.generateTitle(current)}
         extra={
           <span>
             <a href="#">添加</a>{' '}
@@ -170,6 +194,7 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
               checkedChildren={<Icon type="check" />}
               unCheckedChildren={<Icon type="close" />}
               defaultChecked={this.state.paging === 'bottom' ? true : false}
+              //@ts-ignore
               onChange={(checked: boolean, event: MouseEvent) =>
                 this.setState({ paging: checked ? 'bottom' : false })
               }

@@ -17,6 +17,7 @@ export interface ModelType {
   state: VisualizationResult;
   effects: {
     fetchTables: Effect;
+    doRefresh: Effect;
     submitSearch: Effect;
     submitSelectTable: Effect;
     submitSearchAll: Effect;
@@ -45,6 +46,9 @@ const Model: ModelType = {
     limit: -1,
     currentDisplayTables: [],
     selectRelatedTableKeys: [],
+    errorDisplay: false,
+    errorCode: 0,
+    errorMsg: '',
   },
 
   effects: {
@@ -55,9 +59,41 @@ const Model: ModelType = {
         payload: { tables: response.data.data },
       });
     },
+    *doRefresh(_, { call, put }) {
+      yield put({
+        type: 'save',
+        payload: {
+          tables: [],
+          relatedTables: [],
+          details: [],
+          selectTable: '',
+          limit: -1,
+          currentDisplayTables: [],
+          selectRelatedTableKeys: [],
+          errorDisplay: false,
+          errorCode: 0,
+          errorMsg: '',
+        },
+      });
+
+      yield put({
+        type: 'fetchTables',
+      });
+    },
     *submitSearch({ payload }, { call, put, select }) {
       const { limit, search, selectTable } = yield select(x => x.visualization);
       const response = yield call(searchTable, selectTable, { limit, search });
+      if (response.code !== 0) {
+        yield put({
+          type: 'save',
+          payload: {
+            errorDisplay: true,
+            errorCode: response.code,
+            errorMsg: response.msg,
+          },
+        });
+        return;
+      }
       yield put({
         type: 'saveTableSearch',
         payload: response.data,
@@ -194,6 +230,7 @@ const Model: ModelType = {
     },
     // @ts-ignore
     deleteTable(state, { tableName }) {
+      // @ts-ignore
       return { ...state, details: state.details.filter(x => x.tableName !== tableName) };
     },
   },

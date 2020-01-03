@@ -1,3 +1,4 @@
+// @ts-ignore
 import { delay } from 'roadhog-api-doc';
 import * as mockjs from 'mockjs';
 
@@ -18,6 +19,7 @@ const tables = {
       namespace: 'duokan',
       info: '测试表1',
       fields: fields,
+      typ: 'hive',
     },
     {
       tableName: 'duokan.abcd2',
@@ -25,6 +27,7 @@ const tables = {
       namespace: 'duokan',
       info: '测试表2',
       fields: fields,
+      typ: 'hive',
     },
     {
       tableName: 'longduokan.abcd1',
@@ -32,6 +35,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表2',
       fields: fields,
+      typ: 'hive',
     },
     {
       tableName: 'longduokan.abcd2',
@@ -39,6 +43,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表3',
       fields: fields,
+      typ: 'mysql',
     },
     {
       tableName: 'longduokan.longlongreallong1',
@@ -46,6 +51,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表4',
       fields: fields,
+      typ: 'mysql',
     },
     {
       tableName: 'longduokan.longlongreallong2',
@@ -53,6 +59,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表5',
       fields: fields,
+      typ: 'mysql',
     },
     {
       tableName: 'longduokan.longlongreallong3',
@@ -67,6 +74,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表very long long long long',
       fields: fields,
+      typ: 'mysql',
     },
     {
       tableName: 'longduokan.longlongreallong11',
@@ -74,6 +82,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表4',
       fields: fields,
+      typ: 'mysql',
     },
     {
       tableName: 'longduokan.longlongreallong12',
@@ -81,6 +90,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表4',
       fields: fields,
+      typ: 'mysql',
     },
     {
       tableName: 'longduokan.longlongreallong13',
@@ -88,6 +98,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表4',
       fields: fields,
+      typ: 'mysql',
     },
     {
       tableName: 'longduokan.longlongreallong14',
@@ -95,6 +106,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表4',
       fields: fields,
+      typ: 'mysql',
     },
     {
       tableName: 'longduokan.longlongreallong15',
@@ -102,6 +114,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表4',
       fields: fields,
+      typ: 'mysql',
     },
     {
       tableName:
@@ -111,6 +124,7 @@ const tables = {
       namespace: 'longduokan',
       info: '测试表4',
       fields: fields,
+      typ: 'kafka',
     },
   ],
 };
@@ -126,6 +140,7 @@ function getSonTable(tabname: string) {
   return {
     tableName: tabname,
     tableInfo: 'son table info',
+    'typ|1': ['kafka', 'mysql', 'hive'],
     search: '$id = 1 ',
     limit: 500,
     data: [
@@ -159,12 +174,12 @@ const proxy = {
   },
   'POST /api/search/:tableName': (
     req: { params: { tableName: string } },
-    res: { send: (arg0: { data: any }) => void },
+    res: { send: (arg0: { data: any; code: number; msg: string }) => void },
   ) => {
-    if (Math.random() > 0.5) {
-      res.send({ data: mockjs.mock(getSonTable(req.params.tableName)) });
+    if (Math.random() < 0.9999) {
+      res.send({ data: mockjs.mock(getSonTable(req.params.tableName)), code: 0, msg: '' });
     } else {
-      res.send({ data: mockjs.mock(getSonTable(req.params.tableName)) });
+      res.send(mockjs.mock({ data: null, code: 500, msg: '@csentence' }));
     }
   },
 };
