@@ -3,9 +3,8 @@ import attr
 import warnings
 import kafka
 import json
-from typing import List, Any, Optional, Dict, Set, Tuple, Union, Iterable
+from typing import List, Any, Optional, Dict, Tuple, Union, Iterable
 from collections import namedtuple, defaultdict
-from functools import total_ordering
 from datetime import datetime, date
 from heapq import nsmallest
 from base64 import b64decode
@@ -56,6 +55,7 @@ class DBCache:
 @attr.s(auto_attribs=True)
 class DBResult:
     table_name: str = attr.ib()
+    typ: str = attr.ib()
     search: str = attr.ib()
     limit: int = attr.ib(default=-1)
     isEmpty: bool = attr.ib(default=False)
@@ -75,6 +75,7 @@ class WebResTableField:
 @attr.s(auto_attribs=True)
 class WebResTable:
     tableName: str = attr.ib()
+    typ: str = attr.ib()
     name: str = attr.ib()
     namespace: str = attr.ib()
     info: Optional[str] = attr.ib(default=None)
@@ -110,7 +111,8 @@ class DBConnector:
         field_names = [x.name for x in table.table.fields] if fields == '*' else fields.split(',')
         res = DBResult(table_name=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
                        search=search, limit=limit,
-                       fieldNames=field_names)
+                       fieldNames=field_names,
+                       typ=table.typ)
         func = build_function(clean_sql(search))
         for k, v in msgs.items():
             for msg in v:
@@ -141,7 +143,7 @@ class DBConnector:
         fields = params.get('fields', '*')
         full_sql = build_select_sql(search, table_name, limit=limit, offset=offset, fields=fields)
 
-        def type_warp(vs: Iterable[Any]) -> List[Any]:
+        def type_warp(vs: Iterable[Any]) -> Iterable[Any]:
             def _warp(v: Any) -> Any:
                 if isinstance(v, bytes):
                     return v.decode('utf-8', errors='ignore')
@@ -155,7 +157,8 @@ class DBConnector:
             result = DBResult(table_name=DBProxy.get_global_table_name(table.table, table.suffix),
                               isEmpty=is_empty,
                               search=search,
-                              limit=limit)
+                              limit=limit,
+                              typ=table.typ)
             field_names = None
             for x in data:
                 if field_names is None:
@@ -321,7 +324,8 @@ class DBProxy:
                                     name=table.name,
                                     namespace=namespace,
                                     fields=fields,
-                                    info=table.comment if relation.typ != DBType.kafka else None))
+                                    info=table.comment if relation.typ != DBType.kafka else None,
+                                    typ=relation.typ))
 
         setattr(self, self.__table_meta_cache_name, data)
         return data
@@ -453,7 +457,8 @@ class DBProxy:
         # TODO: Faster speed by use mysql join instead of search by where
         for i, x in enumerate(relations):
             if father.isEmpty:
-                return DBResult(target_table, isEmpty=True, search=target_search, lostTable=x.s_table)
+                return DBResult(target_table, isEmpty=True, search='', lostTable=x.s_table,
+                                typ=self.sources.tables[target_table].typ)
             target_search = self.build_search(father, x)
 
             target_limit = self._default_limit
