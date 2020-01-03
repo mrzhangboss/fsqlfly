@@ -8,6 +8,7 @@ interface ResultProp {
   loading: boolean;
   submitting: boolean;
   tables: TableDetail[];
+  current?: TableDetail;
   dispatch: Dispatch<any>;
 }
 
@@ -22,6 +23,7 @@ interface ResultState {}
     loading: { effects: { [key: string]: boolean } };
   }) => ({
     tables: visualization.details,
+    current: visualization.current,
     loading: loading.effects['visualization/fetchTables'],
     submitting: loading.effects['visualization/submitSelectTable'],
   }),
@@ -106,11 +108,13 @@ class ResultBody extends Component<ResultProp, ResultState> {
   };
 
   render() {
-    const { loading, tables } = this.props;
+    const { loading, tables, current } = this.props;
 
     return (
       <Card loading={loading} style={{ marginTop: 20 }}>
-        {tables.map(x => this.generateTableDetail(x))}
+        {tables
+          .filter(x => current === undefined || x.tableName !== current.tableName)
+          .map(x => this.generateTableDetail(x))}
       </Card>
     );
   }
