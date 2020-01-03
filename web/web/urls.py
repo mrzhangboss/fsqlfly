@@ -40,5 +40,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
     path('upload/logo/<str:name>', get_picture),
-    re_path('(resouces|transform)/.*', to_static),
+    path('', to_static),
+    re_path('(resouces|transform|visualization)/.*', to_static),
 ]

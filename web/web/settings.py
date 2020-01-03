@@ -57,6 +57,7 @@ MIDDLEWARE = [
     'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.cache.FetchFromCacheMiddleware',
+    'api.middleware.LoginCheckMiddleware',
 ]
 
 ROOT_URLCONF = 'web.urls'

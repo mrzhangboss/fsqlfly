@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 
-from dbs.models import Namespace, FileResource, Resource, Functions, Transform
+from dbs.models import Namespace, FileResource, Resource, Functions, Transform, Connection, Relationship
 
 
 # Register your models here.
@@ -40,3 +40,16 @@ class TransformAdmin(admin.ModelAdmin):
     list_display = ['name', 'info', '_name_space_name', '_create_at', '_update_at']
     list_filter = ['namespace', 'is_publish', 'is_available', 'is_deleted']
 
+
+@admin.register(Connection)
+class ConnectionAdmin(admin.ModelAdmin):
+    search_fields = ['name']
+    list_display = ['name', 'info']
+    list_filter = ['is_publish', 'is_available', 'is_deleted']
+
+
+@admin.register(Relationship)
+class RelationshipmAdmin(admin.ModelAdmin):
+    search_fields = ['name']
+    list_display = ['name', 'info']
+    list_filter = ['is_publish', 'is_available', 'is_deleted']

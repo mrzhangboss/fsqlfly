@@ -57,8 +57,8 @@ def upload(req: HttpRequest) -> JsonResponse:
 
 
 def current_user(req: HttpRequest) -> JsonResponse:
-    return JsonResponse(data={"name": "Flink User",
-                              "avatar": 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png', })
+    return JsonResponse(data={"name": req.user.username,
+                              "avatar": 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png'})
 
 
 _MODELS = {
