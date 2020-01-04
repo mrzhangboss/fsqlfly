@@ -249,6 +249,7 @@ class SearchHeader extends Component<SearchProps, SearchState> {
               placeholder="select one table"
               children={tableSource}
               onChange={this.handleSelectChange}
+              value={selectTable}
               optionLabelProp="label"
               maxTagTextLength={64}
             />
