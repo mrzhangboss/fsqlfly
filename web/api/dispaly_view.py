@@ -16,6 +16,7 @@ from django.http import HttpRequest, JsonResponse
 from django.db.models import Q
 from utils.db_helper import DBProxy
 from utils.response import create_response
+from MySQLdb import ProgrammingError
 
 global_proxy = threading.local()
 PROXY_NAME = 'DB_PROXY_NAME'
@@ -117,8 +118,8 @@ class ProxyHelper:
         try:
             data = func()
         except Exception as e:
-            raise e
             msg_io = StringIO()
+            msg_io.write("Meet {}".format(str(e)))
             traceback.print_exc(file=msg_io)
             msg_io.seek(0)
             real_msg = msg_io.read()

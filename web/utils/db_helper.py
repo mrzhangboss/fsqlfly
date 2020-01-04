@@ -3,9 +3,8 @@ import attr
 import warnings
 import kafka
 import json
-from typing import List, Any, Optional, Dict, Set, Tuple, Union
+from typing import List, Any, Optional, Dict, Tuple, Union, Iterable
 from collections import namedtuple, defaultdict
-from functools import total_ordering
 from datetime import datetime, date
 from heapq import nsmallest
 from base64 import b64decode
@@ -56,12 +55,13 @@ class DBCache:
 @attr.s(auto_attribs=True)
 class DBResult:
     table_name: str = attr.ib()
+    typ: str = attr.ib()
     search: str = attr.ib()
     limit: int = attr.ib(default=-1)
-    is_empty: bool = attr.ib(default=False)
+    isEmpty: bool = attr.ib(default=False)
     data: List[Dict[str, Any]] = attr.Factory(list)
-    field_names: List[str] = attr.Factory(list)
-    lost_table: Optional[str] = attr.ib(default=None)
+    fieldNames: List[str] = attr.Factory(list)
+    lostTable: Optional[str] = attr.ib(default=None)
 
 
 @attr.s(auto_attribs=True)
@@ -74,7 +74,8 @@ class WebResTableField:
 
 @attr.s(auto_attribs=True)
 class WebResTable:
-    table_name: str = attr.ib()
+    tableName: str = attr.ib()
+    typ: str = attr.ib()
     name: str = attr.ib()
     namespace: str = attr.ib()
     info: Optional[str] = attr.ib(default=None)
@@ -110,7 +111,8 @@ class DBConnector:
         field_names = [x.name for x in table.table.fields] if fields == '*' else fields.split(',')
         res = DBResult(table_name=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
                        search=search, limit=limit,
-                       field_names=field_names)
+                       fieldNames=field_names,
+                       typ=table.typ)
         func = build_function(clean_sql(search))
         for k, v in msgs.items():
             for msg in v:
@@ -141,21 +143,30 @@ class DBConnector:
         fields = params.get('fields', '*')
         full_sql = build_select_sql(search, table_name, limit=limit, offset=offset, fields=fields)
 
+        def type_warp(vs: Iterable[Any]) -> Iterable[Any]:
+            def _warp(v: Any) -> Any:
+                if isinstance(v, bytes):
+                    return v.decode('utf-8', errors='ignore')
+                return v
+
+            return (_warp(x) for x in vs)
+
         with engine.connect() as con:
             data = con.execute(full_sql).fetchall()
             is_empty = len(data) == 0
             result = DBResult(table_name=DBProxy.get_global_table_name(table.table, table.suffix),
-                              is_empty=is_empty,
+                              isEmpty=is_empty,
                               search=search,
-                              limit=limit)
+                              limit=limit,
+                              typ=table.typ)
             field_names = None
             for x in data:
                 if field_names is None:
                     field_names = list(x.keys())
-                result.data.append(dict(zip(x.keys(), x.values())))
+                result.data.append(dict(zip(x.keys(), type_warp(list(x.values())))))
 
             if field_names is not None:
-                result.field_names = field_names
+                result.fieldNames = field_names
 
         return result
 
@@ -309,11 +320,12 @@ class DBProxy:
                         WebResTableField(name=x.name, typ=str(x.type), unique=x.name in unique,
                                          primary=x.name in primaries))
 
-            data.append(WebResTable(table_name=table_name,
+            data.append(WebResTable(tableName=table_name,
                                     name=table.name,
                                     namespace=namespace,
                                     fields=fields,
-                                    info=table.comment if relation.typ != DBType.kafka else None))
+                                    info=table.comment if relation.typ != DBType.kafka else None,
+                                    typ=relation.typ))
 
         setattr(self, self.__table_meta_cache_name, data)
         return data
@@ -337,7 +349,7 @@ class DBProxy:
         if table_name not in self.sources.tables:
             return WebResTables(data=[])
         tables = set(list(self.sources.tables[table_name].relations.keys()))
-        return WebResTables(data=[x for x in self.all_table_metas if x.table_name in tables])
+        return WebResTables(data=[x for x in self.all_table_metas if x.tableName in tables])
 
     def api_search_table(self, source_table: str, search: str, target_table: str, limit: int) -> DBResult:
         return self.get_table(source_table, search, target_table, limit)
@@ -444,8 +456,9 @@ class DBProxy:
         father = source
         # TODO: Faster speed by use mysql join instead of search by where
         for i, x in enumerate(relations):
-            if father.is_empty:
-                return DBResult(target_table, is_empty=True, search=target_search, lost_table=x.s_table)
+            if father.isEmpty:
+                return DBResult(target_table, isEmpty=True, search='', lostTable=x.s_table,
+                                typ=self.sources.tables[target_table].typ)
             target_search = self.build_search(father, x)
 
             target_limit = self._default_limit
