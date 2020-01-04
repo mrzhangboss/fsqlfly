@@ -135,12 +135,12 @@ const Model: ModelType = {
     *submitSearchAll({ payload }, { call, put, select }) {
       console.log('submitSearchAll', payload);
       // @ts-ignore
-      const { selectTable } = yield select(x => x.visualization);
+      const { selectTable, search, limit } = yield select(x => x.visualization);
       const { current } = yield select(x => x.visualization);
       if (current === undefined) {
         yield put({
           type: 'submitSearchOne',
-          payload: { params: { selectTable, table: selectTable } },
+          payload: { params: { selectTable, search, limit, table: selectTable } },
         });
       }
       for (let v of payload) {
@@ -151,7 +151,7 @@ const Model: ModelType = {
         });
         yield put({
           type: 'submitSearchOne',
-          payload: { params: { selectTable, table: v } },
+          payload: { params: { selectTable, search, limit, table: v } },
         });
       }
     },

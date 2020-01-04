@@ -127,7 +127,6 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
           title: fd,
           dataIndex: fd,
           key: fd,
-          width: 200,
           sorter: sorter,
           ellipsis: hiddenOverflow,
         };
