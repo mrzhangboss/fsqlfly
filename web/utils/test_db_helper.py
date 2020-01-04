@@ -28,7 +28,7 @@ class MyTestCase(unittest.TestCase):
         search_tb = gen_real_db_name('django_admin_log')
         data = proxy.get_table(source_tb, search=f" $username = '{django_admin}' /* mode= xx */", target_table=search_tb,
                                limit=100)
-        self.assertEqual(data.table_name, search_tb)
+        self.assertEqual(data.tableName, search_tb)
 
     def test_get_multi_field_mysql_table(self):
         url = ENV('TEST_MYSQL_CONNECTION_URL')
@@ -57,7 +57,7 @@ class MyTestCase(unittest.TestCase):
 
         data = proxy.get_table(table_name, search=table_search, target_table=table_name,
                                limit=100)
-        self.assertEqual(data.table_name, table_name)
+        self.assertEqual(data.tableName, table_name)
 
     def test_get_kafka_table(self):
         url = ENV('TEST_KAFKA_CONNECTION_URL')

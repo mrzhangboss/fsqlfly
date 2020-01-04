@@ -54,7 +54,7 @@ class DBCache:
 
 @attr.s(auto_attribs=True)
 class DBResult:
-    table_name: str = attr.ib()
+    tableName: str = attr.ib()
     typ: str = attr.ib()
     search: str = attr.ib()
     limit: int = attr.ib(default=-1)
@@ -109,7 +109,7 @@ class DBConnector:
 
         fields = params.get('fields', '*')
         field_names = [x.name for x in table.table.fields] if fields == '*' else fields.split(',')
-        res = DBResult(table_name=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
+        res = DBResult(tableName=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
                        search=search, limit=limit,
                        fieldNames=field_names,
                        typ=table.typ)
@@ -154,7 +154,7 @@ class DBConnector:
         with engine.connect() as con:
             data = con.execute(full_sql).fetchall()
             is_empty = len(data) == 0
-            result = DBResult(table_name=DBProxy.get_global_table_name(table.table, table.suffix),
+            result = DBResult(tableName=DBProxy.get_global_table_name(table.table, table.suffix),
                               isEmpty=is_empty,
                               search=search,
                               limit=limit,
