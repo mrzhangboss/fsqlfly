@@ -108,19 +108,32 @@ class DBConnector:
         msgs = consumer.poll(timeout_ms=1000, max_records=None if limit < 0 else limit, update_offsets=False)
 
         fields = params.get('fields', '*')
-        field_names = [x.name for x in table.table.fields] if fields == '*' else fields.split(',')
+        need_fields = None if fields == '*' else set(list(map(str.strip, fields.split(','))))
+        field_names = set()
         res = DBResult(tableName=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
                        search=search, limit=limit,
-                       fieldNames=field_names,
+                       fieldNames=[] if need_fields is None else list(need_fields),
                        typ=table.typ)
-        func = build_function(clean_sql(search))
+        real_func_str = clean_sql(search).strip()
+        if real_func_str:
+            func = build_function(real_func_str)
+        else:
+            func = lambda x: True
         for k, v in msgs.items():
             for msg in v:
                 data = json.loads(msg.value.decode('utf-8', errors='ignore'))
 
                 cell = Dict2Obj(**data)
                 if func(cell):
-                    res.data.append(data)
+                    if need_fields is None:
+                        for x in data:
+                            field_names.add(x)
+                        res.data.append(data)
+                    else:
+                        res.data.append({k: v for k, v in data.items() if k in need_fields})
+
+        if need_fields is None:
+            res.fieldNames = list(field_names)
 
         consumer.close()
 
