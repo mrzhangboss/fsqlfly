@@ -84,3 +84,20 @@ example: hive://host:10000/default
 kafka
 
 example: a:9092,b:9092,c:9092
+
+
+- relationship 配置
+
+基本格式为
+
+
+
+        relations:
+        - s_table: 'a.b'
+          s_fields: 
+          - id
+          t_table: 'bbb.ccc'
+          t_fields: 
+          - id
+          
+可添加多个
