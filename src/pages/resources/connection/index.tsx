@@ -237,7 +237,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   render() {
-    const supportConnectionType = ['mysql', 'hiveServer2Thrift', 'kafka'];
+    const supportConnectionType = ['mysql', 'hive', 'kafka'];
     const { loading } = this.props;
     const {
       form: { getFieldDecorator },

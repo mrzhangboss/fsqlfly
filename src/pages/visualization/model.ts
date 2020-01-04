@@ -43,7 +43,7 @@ const Model: ModelType = {
     details: [],
     search: '',
     selectTable: '',
-    limit: -1,
+    limit: 500,
     currentDisplayTables: [],
     selectRelatedTableKeys: [],
     errorDisplay: false,
