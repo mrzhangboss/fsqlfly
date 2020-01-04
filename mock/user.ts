@@ -54,7 +54,7 @@ const user = {
 export default {
   // 支持值为 Object 和 Array
   'GET /api/currentUser': (req, res) => {
-    if (Math.random() > 0.999) {
+    if (Math.random() < 0.999) {
       return res.send(user);
     } else {
       return res.send({ code: 500, msg: '需要登录' });
