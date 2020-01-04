@@ -61,3 +61,26 @@ canal_password 增量MySQL数据库密码
 
 2. 支持定时监控集群`SQL`job,只要把`Transform`设置为发布可用就可以一直运行，前提是配置好了`Flink`任务
 
+## Ubuntu 依赖
+
+    sudo apt-get install libsasl2-dev
+    
+
+## 展示页面说明
+
+- connection 信息配置
+
+mysql
+
+example：  mysql://username:password@host/database?charset='utf8'
+
+ps: 注意使用`charset='utf8'`否则会出现中文读取乱码
+
+
+hive
+
+example: hive://host:10000/default
+
+kafka
+
+example: a:9092,b:9092,c:9092
