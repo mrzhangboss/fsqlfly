@@ -76,8 +76,8 @@ class ProxyHelper:
         last_relation_update_at, last_relation_create_at = self.last_relation_update_at, self.last_relation_create_at
         self.last_relation_update_at = self.get_latest_field('update_at', Relationship)
         self.last_relation_create_at = self.get_latest_field('create_at', Relationship)
-        for relation in Relationship.objects.filter(
-                Q(update_at__gt=last_relation_update_at) | Q(create_at__gt=last_relation_create_at)).all():
+        real_filter = self.get_real_filter(last_relation_update_at, last_relation_create_at)
+        for relation in Relationship.objects.filter(real_filter).all():
             if relation.cache is None:
                 continue
             update = True
@@ -90,13 +90,26 @@ class ProxyHelper:
                 self.relation[key] = relation.get_cache()
         return update
 
+    @classmethod
+    def get_real_filter(cls, update_at: Optional[datetime],
+                        create_at: Optional[datetime]) -> Type[Q]:
+        if create_at is None and update_at is None:
+            real_filter = Q(is_deleted=False, is_publish=True, is_available=True)
+        elif create_at is None and update_at is not None:
+            real_filter = Q(update_at__gt=update_at)
+        elif create_at is not None and update_at is None:
+            real_filter = Q(create_at__gt=create_at)
+        else:
+            real_filter = Q(update_at__gt=update_at) | Q(create_at__gt=create_at)
+        return real_filter
+
     def check_connection_update(self):
         update = False
         last_connection_update_at, last_connection_create_at = self.last_connection_update_at, self.last_connection_create_at
         self.last_connection_update_at = self.get_latest_field('update_at', Connection)
         self.last_connection_create_at = self.get_latest_field('create_at', Connection)
-        for con in Connection.objects.filter(
-                Q(update_at__gt=last_connection_update_at) | Q(create_at__gt=last_connection_create_at)).all():
+        real_filter = self.get_real_filter(last_connection_update_at, last_connection_create_at)
+        for con in Connection.objects.filter(real_filter).all():
             if con.cache is None:
                 continue
             update = True

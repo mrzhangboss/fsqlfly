@@ -157,7 +157,8 @@ class DBConnector:
         params = dict(parse_sql(search))
         offset = params.get('offset')
         fields = params.get('fields', '*')
-        full_sql = build_select_sql(search, table_name, limit=limit, offset=offset, fields=fields, safe_check=sql_safe_check)
+        full_sql = build_select_sql(search, table_name, limit=limit, offset=offset, fields=fields,
+                                    safe_check=sql_safe_check)
 
         def type_warp(vs: Iterable[Any]) -> Iterable[Any]:
             def _warp(v: Any) -> Any:
@@ -381,7 +382,11 @@ class DBProxy:
         cache_name = "TABLE_SEARCH_CACHE__{}:{}".format(table.table_name, limit)
         if cache.get(cache_name) is None:
             res = self._connector.search(table, search, limit, sql_safe_check)
-            cache.set(cache_name, res)
+            if table.typ == DBType.kafka:
+                cache.set(cache_name, res, 60)
+            else:
+                cache.set(cache_name, res)
+
         else:
             res = cache.get(cache_name)
         return res
@@ -503,6 +508,7 @@ class DBProxy:
                 target_search = self.get_table_fields(target_search, relations[i + 1])
                 target_limit = -1
 
-            father = self.get_search_table(target_search, self.sources.tables[x.t_table], target_limit, sql_safe_check=False)
+            father = self.get_search_table(target_search, self.sources.tables[x.t_table], target_limit,
+                                           sql_safe_check=False)
 
         return father
