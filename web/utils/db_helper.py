@@ -14,6 +14,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from utils.strings import build_select_sql, parse_sql, clean_sql
 from utils.function_helper import build_function, Dict2Obj
+from django.core.cache import caches, cache
 
 
 class CacheGenerateException(Exception):
@@ -88,9 +89,11 @@ class WebResTables:
 
 
 class DBConnector:
-    def __init__(self, caches: List[TableCache]):
+    def __init__(self, caches: List[TableCache], max_row: int = 10000, fetch_batch: int = 1000):
         self._caches = caches
         self._engines = dict()
+        self._max_row = max_row
+        self._fetch_batch = fetch_batch
 
     def get_db_engine(self, table: DBTableRelation) -> Engine:
         if table.connection_url in self._engines:
@@ -139,7 +142,7 @@ class DBConnector:
 
         return res
 
-    def search(self, table: DBTableRelation, search: str, limit: int) -> DBResult:
+    def search(self, table: DBTableRelation, search: str, limit: int, sql_safe_check: bool = True) -> DBResult:
         """
 
         :param table:
@@ -154,7 +157,7 @@ class DBConnector:
         params = dict(parse_sql(search))
         offset = params.get('offset')
         fields = params.get('fields', '*')
-        full_sql = build_select_sql(search, table_name, limit=limit, offset=offset, fields=fields)
+        full_sql = build_select_sql(search, table_name, limit=limit, offset=offset, fields=fields, safe_check=sql_safe_check)
 
         def type_warp(vs: Iterable[Any]) -> Iterable[Any]:
             def _warp(v: Any) -> Any:
@@ -165,21 +168,28 @@ class DBConnector:
             return (_warp(x) for x in vs)
 
         with engine.connect() as con:
-            data = con.execute(full_sql).fetchall()
-            is_empty = len(data) == 0
+            cursor = con.execute(full_sql)
+            total_num = 0
             result = DBResult(tableName=DBProxy.get_global_table_name(table.table, table.suffix),
-                              isEmpty=is_empty,
+                              isEmpty=True,
                               search=search,
                               limit=limit,
                               typ=table.typ)
             field_names = None
-            for x in data:
-                if field_names is None:
-                    field_names = list(x.keys())
-                result.data.append(dict(zip(x.keys(), type_warp(list(x.values())))))
 
-            if field_names is not None:
-                result.fieldNames = field_names
+            while total_num < self._max_row:
+                data = cursor.fetchmany(size=self._fetch_batch)
+                if len(data) == 0:
+                    break
+                else:
+                    total_num += len(data)
+                for x in data:
+                    if field_names is None:
+                        field_names = list(x.keys())
+                        result.fieldNames = field_names
+                    result.data.append(dict(zip(x.keys(), type_warp(list(x.values())))))
+
+            result.isEmpty = len(result.data) == 0
 
         return result
 
@@ -367,9 +377,14 @@ class DBProxy:
     def api_search_table(self, source_table: str, search: str, target_table: str, limit: int) -> DBResult:
         return self.get_table(source_table, search, target_table, limit)
 
-    def get_search_table(self, search: str, table: DBTableRelation, limit: int):
-
-        return self._connector.search(table, search, limit)
+    def get_search_table(self, search: str, table: DBTableRelation, limit: int, sql_safe_check: bool = True):
+        cache_name = "TABLE_SEARCH_CACHE__{}:{}".format(table.table_name, limit)
+        if cache.get(cache_name) is None:
+            res = self._connector.search(table, search, limit, sql_safe_check)
+            cache.set(cache_name, res)
+        else:
+            res = cache.get(cache_name)
+        return res
 
     @classmethod
     def get_symbal_define(cls, t_type: str) -> Tuple[str, str]:
@@ -447,6 +462,15 @@ class DBProxy:
 
         return conditions
 
+    def get_table_fields(self, search: str, db_relation: DBRelation) -> str:
+        assert db_relation.s_table in self.sources.tables
+        relationship = self.sources.tables[db_relation.s_table]
+        distinct = ' '
+        if relationship.typ != DBType.kafka:
+            distinct = ' distinct '
+        return search + ' /* fields = {} {} */ '.format(distinct,
+                                                        ','.join(db_relation.s_fields))
+
     def get_table(self, source_table: str, search: str, target_table: str, limit: int, *args, **kwargs) -> Optional[
         DBResult]:
         if source_table not in self.sources.tables:
@@ -460,8 +484,7 @@ class DBProxy:
         if target_table != source_table:
             relations = real_table.relations[target_table]
             assert len(relations) > 0
-            target_search += ' /* fields = {} */ '.format(','.join(relations[0].s_fields))
-            target_limit = -1
+            target_search = self.get_table_fields(target_search, relations[0])
 
         source = self.get_search_table(target_search, real_table, limit=target_limit)
         if source_table == target_table:
@@ -477,9 +500,9 @@ class DBProxy:
             target_limit = self._default_limit
             if x.t_table != target_table:
                 assert relations[i + 1].s_table == x.t_table
-                target_search += ' /* fields = {} */ '.format(','.join(relations[i + 1].s_fields))
+                target_search = self.get_table_fields(target_search, relations[i + 1])
                 target_limit = -1
 
-            father = self.get_search_table(target_search, self.sources.tables[x.t_table], target_limit)
+            father = self.get_search_table(target_search, self.sources.tables[x.t_table], target_limit, sql_safe_check=False)
 
         return father
