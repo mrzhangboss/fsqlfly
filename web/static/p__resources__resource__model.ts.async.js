@@ -1,0 +1,1 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[18],{MQeR:function(e,a,c){"use strict";c.r(a);var n=c("+gtO");a.default=Object(n.a)("resource","namespace")}}]);
