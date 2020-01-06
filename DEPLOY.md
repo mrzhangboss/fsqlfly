@@ -72,7 +72,7 @@ canal_password 增量MySQL数据库密码
 
 mysql
 
-example：  mysql://username:password@host/database?charset='utf8'
+example：  mysql://username:password@host/database?charset=utf8
 
 ps: 注意使用`charset='utf8'`否则会出现中文读取乱码
 
