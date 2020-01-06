@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import attr
 import warnings
+import traceback
 import kafka
 import json
 from typing import List, Any, Optional, Dict, Tuple, Union, Iterable
@@ -319,6 +320,14 @@ class DBProxy:
 
     __table_meta_cache_name = '__TABLE_META_CACHE_NAME'
 
+    @classmethod
+    def gen_type_name(cls, column: any) -> str:
+        try:
+            return str(column)
+        except Exception as e:
+            traceback.print_exc()
+            return 'NullType'
+
     def build_all_table_metas_cache(self) -> List[WebResTable]:
         data = list()
 
@@ -341,7 +350,7 @@ class DBProxy:
 
                 for x in table.columns:
                     fields.append(
-                        WebResTableField(name=x.name, typ=str(x.type), unique=x.name in unique,
+                        WebResTableField(name=x.name, typ=self.gen_type_name(x.type), unique=x.name in unique,
                                          primary=x.name in primaries))
 
             data.append(WebResTable(tableName=table_name,
