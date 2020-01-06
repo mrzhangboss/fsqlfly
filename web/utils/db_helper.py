@@ -59,6 +59,7 @@ class DBResult:
     tableName: str = attr.ib()
     typ: str = attr.ib()
     search: str = attr.ib()
+    fullSql: str = attr.ib()
     limit: int = attr.ib(default=-1)
     isEmpty: bool = attr.ib(default=False)
     data: List[Dict[str, Any]] = attr.Factory(list)
@@ -114,11 +115,13 @@ class DBConnector:
         fields = params.get('fields', '*')
         need_fields = None if fields == '*' else set(list(map(str.strip, fields.split(','))))
         field_names = set()
+        real_func_str = clean_sql(search).strip()
+
         res = DBResult(tableName=DBProxy.get_global_kafka_table_name(table.table.name, table.suffix),
                        search=search, limit=limit,
                        fieldNames=[] if need_fields is None else list(need_fields),
-                       typ=table.typ)
-        real_func_str = clean_sql(search).strip()
+                       typ=table.typ,
+                       fullSql=real_func_str)
         if real_func_str:
             func = build_function(real_func_str)
         else:
@@ -176,7 +179,8 @@ class DBConnector:
                               isEmpty=True,
                               search=search,
                               limit=limit,
-                              typ=table.typ)
+                              typ=table.typ,
+                              fullSql=full_sql)
             field_names = None
 
             while total_num < self._max_row:
@@ -536,7 +540,7 @@ class DBProxy:
         for i, x in enumerate(relations):
             if father.isEmpty:
                 return DBResult(target_table, isEmpty=True, search='', lostTable=x.s_table,
-                                typ=self.sources.tables[target_table].typ)
+                                typ=self.sources.tables[target_table].typ, fullSql='')
             target_search = self.build_search(father, x)
 
             target_limit = self._default_limit
