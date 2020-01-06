@@ -95,7 +95,7 @@ class ResultBody extends Component<ResultProp, ResultState> {
         onDoubleClick={x => this.activeTable(tab.typ, tab.tableName)}
         key={tab.tableName}
         title={this.generateTableTitle(tab)}
-        style={{ marginBottom: 24 }}
+        style={{ marginBottom: 24, borderRadius: 10 }}
         bordered={false}
         loading={tab.loading}
         extra={
@@ -111,14 +111,18 @@ class ResultBody extends Component<ResultProp, ResultState> {
 
   render() {
     const { loading, tables, current } = this.props;
-
-    return (
-      <Card loading={loading} style={{ marginTop: 20 }}>
-        {tables
-          .filter(x => current === undefined || x.tableName !== current.tableName)
-          .map(x => this.generateTableDetail(x))}
-      </Card>
+    const displayTables = tables.filter(
+      x => current === undefined || x.tableName !== current.tableName,
     );
+    if (displayTables.length === 0) {
+      return <></>;
+    } else {
+      return (
+        <Card loading={loading} style={{ marginTop: 20, borderRadius: 10 }}>
+          {displayTables.map(x => this.generateTableDetail(x))}
+        </Card>
+      );
+    }
   }
 }
 

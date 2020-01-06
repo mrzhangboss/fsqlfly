@@ -29,6 +29,7 @@ interface TableDetail {
   loading: boolean;
   tableName: string;
   search: string;
+  fullSql: string;
   limit: number;
   isEmpty: boolean;
   data: Array<{ [key: string]: number | string }>;

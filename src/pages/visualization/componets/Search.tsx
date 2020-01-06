@@ -227,7 +227,7 @@ class SearchHeader extends Component<SearchProps, SearchState> {
 
     return (
       <>
-        <Card loading={loading}>
+        <Card loading={loading} style={{ borderRadius: 10 }}>
           <div></div>
 
           <div>

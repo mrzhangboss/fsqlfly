@@ -142,6 +142,7 @@ function getSonTable(tabname: string) {
     tableInfo: 'son table info',
     'typ|1': ['kafka', 'mysql', 'hive'],
     search: '$id = 1 ',
+    fullSql: 'select * from abc a where id = 1',
     limit: 500,
     data: [
       { field_a: '@word', 'field_b|+1': 1, field_c: '@word', name: '@word' },

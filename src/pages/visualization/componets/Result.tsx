@@ -43,7 +43,7 @@ class MyTag extends React.PureComponent<TagProp, { checked: boolean }> {
     const { tableName } = this.props;
     return (
       <CheckableTag
-        style={{ marginTop: 5 }}
+        style={{ marginTop: 5, borderRadius: 10 }}
         checked={this.state.checked}
         onChange={this.handleChange}
       >

@@ -1,11 +1,13 @@
 import React, { PureComponent } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
-import { Card, Empty, Switch, Tag, Tooltip } from 'antd';
+import { Button, Card, Empty, Switch, Tag, Tooltip } from 'antd';
 import { Table, Icon } from 'antd';
 import { ColumnFilterItem } from 'antd/lib/table/interface';
 import { PaginationConfig } from 'antd/lib/pagination';
 import { TableDetail, VisualizationResult } from '../data';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
+import { message } from 'antd';
 
 interface ResultProps {
   loading: boolean;
@@ -166,6 +168,10 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
     );
   };
 
+  onCopyFinished = () => {
+    message.info('复制成功！', 1);
+  };
+
   generateTitle = (current?: TableDetail) => {
     const text = current === undefined ? '' : current.fieldNames.join(' ');
     const cur = (
@@ -198,8 +204,15 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
         title={this.generateTitle(current)}
         extra={
           <span>
-            <a href="#">添加</a>{' '}
+            <CopyToClipboard
+              text={current?.fullSql}
+              onCopy={this.onCopyFinished}
+              style={{ marginRight: 10 }}
+            >
+              <Button type="primary" shape="circle" icon="copy"></Button>
+            </CopyToClipboard>
             <Switch
+              style={{ marginRight: 10 }}
               checkedChildren={<Icon type="check" />}
               unCheckedChildren={<Icon type="close" />}
               defaultChecked={this.state.paging === 'bottom' ? true : false}
@@ -209,6 +222,7 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
               }
             />
             <Switch
+              style={{ marginRight: 10 }}
               checkedChildren="隐藏"
               unCheckedChildren="显示"
               defaultChecked={this.state.hiddenOverflow}
@@ -218,6 +232,7 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
             />
           </span>
         }
+        style={{ marginTop: 3, borderRadius: 10 }}
       >
         {current !== null && current !== undefined && !current.loading && !current.isEmpty ? (
           this.getListBody(current)
