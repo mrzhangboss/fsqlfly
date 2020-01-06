@@ -49,7 +49,7 @@ class Step1 extends React.PureComponent<Step1Props, StepState> {
     const nextStep = () => {
       dispatch({
         type: 'formStepForm/saveCurrentStep',
-        payload: 'confirm',
+        payload: 'result',
       });
     };
     const backToList = () => {

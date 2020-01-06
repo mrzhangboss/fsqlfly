@@ -86,7 +86,7 @@ class Step3 extends React.Component<Step3Props, StepState> {
       });
       dispatch({
         type: 'formStepForm/saveCurrentStep',
-        payload: 'confirm',
+        payload: 'info',
       });
     };
     if (!data) {

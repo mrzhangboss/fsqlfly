@@ -50,8 +50,5 @@ export interface ResourceColumn {
   namespaceId: number;
   info: string;
   avatar: string;
-  rowtime: string;
-  proctime: string;
-  columns: OneColumn[];
   disabled: boolean;
 }

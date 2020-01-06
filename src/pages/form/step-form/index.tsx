@@ -59,7 +59,6 @@ class StepForm extends Component<StepFormProps> {
             {currentStep >= 0 && (
               <Steps current={currentStep} className={styles.steps}>
                 <Step title="选择数据源" />
-                <Step title="数据源配置" />
                 <Step title="编写SQL" />
               </Steps>
             )}

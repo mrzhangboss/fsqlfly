@@ -78,11 +78,7 @@ export default {
               name: '@word',
               'namespace|1': ['cat', 'dog', 'bird'],
               info: '@paragraph(1,1)',
-              rowtime: '',
-              proctime: '',
               'avatar|1': avatars,
-              'columns|2-3': [{ name: '@word', 'id|+1': 1 }],
-              'allColumns|10-20': [{ name: '@word', 'type|1': ['cat', 'dog', 'bird'], 'id|+1': 1 }],
             },
           ],
         }),
@@ -135,6 +131,6 @@ export default {
   },
   'POST  /api/transform/:id/run': mockjs.mock({
     msg: '@paragraph(1000,1000)',
-    success: true
+    success: true,
   }),
 };
