@@ -92,6 +92,10 @@ def run_transform(transform: Transform, **kwargs) -> (bool, str):
         return False, str(e)
 
     out_w = _clean(out.decode())
+
+    os.remove(yaml_f)
+    os.remove(sql_f)
+
     print(out_w, file=open('out.shell.txt', 'w'))
     print(out_w)
     return True, out_w
