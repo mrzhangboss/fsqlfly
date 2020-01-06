@@ -52,6 +52,7 @@ class ResultBody extends Component<ResultProp, ResultState> {
         columns={this.generateTableColumn(source)}
         dataSource={source.data}
         loading={source.loading}
+        scroll={{ x: 1800 }}
       />
     );
   };

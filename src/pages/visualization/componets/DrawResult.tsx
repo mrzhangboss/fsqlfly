@@ -92,12 +92,18 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
       let sorter;
       if (allValueType[fd] === 'string') {
         sorter = (a: any, b: any) =>
-          a[fd] !== null && b[fd] !== null ? a[fd].length - b[fd].length : -9999999;
+          a[fd] !== null &&
+          a[fd].length !== undefined &&
+          b[fd] !== null &&
+          b[fd].length !== undefined
+            ? a[fd].length - b[fd].length
+            : -9999999;
       } else if (allValueType[fd] == 'number') {
         sorter = (a: any, b: any) => (a[fd] !== null && b[fd] !== null ? a[fd] - b[fd] : -9999999);
       } else {
         sorter = undefined;
       }
+      const minWidth = 200;
 
       if (chooseValueType[fd] === 'choose') {
         // @ts-ignore
@@ -121,6 +127,7 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
           sorter: sorter,
           sortDirections: ['descend'],
           ellipsis: hiddenOverflow,
+          width: minWidth,
         };
       } else if (allValueType[fd] === 'string' || allValueType[fd] === 'number') {
         return {
@@ -129,6 +136,7 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
           key: fd,
           sorter: sorter,
           ellipsis: hiddenOverflow,
+          width: minWidth,
         };
       } else {
         return {
@@ -136,6 +144,7 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
           dataIndex: fd,
           key: fd,
           ellipsis: hiddenOverflow,
+          width: minWidth,
         };
       }
     });
@@ -152,6 +161,7 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
         dataSource={source.data}
         loading={source.loading}
         pagination={this.state.paging}
+        scroll={{ x: 1800 }}
       />
     );
   };
