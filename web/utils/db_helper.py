@@ -319,6 +319,7 @@ class DBProxy:
         return self.build_source_cache()
 
     __table_meta_cache_name = '__TABLE_META_CACHE_NAME'
+    __table_names_cache_name = '__TABLE_NAMES_CACHE_NAME'
 
     @classmethod
     def gen_type_name(cls, column: any) -> str:
@@ -368,6 +369,7 @@ class DBProxy:
         self._assigned_relations = assigned_relations
         self.build_source_cache()
         self.build_all_table_metas_cache()
+        self.build_all_table_names_cache()
 
     @property
     def all_table_metas(self):
@@ -375,8 +377,34 @@ class DBProxy:
             return self.build_all_table_metas_cache()
         return getattr(self, self.__table_meta_cache_name)
 
+    @property
+    def all_table_names(self):
+        if not hasattr(self, self.__table_names_cache_name):
+            return self.build_all_table_names_cache()
+        return getattr(self, self.__table_names_cache_name)
+
     def api_get_all_table_metas(self):
         return WebResTables(data=self.all_table_metas)
+
+    def build_all_table_names_cache(self) -> list:
+        res = defaultdict(lambda: defaultdict(list))
+        for meta in self.all_table_metas:
+            res[meta.typ][meta.namespace].append(meta.name)
+        data = []
+        for t, namespaces in res.items():
+            children = []
+            for namespace, items in namespaces.items():
+                tables = [dict(value=x, label=x) for x in items]
+                children.append(dict(value=namespace, label=namespace, children=tables))
+
+            data.append(dict(value=t, label=t, children=children))
+
+        setattr(self, self.__table_names_cache_name, data)
+
+        return data
+
+    def api_get_all_table_names(self) -> list:
+        return self.all_table_names
 
     def api_get_related_table_metas(self, table_name: str) -> WebResTables:
         if table_name not in self.sources.tables:
@@ -401,7 +429,7 @@ class DBProxy:
         return res
 
     @classmethod
-    def get_symbal_define(cls, t_type: str) -> Tuple[str, str]:
+    def get_symbol_define(cls, t_type: str) -> Tuple[str, str]:
         v_equal, v_null = '=', 'null'
         if t_type == DBType.kafka:
             v_equal, v_null = '==', 'None'
@@ -426,7 +454,7 @@ class DBProxy:
             for i, f in enumerate(relation.s_fields):
                 fields[i].append(x.get(f))
 
-        v_equal, v_null = self.get_symbal_define(self.sources.tables[relation.t_table].typ)
+        v_equal, v_null = self.get_symbol_define(self.sources.tables[relation.t_table].typ)
 
         def equal_line(k: str, v: Any) -> str:
             if v is None:

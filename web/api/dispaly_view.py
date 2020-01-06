@@ -138,10 +138,15 @@ class ProxyHelper:
             real_msg = msg_io.read()
             return create_response(data=None, code=500, msg=real_msg)
         else:
-            return create_response(data=attr.asdict(data))
+            if not isinstance(data, list) and not isinstance(data, dict):
+                data = attr.asdict(data)
+            return create_response(data)
 
     def get_tables(self) -> JsonResponse:
         return self.generate_response(self._proxy.api_get_all_table_metas)
+
+    def get_table_names(self) -> JsonResponse:
+        return self.generate_response(self._proxy.api_get_all_table_names)
 
     def get_related_tables(self, table_name: str) -> JsonResponse:
         return self.generate_response(partial(self._proxy.api_get_related_table_metas, table_name))
@@ -184,6 +189,10 @@ def search(req: HttpRequest, table_name: str) -> JsonResponse:
 
 def list_tables(req: HttpRequest) -> JsonResponse:
     return get_proxy().get_tables()
+
+
+def list_table_names(req: HttpRequest) -> JsonResponse:
+    return get_proxy().get_table_names()
 
 
 def get_related_tables(req: HttpRequest, table_name: str) -> JsonResponse:
