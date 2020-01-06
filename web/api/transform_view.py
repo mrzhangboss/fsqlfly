@@ -20,6 +20,7 @@ from dbs.workflow import run_transform, run_debug_transform
 from web.settings import TERMINAL_WEB_HOST_FMT
 from dbs.workflow import handle_template
 
+
 def get_row_proc_columns_from_yaml(s: str) -> tuple:
     # todo: parse rowtime and proctime
     rowtime, proctime, columns = '', '', []
@@ -64,27 +65,18 @@ def get_info(req: HttpRequest) -> JsonResponse:
     namespaces = [{'name': x.name, 'id': x.id} for x in Namespace.objects.filter(is_deleted=False).all()]
     sources = []
     ids = Resource.objects.filter(is_deleted=False).values('id')
-    for sou in ids:
-        cache_name = '{}:resource:cache'.format(sou['id'])
-        if cache.get(cache_name) is not None:
-            sources.append(cache.get(cache_name))
-        else:
-            sou = Resource.objects.get(pk=sou['id'])
-            row_time, proc_time, columns = get_row_proc_columns_from_yaml(handle_template(sou.yaml))
-            data = {
-                'id': sou.id,
-                'name': sou.name,
-                'namespaceId': sou.namespace.id if sou.namespace else 0,
-                'namespace': sou.namespace.name if sou.namespace else 'DEFAULT',
-                'info': sou.info,
-                'rowtime': row_time,
-                'proctime': proc_time,
-                'disabled': not sou.is_available,
-                'avatar': sou.namespace.avatar if sou.namespace else '',
-                'columns': columns,
-            }
-            sources.append(data)
-            cache.set(cache_name, data)
+    for x in ids:
+        sou = Resource.objects.get(pk=x['id'])
+        data = {
+            'id': sou.id,
+            'name': sou.name,
+            'namespaceId': sou.namespace.id if sou.namespace else 0,
+            'namespace': sou.namespace.name if sou.namespace else 'DEFAULT',
+            'info': sou.info,
+            'disabled': not sou.is_available,
+            'avatar': sou.namespace.avatar if sou.namespace else '',
+        }
+        sources.append(data)
 
     return create_response(data={'namespaces': namespaces, 'columns': sources})
 
