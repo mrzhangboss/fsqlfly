@@ -1,7 +1,7 @@
 import { AnyAction, Reducer } from 'redux';
 
 import { EffectsCommandMap } from 'dva';
-import { queryTables, queryTable, searchTable } from './service';
+import { queryTables, queryTable, searchTable, queryTableNames } from './service';
 import { message } from 'antd';
 import { VisualizationResult, TableDetail } from './data';
 
@@ -42,13 +42,14 @@ const Model: ModelType = {
     relatedTables: [],
     details: [],
     search: '',
-    selectTable: '',
+    selectTable: [],
     limit: 500,
     currentDisplayTables: [],
     selectRelatedTableKeys: [],
     errorDisplay: false,
     errorCode: 0,
     errorMsg: '',
+    tableNames: [],
   },
 
   effects: {
@@ -57,6 +58,11 @@ const Model: ModelType = {
       yield put({
         type: 'save',
         payload: { tables: response.data.data },
+      });
+      const res = yield call(queryTableNames);
+      yield put({
+        type: 'save',
+        payload: { tableNames: res.data },
       });
     },
     *doRefresh(_, { call, put }) {
@@ -82,8 +88,9 @@ const Model: ModelType = {
     },
     *submitSearch({ payload }, { call, put, select }) {
       const { limit, search, selectTable } = yield select(x => x.visualization);
-      const response = yield call(searchTable, selectTable, { limit, search });
-      if (response.code !== 0) {
+      const tableNames = selectTable.length === 3 ? selectTable.slice(1, 3).join('.') : '';
+      const response = yield call(searchTable, tableNames, { limit, search });
+      if (response.code === undefined || response.code !== 0) {
         yield put({
           type: 'save',
           payload: {
@@ -149,9 +156,10 @@ const Model: ModelType = {
           type: 'saveTableSearch',
           payload: { tableName: v, loading: true, show: true },
         });
+        const tableNames = selectTable.length === 3 ? selectTable.slice(1, 3).join('.') : '';
         yield put({
           type: 'submitSearchOne',
-          payload: { params: { selectTable, search, limit, table: v } },
+          payload: { params: { selectTable: tableNames, search, limit, table: v } },
         });
       }
     },
@@ -163,17 +171,19 @@ const Model: ModelType = {
         payload: { ...response.data, loading: false },
       });
     },
-    *startChangeCurrentTable({ tableName }, { call, put, select }) {
+    *startChangeCurrentTable({ tableNames }, { call, put, select }) {
       const { selectTable } = yield select(x => x.visualization);
-      if (selectTable !== tableName) {
+
+      if (selectTable.join('.') !== tableNames.join('.')) {
         yield put({
           type: 'submitSelectTable',
-          payload: tableName,
+          payload: tableNames,
         });
       }
+      const realTableName = tableNames.length === 3 ? tableNames.slice(1, 3).join('.') : '';
       yield put({
         type: 'changeCurrentTable',
-        tableName: tableName,
+        tableName: realTableName,
       });
     },
   },
@@ -188,7 +198,11 @@ const Model: ModelType = {
     //@ts-ignore
     saveTableSearch(state, { payload }) {
       let newState;
-      if (state !== undefined && payload.tableName === state.selectTable) {
+      if (
+        state !== undefined &&
+        state.selectTable.length === 3 &&
+        payload.tableName === state.selectTable.slice(1, 3).join('.')
+      ) {
         newState = { ...state, current: payload };
       } else {
         newState = state;

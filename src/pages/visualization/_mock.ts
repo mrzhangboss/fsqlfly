@@ -155,9 +155,48 @@ function getSonTable(tabname: string) {
     fieldNames: sonField.map(x => x.name),
   };
 }
-
+const allTableNames = [
+  {
+    value: 'zhejiang',
+    label: 'Zhejiang',
+    children: [
+      {
+        value: 'hangzhou',
+        label: 'Hangzhou',
+        children: [
+          {
+            value: 'xihu',
+            label: 'West Lake',
+          },
+          {
+            value: 'xiasha',
+            label: 'Xia Sha',
+            disabled: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    value: 'jiangsu',
+    label: 'Jiangsu',
+    children: [
+      {
+        value: 'nanjing',
+        label: 'Nanjing',
+        children: [
+          {
+            value: 'zhonghuamen',
+            label: 'Zhong Hua men',
+          },
+        ],
+      },
+    ],
+  },
+];
 const proxy = {
   'GET  /api/tables': { data: tables },
+  'GET  /api/table_names': { data: allTableNames },
   'GET /api/table/:tableName': (
     req: { params: { tableName: string } },
     res: { send: (arg0: { data: any; code: number; msg: string }) => void },

@@ -1,10 +1,11 @@
-import { Card, Mentions, Select, Tag, message, Icon, Button, Modal } from 'antd';
+import { Card, Mentions, Select, Tag, message, Icon, Button, Modal, Cascader } from 'antd';
 import React, { Component, ReactNode } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
 import { TableMeta, VisualizationResult } from '../data';
 import styles from '@/pages/resources/style.less';
 import Result from '@/pages/form/step-form/components/Result';
+import { CascaderOptionType, FilledFieldNamesType } from 'antd/lib/cascader';
 
 const { Option } = Select;
 
@@ -13,8 +14,9 @@ interface SearchProps {
   submitting: boolean;
   selectSubmitting: boolean;
   tables: TableMeta[];
+  tableNames: CascaderOptionType[];
   dispatch: Dispatch<any>;
-  selectTable: string;
+  selectTable: string[];
   search: string;
   limit: number;
   errorDisplay: boolean;
@@ -51,6 +53,7 @@ const supportMode = {
     loading: { effects: { [key: string]: boolean } };
   }) => ({
     tables: visualization.tables,
+    tableNames: visualization.tableNames,
     search: visualization.search,
     selectTable: visualization.selectTable,
     errorCode: visualization.errorCode,
@@ -177,11 +180,31 @@ class SearchHeader extends Component<SearchProps, SearchState> {
     });
   };
 
+  filterSelect = (inputValue: string, path: CascaderOptionType[], names: FilledFieldNamesType) => {
+    return path.some(
+      (option: any) => option.label.toLowerCase().indexOf(inputValue.toLowerCase()) > -1,
+    );
+  };
+
+  onSelectChange = (value: string[], selectedOptions?: CascaderOptionType[]) => {
+    console.log(value);
+    console.log(selectedOptions);
+    const { tables, dispatch } = this.props;
+    const key = value[1] + '.' + value[2];
+    const currentTable = tables.filter(x => x.tableName == key)[0];
+    this.setState({ currentTable });
+    dispatch({
+      type: 'visualization/submitSelectTable',
+      payload: value,
+    });
+  };
+
   render() {
     const {
       search,
       loading,
       tables,
+      tableNames,
       submitting,
       selectSubmitting,
       limit,
@@ -190,8 +213,8 @@ class SearchHeader extends Component<SearchProps, SearchState> {
       errorMsg,
       selectTable,
     } = this.props;
-
-    const currentTables = tables.filter(x => x.tableName === selectTable);
+    const realTableName = selectTable.length === 3 ? selectTable.slice(1, 3).join('.') : '';
+    const currentTables = tables.filter(x => x.tableName === realTableName);
     const currentPrefix =
       currentTables.length > 0
         ? currentTables[0].typ === 'kafka' &&
@@ -202,39 +225,6 @@ class SearchHeader extends Component<SearchProps, SearchState> {
     this.currentSupport =
       currentTables.length > 0 ? supportMode[currentTables[0].typ] : this.currentSupport;
 
-    const generateName = (name: string, namespace: string, typ: string) => {
-      const color = typ === 'mysql' ? 'blue' : typ === 'hive' ? 'cyan' : 'orange';
-      const tag = <Tag color={color}>{namespace}</Tag>;
-
-      if (name.length < 9) {
-        return (
-          <>
-            <span role="img" aria-label={namespace}>
-              {tag}
-            </span>
-            {name}
-          </>
-        );
-      } else {
-        return (
-          <>
-            <div>
-              <span role="img" aria-label={namespace}>
-                {tag}
-              </span>
-            </div>
-            <div>{name}</div>
-          </>
-        );
-      }
-    };
-    const tableSource = tables.map(x => (
-      // @ts-ignore
-      <Option value={x.tableName} label={x.name}>
-        {generateName(x.name, x.namespace, x.typ)}
-      </Option>
-    ));
-
     return (
       <>
         <Card loading={loading}>
@@ -242,16 +232,13 @@ class SearchHeader extends Component<SearchProps, SearchState> {
 
           <div>
             <span> </span>
-            <Select
-              disabled={submitting || selectSubmitting}
-              showSearch
-              style={{ width: '15%' }}
-              placeholder="select one table"
-              children={tableSource}
-              onChange={this.handleSelectChange}
+            <Cascader
+              options={tableNames}
+              onChange={this.onSelectChange}
+              placeholder="Please select"
+              showSearch={{ filter: this.filterSelect }}
               value={selectTable}
-              optionLabelProp="label"
-              maxTagTextLength={64}
+              disabled={submitting || selectSubmitting}
             />
             <span> </span>
             <Mentions

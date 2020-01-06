@@ -1,4 +1,5 @@
 import { ButtonType } from 'antd/lib/button/button';
+import { CascaderOptionType } from 'antd/lib/cascader';
 
 interface TableField {
   name: string;
@@ -54,6 +55,7 @@ interface TabTables {
 
 interface VisualizationResult {
   tables: TableMeta[];
+  tableNames: CascaderOptionType[];
   relatedTables: TableMeta[];
   selectRelatedTableKeys: string[];
   currentDisplayTables: string[];
@@ -61,7 +63,7 @@ interface VisualizationResult {
   current?: TableDetail;
   search: string;
   limit: number;
-  selectTable: string;
+  selectTable: string[];
   errorDisplay: boolean;
   errorMsg: string;
   errorCode: number;

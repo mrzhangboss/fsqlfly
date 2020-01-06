@@ -56,12 +56,13 @@ class ResultBody extends Component<ResultProp, ResultState> {
     );
   };
 
-  activeTable = (tableName: string) => {
+  activeTable = (type: string, tableName: string) => {
     console.log(tableName);
     const { dispatch } = this.props;
+    const tableNames = [type, ...tableName.split('.')];
     dispatch({
       type: 'visualization/startChangeCurrentTable',
-      tableName: tableName,
+      tableNames: tableNames,
     });
   };
 
@@ -90,7 +91,7 @@ class ResultBody extends Component<ResultProp, ResultState> {
     return (
       <Card
         hoverable
-        onDoubleClick={x => this.activeTable(tab.tableName)}
+        onDoubleClick={x => this.activeTable(tab.typ, tab.tableName)}
         key={tab.tableName}
         title={this.generateTableTitle(tab)}
         style={{ marginBottom: 24 }}
