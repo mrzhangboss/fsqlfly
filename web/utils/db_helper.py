@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import attr
+import sqlalchemy
 import warnings
 import traceback
 import kafka
 import json
+import hashlib
 from typing import List, Any, Optional, Dict, Tuple, Union, Iterable
 from collections import namedtuple, defaultdict
 from datetime import datetime, date
@@ -329,6 +331,8 @@ class DBProxy:
     def gen_type_name(cls, column: any) -> str:
         try:
             return str(column)
+        except sqlalchemy.exc.CompileError as err:
+            return 'NullType'
         except Exception as e:
             traceback.print_exc()
             return 'NullType'
@@ -419,8 +423,15 @@ class DBProxy:
     def api_search_table(self, source_table: str, search: str, target_table: str, limit: int) -> DBResult:
         return self.get_table(source_table, search, target_table, limit)
 
+    @classmethod
+    def get_unique_cache_name(cls, table_name: str, limit: int, search: str) -> str:
+        md5 = hashlib.md5()
+        md5.update(search.encode())
+        digest = md5.hexdigest()
+        return f"TABLE_SEARCH_CACHE__{table_name}:{limit}:{digest}"
+
     def get_search_table(self, search: str, table: DBTableRelation, limit: int, sql_safe_check: bool = True):
-        cache_name = "TABLE_SEARCH_CACHE__{}:{}".format(table.table_name, limit)
+        cache_name = self.get_unique_cache_name(table.table_name, limit, search)
         if cache.get(cache_name) is None:
             res = self._connector.search(table, search, limit, sql_safe_check)
             if table.typ == DBType.kafka:
@@ -429,6 +440,7 @@ class DBProxy:
                 cache.set(cache_name, res)
 
         else:
+            # print("cache match", cache_name)
             res = cache.get(cache_name)
         return res
 
