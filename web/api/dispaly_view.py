@@ -182,7 +182,7 @@ def search(req: HttpRequest, table_name: str) -> JsonResponse:
     else:
         data = {}
     return get_proxy().search_table(source_table=data.get('selectTable', table_name),
-                                    search_text=data.get('search', ''),
+                                    search_text=data.get('search', '').strip(),
                                     target_table=table_name,
                                     limit=int(data.get('limit', '500')))
 
