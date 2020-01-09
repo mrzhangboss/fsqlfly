@@ -173,7 +173,8 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
   };
 
   generateTitle = (current?: TableDetail) => {
-    const text = current === undefined ? '' : current.fieldNames.join(' ');
+    const text =
+      current === undefined || current.fieldNames === undefined ? '' : current.fieldNames.join(' ');
     const cur = (
       <Tooltip placement="top" title={text}>
         <Icon type="home" />

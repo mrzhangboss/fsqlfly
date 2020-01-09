@@ -166,6 +166,17 @@ const Model: ModelType = {
 
     *submitSearchOne({ payload }, { call, put }) {
       const response = yield call(searchTable, payload.params.table, payload.params);
+      if (response.code === undefined || response.code !== 0) {
+        yield put({
+          type: 'save',
+          payload: {
+            errorDisplay: true,
+            errorCode: response.code,
+            errorMsg: response.msg,
+          },
+        });
+        return;
+      }
       yield put({
         type: 'saveTableSearch',
         payload: { ...response.data, loading: false },

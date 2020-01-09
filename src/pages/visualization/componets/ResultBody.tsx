@@ -39,6 +39,8 @@ class ResultBody extends Component<ResultProp, ResultState> {
         title: fd,
         dataIndex: fd,
         key: fd,
+        ellipsis: true,
+        width: 200,
       };
     });
     return fields;
@@ -78,11 +80,13 @@ class ResultBody extends Component<ResultProp, ResultState> {
   generateTableTitle = (tab: TableDetail) => {
     const typ = tab.typ;
     const color = typ === 'mysql' ? 'blue' : typ === 'hive' ? 'cyan' : 'orange';
-    const tag = <Tag color={color}>{tab.tableName.split('.')[0]}</Tag>;
+    const tagName = tab.tableName !== undefined ? tab.tableName.split('.')[0] : 'null';
+    const dbName = tab.tableName !== undefined ? tab.tableName.split('.')[1] : 'null';
+    const tag = <Tag color={color}>{tagName}</Tag>;
     return (
       <div>
         {tag}
-        {tab.tableName.split('.')[1]}
+        {dbName}
       </div>
     );
   };
