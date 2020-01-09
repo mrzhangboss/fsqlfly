@@ -440,7 +440,7 @@ class DBProxy:
                 cache.set(cache_name, res)
 
         else:
-            print("cache match", cache_name)
+            # print("cache match", cache_name)
             res = cache.get(cache_name)
         return res
 

@@ -2,18 +2,10 @@
 import time
 import pickle
 import traceback
-import os
-import sys
-import json
-from typing import Optional
 from collections import defaultdict
-from requests import Session
 from datetime import datetime
-from random import randint
-from django.core.management.base import BaseCommand, CommandError
-from web.settings import ENV, TIME_FORMAT, FLINK_API_HOST
-from dbs.workflow import run_transform
-from dbs.models import Transform, Connection, Relationship
+from django.core.management.base import BaseCommand
+from dbs.models import Connection
 from utils.db_crawler import Crawler
 
 
