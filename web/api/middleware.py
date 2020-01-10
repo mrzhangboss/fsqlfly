@@ -18,7 +18,7 @@ class LoginCheckMiddleware(object):
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        if (not request.user.id):
+        if not request.user.id:
 
             client_ip = get_client_ip(request)
             if client_ip not in ('127.0.0.1', 'localhost'):
