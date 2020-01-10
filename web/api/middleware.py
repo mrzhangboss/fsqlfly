@@ -18,8 +18,11 @@ class LoginCheckMiddleware(object):
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        if (not request.user.id) and (get_client_ip(request) not in ('127.0.0.1', 'localhost')):
-            if (not request.path.startswith('/admin')) and (not request.path == '/'):
-                return JsonResponse(data=dict(code=500, msg='need login', data=None))
+        if (not request.user.id):
+
+            client_ip = get_client_ip(request)
+            if client_ip not in ('127.0.0.1', 'localhost'):
+                if (not request.path.startswith('/admin')) and (not request.path == '/'):
+                    return JsonResponse(data=dict(code=500, msg='need login', data=dict(ip=client_ip)))
         # Continue processing the request as usual:
         return self.get_response(request)
