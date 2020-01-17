@@ -226,8 +226,8 @@ class JobControl:
 
     @classmethod
     def start_flink_job(cls, transform: Transform, **kwargs) -> str:
-        is_ok, _ = run_transform(transform, **kwargs)
-        return 'Job {} {}'.format(transform.name, 'success' if is_ok else 'fail')
+        is_ok, info = run_transform(transform, **kwargs)
+        return 'Job {} {} INFO: {}'.format(transform.name, 'success' if is_ok else 'fail', info if info else '')
 
 
 JobControlHandle = JobControl()
