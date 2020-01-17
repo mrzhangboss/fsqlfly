@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/2.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.1/ref/settings/
 """
-
+import sys
 import os
 from dotenv import load_dotenv, find_dotenv
 
@@ -30,6 +30,20 @@ SECRET_KEY = '^a3pa48-^!1=x009+ctt+1vkzqq+p6gis16sx%+58n$+zh=da^'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'stream': sys.stdout,
+        }
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO'
+    }
+}
 
 ALLOWED_HOSTS = ["*"]
 
