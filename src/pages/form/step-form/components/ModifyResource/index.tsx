@@ -1,20 +1,10 @@
 import React, { Component } from 'react';
 import { connect } from 'dva';
-import {
-  List,
-  Card,
-  Input,
-  Button,
-  Icon,
-  Dropdown,
-  Menu,
-  Avatar,
-  Modal,
-  Form,
-  Tag,
-  Select,
-} from 'antd';
-import { FormComponentProps } from 'antd/es/form';
+import { DownOutlined } from '@ant-design/icons';
+import { Form } from '@ant-design/compatible';
+import '@ant-design/compatible/assets/index.css';
+import { List, Card, Input, Button, Dropdown, Menu, Avatar, Modal, Tag, Select } from 'antd';
+import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { Dispatch } from 'redux';
 import { ResourceColumn } from '../../data';
 import Result from '../Result';
@@ -266,7 +256,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         }
       >
         <a>
-          更多 <Icon type="down" />
+          更多 <DownOutlined />
         </a>
       </Dropdown>
     );

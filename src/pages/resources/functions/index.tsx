@@ -2,24 +2,25 @@ import React, { Component } from 'react';
 import { findDOMNode } from 'react-dom';
 import moment from 'moment';
 import { connect } from 'dva';
+import { DownOutlined, PlusOutlined } from '@ant-design/icons';
+import { Form } from '@ant-design/compatible';
+import '@ant-design/compatible/assets/index.css';
 import {
   List,
   Card,
   Input,
   Progress,
   Button,
-  Icon,
   Dropdown,
   Menu,
   Modal,
-  Form,
   Row,
   Col,
   Switch,
   Select,
   Tag,
 } from 'antd';
-import { FormComponentProps } from 'antd/es/form';
+import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { FileResource, Functions } from '../data';
 import { Dispatch } from 'redux';
 import Result from '../components/Result';
@@ -316,7 +317,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         }
       >
         <a>
-          更多 <Icon type="down" />
+          更多 <DownOutlined />
         </a>
       </Dropdown>
     );
@@ -446,7 +447,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 <Button
                   type="dashed"
                   style={{ width: '100%', marginBottom: 8 }}
-                  icon="plus"
+                  icon={<PlusOutlined />}
                   onClick={this.showModal}
                   ref={component => {
                     this.addBtn = findDOMNode(component) as HTMLButtonElement;

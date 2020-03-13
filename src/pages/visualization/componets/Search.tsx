@@ -1,4 +1,5 @@
-import { Card, Mentions, Select, Tag, message, Icon, Button, Modal, Cascader } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
+import { Card, Mentions, Select, Tag, message, Button, Modal, Cascader } from 'antd';
 import React, { Component, ReactNode } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
@@ -270,7 +271,7 @@ class SearchHeader extends Component<SearchProps, SearchState> {
 
             <span style={{ marginLeft: 2 }}></span>
             <Button onClick={this.doRefresh}>
-              <Icon type="reload" />
+              <ReloadOutlined />
             </Button>
           </div>
         </Card>

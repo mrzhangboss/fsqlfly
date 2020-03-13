@@ -5,7 +5,6 @@ import { EffectsCommandMap } from 'dva';
 
 import { IDObject } from './data';
 import { getAllService, createService, deleteService, updateService, runService } from './services';
-import { runTransform } from '@/pages/form/step-form/service';
 
 type IStateType<T> = {
   list: T[];

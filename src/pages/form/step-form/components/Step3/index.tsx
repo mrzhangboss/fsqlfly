@@ -1,5 +1,7 @@
 import React, { Fragment } from 'react';
 import { connect } from 'dva';
+import { Form } from '@ant-design/compatible';
+import '@ant-design/compatible/assets/index.css';
 import { Button, Checkbox, Divider, Input, Modal, Select } from 'antd';
 import Result from '../Result';
 import styles from './index.less';
@@ -10,8 +12,7 @@ import 'brace/mode/transform';
 import 'brace/mode/yaml';
 import 'brace/theme/solarized_dark';
 import 'brace/theme/github';
-import { Form } from 'antd';
-import { FormComponentProps } from 'antd/es/form';
+import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { TransformInfo } from '@/pages/form/step-form/data';
 import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
 

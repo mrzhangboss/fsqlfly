@@ -1,6 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
-import { Icon } from 'antd';
+import { CheckCircleFilled, CloseCircleFilled, CodeTwoTone } from '@ant-design/icons';
 import styles from './index.less';
 
 export interface ResultProps {
@@ -25,9 +25,9 @@ const Result: React.SFC<ResultProps> = ({
   ...restProps
 }) => {
   const iconMap = {
-    error: <Icon className={styles.error} type="close-circle" theme="filled" />,
-    success: <Icon className={styles.success} type="check-circle" theme="filled" />,
-    line: <Icon type="code" theme="twoTone" />,
+    error: <CloseCircleFilled className={styles.error} />,
+    success: <CheckCircleFilled className={styles.success} />,
+    line: <CodeTwoTone />,
   };
   const clsString = classNames(styles.result, className);
   return (

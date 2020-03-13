@@ -1,6 +1,7 @@
 import { ConnectProps, ConnectState } from '@/models/connect';
 import React, { Component } from 'react';
-import { Icon, Tooltip } from 'antd';
+import { GithubOutlined } from '@ant-design/icons';
+import { Tooltip } from 'antd';
 import { formatMessage } from 'umi-plugin-react/locale';
 import HeaderSearch from '../HeaderSearch';
 import SelectLang from '../SelectLang';
@@ -37,7 +38,7 @@ class GlobalHeaderRight extends Component<GlobalHeaderRightProps> {
             rel="noopener noreferrer"
             className={styles.action}
           >
-            <Icon type="github" />
+            <GithubOutlined />
           </a>
         </Tooltip>
         <Avatar />

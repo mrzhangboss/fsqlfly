@@ -1,5 +1,6 @@
 import React from 'react';
-import { Icon, Typography, Popover } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
+import { Typography, Popover } from 'antd';
 import styles from './index.less';
 import { connect } from 'dva';
 import * as H from 'history';
@@ -40,7 +41,7 @@ export default connect(({ routing }: { routing: RoutingType }) => ({
       trigger="click"
     >
       <div className={styles['copy-block']}>
-        <Icon type="download" />
+        <DownloadOutlined />
       </div>
     </Popover>
   );

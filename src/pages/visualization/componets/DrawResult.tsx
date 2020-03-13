@@ -1,8 +1,9 @@
 import React, { PureComponent } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
+import { CheckOutlined, CloseOutlined, CopyOutlined, HomeOutlined } from '@ant-design/icons';
 import { Button, Card, Empty, Switch, Tag, Tooltip } from 'antd';
-import { Table, Icon } from 'antd';
+import { Table } from 'antd';
 import { ColumnFilterItem } from 'antd/lib/table/interface';
 import { PaginationConfig } from 'antd/lib/pagination';
 import { TableDetail, VisualizationResult } from '../data';
@@ -177,7 +178,7 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
       current === undefined || current.fieldNames === undefined ? '' : current.fieldNames.join(' ');
     const cur = (
       <Tooltip placement="top" title={text}>
-        <Icon type="home" />
+        <HomeOutlined />
       </Tooltip>
     );
     if (current === undefined) {
@@ -210,12 +211,12 @@ class DrawResult extends PureComponent<ResultProps, ResultState> {
               onCopy={this.onCopyFinished}
               style={{ marginRight: 10 }}
             >
-              <Button type="primary" shape="circle" icon="copy"></Button>
+              <Button type="primary" shape="circle" icon={<CopyOutlined />}></Button>
             </CopyToClipboard>
             <Switch
               style={{ marginRight: 10 }}
-              checkedChildren={<Icon type="check" />}
-              unCheckedChildren={<Icon type="close" />}
+              checkedChildren={<CheckOutlined />}
+              unCheckedChildren={<CloseOutlined />}
               defaultChecked={this.state.paging === 'bottom' ? true : false}
               //@ts-ignore
               onChange={(checked: boolean, event: MouseEvent) =>

@@ -1,8 +1,10 @@
 import React, { Fragment } from 'react';
 import { connect } from 'dva';
-import { Form, Button, Divider } from 'antd';
+import { Form } from '@ant-design/compatible';
+import '@ant-design/compatible/assets/index.css';
+import { Button, Divider } from 'antd';
 import { ResourceInfo } from '../../data';
-import { FormComponentProps } from 'antd/es/form';
+import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { Dispatch } from 'redux';
 import { TransferItem } from 'antd/es/transfer';
 import TableTransfer from './TableTransfer';

@@ -1,8 +1,9 @@
 import React, { Component, ReactNode } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
+import { SearchOutlined } from '@ant-design/icons';
 import { Card, Collapse, List, Tag, Empty } from 'antd';
-import { Table, Input, Button, Icon } from 'antd';
+import { Table, Input, Button } from 'antd';
 // @ts-ignore
 import Highlighter from 'react-highlight-words';
 import { ColumnFilterItem } from 'antd/lib/table/interface';
@@ -95,7 +96,7 @@ class SearchBody extends Component<ResultProps, ResultState> {
         <Button
           type="primary"
           onClick={() => this.handleSearch(selectedKeys, confirm, dataIndex)}
-          icon="search"
+          icon={<SearchOutlined />}
           size="small"
           style={{ width: 90, marginRight: 8 }}
         >
@@ -107,7 +108,7 @@ class SearchBody extends Component<ResultProps, ResultState> {
       </div>
     ),
     filterIcon: (filtered: boolean) => (
-      <Icon type="search" style={{ color: filtered ? '#1890ff' : undefined }} />
+      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
     ),
     onFilter: (value: string, record: { [key: string]: string }) =>
       record[dataIndex]
