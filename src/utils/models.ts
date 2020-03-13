@@ -39,7 +39,46 @@ type ModelType<T> = {
 function getListModel<T extends IDObject>(
   namespace: string,
   dependNamespce?: string,
-): ModelType<T> {
+): {
+  effects: {
+    submit(
+      { payload, callback }: { payload: any; callback: any },
+      { call, put }: { call: any; put: any },
+    ): Generator<any, void, unknown>;
+    fetch(
+      { payload }: { payload: any },
+      { call, put }: { call: any; put: any },
+    ): Generator<any, void, unknown>;
+    run(
+      { payload, callback }: { payload: any; callback: any },
+      { call }: { call: any },
+    ): Generator<any, void, unknown>;
+  };
+  namespace: string;
+  reducers: {
+    createOne(
+      state,
+      { payload }: { payload: any },
+    ): undefined | (IStateType<T> & { list: (any | T)[] });
+    init(
+      state,
+      { data }: { data: any },
+    ): (IStateType<T> & { list: any }) | (undefined & { list: any });
+    initDependence(
+      state,
+      { data }: { data: any },
+    ): (IStateType<T> & { dependence: any }) | (undefined & { dependence: any });
+    deleteOne(
+      state,
+      { payload }: { payload: any },
+    ): (IStateType<T> & { list: any }) | (undefined & { list: any });
+    updateList(
+      state,
+      { payload }: { payload: any },
+    ): (IStateType<T> & { list: any }) | (undefined & { list: any });
+  };
+  state: { dependence: any[]; list: any[] };
+} {
   // @ts-ignore
   return {
     namespace: namespace,

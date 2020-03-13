@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
 import { DownOutlined, PlusOutlined } from '@ant-design/icons';
@@ -16,10 +16,15 @@ import {
   Modal,
   Tag,
   Radio,
+  Select,
+  Row,
+  Col,
+  Switch,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { TransformInfo, Namespace } from './data';
 import { Dispatch } from 'redux';
+import { ReloadOutlined } from '@ant-design/icons';
 
 // @ts-ignore
 import styles from '@/pages/resources/style.less';
@@ -28,6 +33,12 @@ const { Search } = Input;
 import { AnyAction } from 'redux';
 import { findDOMNode } from 'react-dom';
 import Result from '@/pages/form/step-form/components/Result';
+import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
+import AceEditor from 'react-ace';
+import 'brace/mode/yaml';
+import 'brace/theme/solarized_dark';
+import 'brace/theme/github';
+import TextArea from 'antd/es/input/TextArea';
 
 interface BasicListProps extends FormComponentProps {
   listBasicList: TransformInfo[];
@@ -183,6 +194,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
     const extraContent = (
       <div className={styles.extraContent}>
+        <Button onClick={this.doRefresh}>
+          <ReloadOutlined />
+        </Button>
         <RadioGroup defaultValue={null} onChange={x => this.setState({ tag: x.target.value })}>
           <RadioButton value={0}>全部</RadioButton>
           {namespaces.length > 0 &&
@@ -248,7 +262,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         </a>
       </Dropdown>
     );
-
+    const FormItem = Form.Item;
+    const SelectOption = Select.Option;
     const editModalFooter = edithDone
       ? { footer: null, onCancel: this.handleCancel }
       : {
@@ -262,9 +277,14 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             <Button key="submit" type="primary" loading={edithSubmit} onClick={this.handleSubmit}>
               保存
             </Button>,
+            <Button type="primary" onClick={x => this.showRunModal(null)} loading={edithSubmit}>
+              调试
+            </Button>,
           ],
         };
-
+    const {
+      form: { getFieldDecorator },
+    } = this.props;
     return (
       <>
         <div className={styles.standardList}>
@@ -369,7 +389,97 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           destroyOnClose
           visible={this.state.editVisible}
           {...editModalFooter}
-        ></Modal>
+        >
+          <Form onSubmit={this.handleSubmit}>
+            <FormItem label="名称" {...this.formLayout}>
+              {getFieldDecorator('name', {
+                rules: UNIQUE_NAME_RULES,
+                initialValue: current === undefined ? '' : current.name,
+              })(<Input placeholder="请输入" />)}
+            </FormItem>
+            <FormItem label="介绍" {...this.formLayout}>
+              {getFieldDecorator('info', {
+                initialValue: current === undefined ? '' : current.info,
+              })(<TextArea placeholder="请输入" />)}
+            </FormItem>
+
+            <FormItem label="命名空间" {...this.formLayout}>
+              {getFieldDecorator('namespaceId', {
+                initialValue:
+                  current === undefined || current.namespaceId === null ? 0 : current.namespaceId,
+                rules: [
+                  {
+                    required: true,
+                  },
+                ],
+              })(
+                <Select placeholder="请选择" size="default" style={{ width: 120 }}>
+                  <SelectOption key={-1} value={0}>
+                    默认
+                  </SelectOption>
+                  {namespaces.length > 0 &&
+                    namespaces.map(x => {
+                      return (
+                        <SelectOption key={x.id} value={x.id}>
+                          {x.name}
+                        </SelectOption>
+                      );
+                    })}
+                </Select>,
+              )}
+            </FormItem>
+            <FormItem label="SQL" {...this.formLayout}>
+              <AceEditor
+                mode="sql"
+                theme="github"
+                onChange={x => this.setState({ current: { ...current, sql: x } })}
+                name="functionConstructorConfig"
+                editorProps={{ $blockScrolling: true }}
+                readOnly={false}
+                placeholder={'请输入Yaml配置'}
+                defaultValue={current === undefined ? '' : current.sql}
+                value={current?.sql}
+                //@ts-ignore
+                width={765}
+                //@ts-ignore
+                height={650}
+              />
+            </FormItem>
+            <FormItem label="配置文件" {...this.formLayout}>
+              <AceEditor
+                mode="yaml"
+                theme="solarized_dark"
+                onChange={x => this.setState({ current: { ...current, config: x } })}
+                name="functionConstructorConfig"
+                editorProps={{ $blockScrolling: true }}
+                readOnly={false}
+                placeholder={'请输入Yaml配置'}
+                defaultValue={current === undefined ? '' : current.config}
+                value={current?.config}
+                //@ts-ignore
+                width={765}
+                //@ts-ignore
+                height={650}
+              />
+            </FormItem>
+            <FormItem label="其他" {...this.formLayout}>
+              <Row gutter={16}>
+                <Col span={3}>
+                  {getFieldDecorator('isAvailable', {
+                    initialValue: current?.isAvailable,
+                    valuePropName: 'checked',
+                  })(<Switch checkedChildren="启用" unCheckedChildren="禁止" />)}
+                </Col>
+                <Col span={3}>
+                  {getFieldDecorator('isPublish', {
+                    initialValue: current?.isPublish,
+                    valuePropName: 'checked',
+                  })(<Switch checkedChildren="发布" unCheckedChildren="开发" />)}
+                </Col>
+              </Row>
+            </FormItem>
+          </Form>
+        </Modal>
       </>
     );
   }
