@@ -6,7 +6,7 @@ import styles from './index.less';
 import { IStateType } from '../../models/stepModel';
 import { Dispatch } from 'redux';
 import AceEditor from 'react-ace';
-import 'brace/mode/sql';
+import 'brace/mode/transform';
 import 'brace/mode/yaml';
 import 'brace/theme/solarized_dark';
 import 'brace/theme/github';

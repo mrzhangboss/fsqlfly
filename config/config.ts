@@ -121,7 +121,7 @@ export default {
           name: 'transform',
           exact: true,
           icon: 'experiment',
-          component: './form/step-form',
+          component: './transform',
         },
         {
           path: '/resouces',
