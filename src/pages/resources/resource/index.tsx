@@ -43,7 +43,7 @@ import { AnyAction } from 'redux';
 import { UploadFile } from 'antd/es/upload/interface';
 import { RadioChangeEvent } from 'antd/lib/radio/interface';
 import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
-const  NAMESPACE = 'resource';
+const NAMESPACE = 'resource';
 interface BasicListProps extends FormComponentProps {
   listBasicList: Resource[];
   dispatch: Dispatch<AnyAction>;
@@ -112,7 +112,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
   componentDidMount() {
     // @ts-ignore
-    this.doRefresh()
+    this.doRefresh();
   }
 
   doRefresh = () => {
@@ -120,7 +120,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     dispatch({
       type: `${NAMESPACE}/fetch`,
     });
-  }
+  };
 
   showModal = () => {
     this.setState({
@@ -273,7 +273,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
     const extraContent = (
       <div className={styles.extraContent}>
-        <Button onClick={this.doRefresh}><Icon type="reload" /></Button>
+        <Button onClick={this.doRefresh}>
+          <Icon type="reload" />
+        </Button>
 
         <RadioGroup defaultValue={null} onChange={this.onTagChage}>
           <RadioButton value={0}>全部</RadioButton>
@@ -516,7 +518,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         </PageHeaderWrapper>
 
         <Modal
-          title={done ? null : `文件${current ? '编辑' : '添加'}`}
+          title={done ? null : `${current.id !== undefined ? '编辑' : '新增'}`}
           className={styles.standardListForm}
           width={1080}
           bodyStyle={done ? { padding: '72px 0' } : { padding: '28px 0 0' }}

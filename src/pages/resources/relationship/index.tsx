@@ -497,7 +497,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         </PageHeaderWrapper>
 
         <Modal
-          title={done ? null : `文件${current ? '编辑' : '添加'}`}
+          title={done ? null : `${current.id !== undefined ? '编辑' : '新增'}`}
           className={styles.standardListForm}
           width={1080}
           bodyStyle={done ? { padding: '72px 0' } : { padding: '28px 0 0' }}
