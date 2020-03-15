@@ -8,7 +8,7 @@ import { getAllService, createService, deleteService, updateService, runService 
 
 type IStateType<T> = {
   list: T[];
-  dependence?: { id: number; [key: string]: any }[];
+  [key: string]: any[];
 };
 
 // import { number } from 'prop-types';
@@ -38,42 +38,45 @@ type ModelType<T> = {
 
 function getListModel<T extends IDObject>(
   namespace: string,
-  dependNamespce?: string,
+  ...dependNamespces: string[]
 ): {
   effects: {
     submit(
       { payload, callback }: { payload: any; callback: any },
       { call, put }: { call: any; put: any },
-    ): Generator<any, void, unknown>;
+    ): // @ts-ignore
+    Generator<any, void, unknown>;
     fetch(
       { payload }: { payload: any },
       { call, put }: { call: any; put: any },
-    ): Generator<any, void, unknown>;
+    ): // @ts-ignore
+    Generator<any, void, unknown>;
     run(
       { payload, callback }: { payload: any; callback: any },
       { call }: { call: any },
-    ): Generator<any, void, unknown>;
+    ): // @ts-ignore
+    Generator<any, void, unknown>;
   };
   namespace: string;
   reducers: {
     createOne(
-      state,
+      state: any,
       { payload }: { payload: any },
     ): undefined | (IStateType<T> & { list: (any | T)[] });
     init(
-      state,
+      state: any,
       { data }: { data: any },
     ): (IStateType<T> & { list: any }) | (undefined & { list: any });
     initDependence(
-      state,
-      { data }: { data: any },
+      state: any,
+      { data }: { data: any; name: string },
     ): (IStateType<T> & { dependence: any }) | (undefined & { dependence: any });
     deleteOne(
-      state,
+      state: any,
       { payload }: { payload: any },
     ): (IStateType<T> & { list: any }) | (undefined & { list: any });
     updateList(
-      state,
+      state: any,
       { payload }: { payload: any },
     ): (IStateType<T> & { list: any }) | (undefined & { list: any });
   };
@@ -93,12 +96,17 @@ function getListModel<T extends IDObject>(
           type: 'init',
           data: Array.isArray(res.data) ? res.data : [],
         });
-        if (dependNamespce !== undefined) {
-          const dependence = yield call(getAllService(dependNamespce), payload);
-          yield put({
-            type: 'initDependence',
-            data: Array.isArray(dependence.data) ? dependence.data : [],
-          });
+        if (dependNamespces.length > 0) {
+          for (var i = 0; i < dependNamespces.length; i++) {
+            let name = dependNamespces[i];
+            const dependence = yield call(getAllService(name), payload);
+            let saveName = i === 0 ? 'dependence' : 'dependence' + i;
+            yield put({
+              type: 'initDependence',
+              name: saveName,
+              data: Array.isArray(dependence.data) ? dependence.data : [],
+            });
+          }
         }
       },
       *submit({ payload, callback }, { call, put }) {
@@ -132,8 +140,8 @@ function getListModel<T extends IDObject>(
       init(state, { data }) {
         return { ...state, list: data };
       },
-      initDependence(state, { data }) {
-        return { ...state, dependence: data };
+      initDependence(state, { data, name }) {
+        return { ...state, [name]: data };
       },
       createOne(state, { payload }) {
         return state === undefined ? state : { ...state, list: [payload, ...state.list] };

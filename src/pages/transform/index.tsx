@@ -22,14 +22,17 @@ import {
   Switch,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
-import { TransformInfo, Namespace } from './data';
+import { TransformInfo } from './data';
+import { Namespace, Resource } from '@/pages/resources/data';
+
 import { Dispatch } from 'redux';
 import { ReloadOutlined } from '@ant-design/icons';
-
+import { CopyToClipboard } from 'react-copy-to-clipboard';
 // @ts-ignore
 import styles from '@/pages/resources/style.less';
 
 const { Search } = Input;
+const { Option } = Select;
 import { AnyAction } from 'redux';
 import { findDOMNode } from 'react-dom';
 import Result from '@/pages/form/step-form/components/Result';
@@ -43,6 +46,7 @@ import TextArea from 'antd/es/input/TextArea';
 interface BasicListProps extends FormComponentProps {
   listBasicList: TransformInfo[];
   namespaces: Namespace[];
+  resources: Resource[];
   dispatch: Dispatch<AnyAction>;
   loading: boolean;
 }
@@ -119,8 +123,12 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     });
     const { dispatch } = this.props;
     dispatch({
-      type: 'formStepForm/runCurrentTransform',
-      payload: item,
+      type: 'transform/run',
+      payload: {
+        ...item,
+        method: 'run',
+        model: 'transform',
+      },
       callback: (res: { msg: string; success: boolean }) => {
         this.setState({
           msg: res.msg,
@@ -131,11 +139,38 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     });
   };
 
+  showDebugResult = () => {
+    this.setState({ edithSubmit: true });
+    const { form, dispatch } = this.props;
+    const { current } = this.state;
+    form.validateFields((err: string | undefined, fieldsValue: any) => {
+      if (err) return;
+      this.setState({ submitted: true });
+      dispatch({
+        type: 'transform/run',
+        payload: {
+          ...fieldsValue,
+          ...current,
+          method: 'debug',
+          id: 0,
+          model: 'transform',
+        },
+        callback: (res: { success: boolean; msg: string; data: { url: string } }) => {
+          this.setState({
+            edithSubmit: false,
+          });
+          if (res.success) {
+            window.open(res.data.url);
+          }
+        },
+      });
+    });
+  };
+
   showEditModal = (item: TransformInfo) => {
-    const { dispatch } = this.props;
-    dispatch({
-      type: 'formStepForm/initStepFromList',
-      payload: item,
+    this.setState({
+      editVisible: true,
+      current: item,
     });
   };
 
@@ -155,7 +190,31 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     });
   };
 
-  handleSubmit = () => {};
+  handleSubmit = () => {
+    const { form, dispatch } = this.props;
+    const { current } = this.state;
+    form.validateFields((err: string | undefined, fieldsValue: Resource) => {
+      if (err) return;
+      this.setState({ submitted: true });
+      dispatch({
+        type: 'transform/submit',
+        payload: { ...current, ...fieldsValue },
+        callback: (res: { success: boolean; msg: string }) => {
+          this.setState({
+            edithDone: true,
+            success: res.success,
+            msg: res.msg,
+          });
+        },
+      });
+    });
+  };
+  handleChange = (selects: string[]) => {
+    const { current } = this.state;
+    const va = selects.join(',');
+    const newV = current === undefined ? { require: va } : { ...current, require: va };
+    this.setState({ current: newV });
+  };
 
   deleteItem = (id: number) => {
     // @ts-ignore
@@ -254,6 +313,14 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Menu onClick={({ key }) => editAndDelete(key, item)}>
             <Menu.Item key="delete">删除</Menu.Item>
             <Menu.Item key="run">运行</Menu.Item>
+            <Menu.Item key="copy">
+              <CopyToClipboard
+                text={item.require}
+                onCopy={() => this.setState({ edithDone: true })}
+              >
+                <span>复制依赖</span>
+              </CopyToClipboard>
+            </Menu.Item>
           </Menu>
         }
       >
@@ -277,14 +344,34 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             <Button key="submit" type="primary" loading={edithSubmit} onClick={this.handleSubmit}>
               保存
             </Button>,
-            <Button type="primary" onClick={x => this.showRunModal(null)} loading={edithSubmit}>
+            <Button type="primary" onClick={x => this.showDebugResult()} loading={edithSubmit}>
               调试
             </Button>,
           ],
         };
     const {
       form: { getFieldDecorator },
+      resources,
     } = this.props;
+
+    const getRealNamespaceName = (id: number, tab: string) => {
+      let names = namespaces.filter(x => x.id === id);
+      return names.length === 0 ? tab : names[0].name + '.' + tab;
+    };
+    const getName = (x: Resource) =>
+      x.namespaceId !== undefined && x.namespaceId !== null
+        ? getRealNamespaceName(x.namespaceId, x.name)
+        : x.name;
+
+    const resourceSelect = Array.isArray(resources)
+      ? resources.map(x => (
+          <Option key={x.id} title={x.info} value={getName(x)}>
+            {getName(x)}
+          </Option>
+        ))
+      : [];
+
+    // @ts-ignore
     return (
       <>
         <div className={styles.standardList}>
@@ -402,6 +489,21 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 initialValue: current === undefined ? '' : current.info,
               })(<TextArea placeholder="请输入" />)}
             </FormItem>
+            <FormItem label="依赖" {...this.formLayout}>
+              <Select
+                mode="tags"
+                style={{ width: '100%' }}
+                onChange={this.handleChange}
+                tokenSeparators={[',']}
+                defaultValue={
+                  current === undefined || current.require === undefined
+                    ? undefined
+                    : current.require.split(',')
+                }
+              >
+                {resourceSelect}
+              </Select>
+            </FormItem>
 
             <FormItem label="命名空间" {...this.formLayout}>
               {getFieldDecorator('namespaceId', {
@@ -438,7 +540,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 readOnly={false}
                 placeholder={'请输入Yaml配置'}
                 defaultValue={current === undefined ? '' : current.sql}
-                value={current?.sql}
+                value={current === undefined ? '' : current.sql}
                 //@ts-ignore
                 width={765}
                 //@ts-ignore
@@ -455,7 +557,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 readOnly={false}
                 placeholder={'请输入Yaml配置'}
                 defaultValue={current === undefined ? '' : current.config}
-                value={current?.config}
+                value={current === undefined ? '' : current.config}
                 //@ts-ignore
                 width={765}
                 //@ts-ignore
@@ -466,13 +568,13 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               <Row gutter={16}>
                 <Col span={3}>
                   {getFieldDecorator('isAvailable', {
-                    initialValue: current?.isAvailable,
+                    initialValue: current === undefined ? false : current.isAvailable,
                     valuePropName: 'checked',
                   })(<Switch checkedChildren="启用" unCheckedChildren="禁止" />)}
                 </Col>
                 <Col span={3}>
                   {getFieldDecorator('isPublish', {
-                    initialValue: current?.isPublish,
+                    initialValue: current === undefined ? false : current.isPublish,
                     valuePropName: 'checked',
                   })(<Switch checkedChildren="发布" unCheckedChildren="开发" />)}
                 </Col>
@@ -492,7 +594,7 @@ export default connect(
     transform,
     loading,
   }: {
-    transform: { list: TransformInfo[]; dependence: Namespace[] };
+    transform: { list: TransformInfo[]; dependence: Namespace[]; dependence1: Resource[] };
     loading: {
       models: { [key: string]: boolean };
     };
@@ -500,5 +602,6 @@ export default connect(
     listBasicList: transform.list,
     namespaces: transform.dependence,
     loading: loading.models.namespace,
+    resources: transform.dependence1,
   }),
 )(finalForm);

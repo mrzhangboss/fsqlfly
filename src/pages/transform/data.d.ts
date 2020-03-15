@@ -34,6 +34,7 @@ export interface TransformInfo {
   isAvailable: boolean;
   createAt: string;
   updateAt: string;
+  require: string;
   sql?: string;
   config?: string;
 }
