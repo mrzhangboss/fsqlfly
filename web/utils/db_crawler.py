@@ -15,8 +15,7 @@ from sqlalchemy.types import TypeEngine
 from sqlalchemy import exc as sa_exc
 from kafka.consumer.fetcher import ConsumerRecord
 from kafka import TopicPartition
-from kafka import SimpleClient
-from kafka.common import OffsetRequestPayload
+from kafka.consumer import KafkaConsumer
 
 
 @attr.s
@@ -180,13 +179,11 @@ class Crawler:
     @classmethod
     def get_topic_offset(cls, topic: str, brokers: str) -> List[Tuple[int, int]]:
 
-        client = SimpleClient(brokers)
+        con = KafkaConsumer(bootstrap_servers=brokers)
+        ps = [TopicPartition(topic, p) for p in con.partitions_for_topic(topic)]
+        offsets_responses = con.end_offsets(ps)
 
-        partitions = client.topic_partitions[topic]
-        offset_requests = [OffsetRequestPayload(topic, p, -1, 10) for p in partitions.keys()]
-
-        offsets_responses = client.send_offset_request(offset_requests)
-        return [(r.partition, r.offsets[0]) for r in offsets_responses]
+        return [(r.partition, offsets_responses[r]) for r in offsets_responses]
 
     @classmethod
     def get_topic_last_msg(cls, topic: str, offsets: List[Tuple[int, int]],
