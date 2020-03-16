@@ -95,6 +95,9 @@ def get_list_or_create(req: HttpRequest) -> JsonResponse:
         res.append({
             'id': sou.id,
             'name': sou.name,
+            'require': sou.require,
+            'sql': sou.sql,
+            'yaml': sou.yaml,
             'namespaceId': sou.namespace.id if sou.namespace else 0,
             'info': sou.info,
             'isAvailable': sou.is_available,
