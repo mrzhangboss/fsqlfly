@@ -7,8 +7,9 @@ export default {
     'functionNum|1-100': 100,
     'fileNum|1-100': 100,
   }),
-'POST  /api/:model/:method/:id': mockjs.mock({
-  msg: '@word',
-  success: true
-})
+  'POST  /api/:model/:method/:id': mockjs.mock({
+    msg: '@word',
+    success: true,
+    data: { url: '/transform' },
+  }),
 };

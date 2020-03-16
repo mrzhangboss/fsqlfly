@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from 'react';
+import React, { Component } from 'react';
 import moment from 'moment';
 import { connect } from 'dva';
 import { DownOutlined, PlusOutlined } from '@ant-design/icons';
@@ -35,7 +35,7 @@ const { Search } = Input;
 const { Option } = Select;
 import { AnyAction } from 'redux';
 import { findDOMNode } from 'react-dom';
-import Result from '@/pages/form/step-form/components/Result';
+import Result from '@/pages/resources/components/Result';
 import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
 import AceEditor from 'react-ace';
 import 'brace/mode/yaml';
@@ -115,7 +115,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     this.setState({ editVisible: true, current: undefined });
   };
 
-  showRunModal = (item: TransformInfo) => {
+  showRunModal = (item: TransformInfo, method: string) => {
     this.setState({
       visible: true,
       done: false,
@@ -126,7 +126,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       type: 'transform/run',
       payload: {
         ...item,
-        method: 'run',
+        method: method,
         model: 'transform',
       },
       callback: (res: { msg: string; success: boolean }) => {
@@ -144,7 +144,11 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const { form, dispatch } = this.props;
     const { current } = this.state;
     form.validateFields((err: string | undefined, fieldsValue: any) => {
-      if (err) return;
+      if (err) {
+        this.setState({ edithSubmit: false });
+        return;
+      }
+
       this.setState({ submitted: true });
       dispatch({
         type: 'transform/run',
@@ -161,6 +165,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           });
           if (res.success) {
             window.open(res.data.url);
+          } else {
+            this.setState({ msg: res.msg, success: false, done: true, visible: true });
           }
         },
       });
@@ -193,6 +199,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   handleSubmit = () => {
     const { form, dispatch } = this.props;
     const { current } = this.state;
+    this.setState({ visible: true, done: false, msg: '...' });
     form.validateFields((err: string | undefined, fieldsValue: Resource) => {
       if (err) return;
       this.setState({ submitted: true });
@@ -200,11 +207,24 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         type: 'transform/submit',
         payload: { ...current, ...fieldsValue },
         callback: (res: { success: boolean; msg: string }) => {
-          this.setState({
-            edithDone: true,
-            success: res.success,
-            msg: res.msg,
-          });
+          if (res.success) {
+            this.setState({
+              edithDone: false,
+              editVisible: false,
+              success: res.success,
+              msg: res.msg,
+              visible: false,
+              edithSubmit: false,
+            });
+          } else {
+            this.setState({
+              done: true,
+              visible: true,
+              success: res.success,
+              msg: res.msg,
+              edithSubmit: false,
+            });
+          }
         },
       });
     });
@@ -233,11 +253,11 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   render() {
     const { loading, namespaces } = this.props;
 
-    const { search, current, edithDone, edithSubmit } = this.state;
+    const { search, current, edithSubmit } = this.state;
     const { listBasicList } = this.props;
 
     const editAndDelete = (key: string, currentItem: TransformInfo) => {
-      if (key === 'run') this.showRunModal(currentItem);
+      if (key === 'run' || key === 'stop' || key === 'restart') this.showRunModal(currentItem, key);
       else if (key === 'delete') {
         Modal.confirm({
           title: '删除任务',
@@ -313,6 +333,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Menu onClick={({ key }) => editAndDelete(key, item)}>
             <Menu.Item key="delete">删除</Menu.Item>
             <Menu.Item key="run">运行</Menu.Item>
+            <Menu.Item key="stop">停止</Menu.Item>
+            <Menu.Item key="restart">停止</Menu.Item>
             <Menu.Item key="copy">
               <CopyToClipboard
                 text={item.require}
@@ -331,24 +353,22 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     );
     const FormItem = Form.Item;
     const SelectOption = Select.Option;
-    const editModalFooter = edithDone
-      ? { footer: null, onCancel: this.handleCancel }
-      : {
-          okText: '保存',
-          onOk: this.handleSubmit,
-          onCancel: this.handleCancel,
-          footer: [
-            <Button key="back" onClick={this.handleCancel}>
-              取消
-            </Button>,
-            <Button key="submit" type="primary" loading={edithSubmit} onClick={this.handleSubmit}>
-              保存
-            </Button>,
-            <Button type="primary" onClick={x => this.showDebugResult()} loading={edithSubmit}>
-              调试
-            </Button>,
-          ],
-        };
+    const editModalFooter = {
+      okText: '保存',
+      onOk: this.handleSubmit,
+      onCancel: this.handleCancel,
+      footer: [
+        <Button key="back" onClick={this.handleCancel}>
+          取消
+        </Button>,
+        <Button key="submit" type="primary" loading={edithSubmit} onClick={this.handleSubmit}>
+          保存
+        </Button>,
+        <Button type="primary" onClick={x => this.showDebugResult()} loading={edithSubmit}>
+          调试
+        </Button>,
+      ],
+    };
     const {
       form: { getFieldDecorator },
       resources,
@@ -454,7 +474,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Result
             type={this.state.done ? (this.state.success ? 'success' : 'error') : 'line'}
             title={this.state.done ? (this.state.success ? '运行成功' : '运行失败') : `提交中...`}
-            errorInfo={this.state.msg}
+            description={this.state.msg}
             actions={
               <Button
                 loading={!this.state.done}
@@ -511,7 +531,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                   current === undefined || current.namespaceId === null ? 0 : current.namespaceId,
                 rules: [
                   {
-                    required: true,
+                    required: false,
                   },
                 ],
               })(

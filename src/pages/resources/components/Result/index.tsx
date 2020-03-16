@@ -31,7 +31,7 @@ const Result: React.SFC<ResultProps> = ({
     <div className={clsString} {...restProps}>
       <div className={styles.icon}>{iconMap[type]}</div>
       <div className={styles.title}>{title}</div>
-      {description && <div className={styles.description}>{description}</div>}
+      {description && <pre style={{ textAlign: 'left' }}>{description}</pre>}
       {extra && <div className={styles.extra}>{extra}</div>}
       {actions && <div className={styles.actions}>{actions}</div>}
     </div>

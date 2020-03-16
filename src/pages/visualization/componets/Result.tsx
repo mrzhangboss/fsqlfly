@@ -2,7 +2,7 @@ import React, { Component, ReactNode } from 'react';
 import { Dispatch } from 'redux';
 import { connect } from 'dva';
 import { SearchOutlined } from '@ant-design/icons';
-import { Card, Collapse, List, Tag, Empty } from 'antd';
+import { Card, Collapse, List, Tag } from 'antd';
 import { Table, Input, Button } from 'antd';
 // @ts-ignore
 import Highlighter from 'react-highlight-words';

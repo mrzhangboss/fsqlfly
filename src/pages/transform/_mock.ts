@@ -51,7 +51,7 @@ export default {
       {
         'id|+1': 1,
         name: '@word',
-        'namespace|1': ['default', 'cat', 'dog', 'bird'],
+        'namespaceId|+1': 1,
         info: '@paragraph(1,1)',
         'avatar|1': avatars,
         'isAvailable|1': true,
@@ -133,6 +133,10 @@ export default {
     });
   },
   'POST  /api/transform/:id/run': mockjs.mock({
+    msg: '@paragraph(1000,1000)',
+    success: false,
+  }),
+  'POST  /api/transform/debug/:id': mockjs.mock({
     msg: '@paragraph(1000,1000)',
     success: true,
   }),

@@ -5,7 +5,7 @@ import { Dispatch } from 'redux';
 import { connect } from 'dva';
 import { TableMeta, VisualizationResult } from '../data';
 import styles from '@/pages/resources/style.less';
-import Result from '@/pages/form/step-form/components/Result';
+import Result from '@/pages/resources/components/Result';
 import { CascaderOptionType, FilledFieldNamesType } from 'antd/lib/cascader';
 
 const { Option } = Select;
@@ -234,6 +234,7 @@ class SearchHeader extends Component<SearchProps, SearchState> {
           <div>
             <span> </span>
             <Cascader
+              style={{ width: '15%' }}
               options={tableNames}
               onChange={this.onSelectChange}
               placeholder="Please select"
@@ -256,7 +257,7 @@ class SearchHeader extends Component<SearchProps, SearchState> {
 
             <Select
               disabled={submitting}
-              style={{ width: '8%', marginLeft: 20 }}
+              style={{ width: '8%', marginLeft: 10 }}
               showSearch
               placeholder="Select Result"
               defaultValue={limit}
@@ -269,7 +270,7 @@ class SearchHeader extends Component<SearchProps, SearchState> {
               <Option value={10}>first 10</Option>
             </Select>
 
-            <span style={{ marginLeft: 2 }}></span>
+            <span style={{ marginLeft: 1 }}></span>
             <Button onClick={this.doRefresh}>
               <ReloadOutlined />
             </Button>
