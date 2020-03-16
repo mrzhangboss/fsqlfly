@@ -17,7 +17,7 @@ from django.contrib import admin
 from django.urls import path
 from .views import create_or_get_list, update_or_delete, current_user, upload, count_view, run_model_command
 from .transform_view import get_info, get_list_or_create, get_or_update_or_delete as transform_update_or_delete, \
-    start_run, debug_transform, job_control_api, job_list
+    start_run, debug_transform, job_control_api, job_list, stop_run, restart_run
 from .dispaly_view import search, list_tables, get_related_tables, list_table_names
 
 urlpatterns = [
@@ -28,10 +28,12 @@ urlpatterns = [
     path('table/<str:table_name>', get_related_tables),
     path('count', count_view),
     path('transform', get_list_or_create),
-    path('transform/debug', debug_transform),
+    path('transform/debug/<int:pk>', debug_transform),
     path('transform/info', get_info),
     path('transform/<int:pk>', transform_update_or_delete),
-    path('transform/<int:pk>/run', start_run),
+    path('transform/run/<int:pk>', start_run),
+    path('transform/stop/<int:pk>', stop_run),
+    path('transform/restart/<int:pk>', restart_run),
     path('upload', upload),
     path('jobs/<str:name>/<str:mode>', job_control_api),
     path('jobs', job_list),

@@ -3,6 +3,8 @@ import os
 import json
 import random
 import requests
+import traceback
+from io import StringIO
 from requests import Session
 from datetime import datetime
 from collections import namedtuple, defaultdict
@@ -11,7 +13,7 @@ from typing import Optional, Union, List
 from urllib.parse import quote
 import yaml
 from django.db.models import Model
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, JsonResponse, HttpResponseRedirect
 from django.core.cache import caches, cache
 from dbs.models import Namespace, FileResource, Functions, Transform, Resource
 from utils.response import create_response
@@ -81,12 +83,44 @@ def get_info(req: HttpRequest) -> JsonResponse:
     return create_response(data={'namespaces': namespaces, 'columns': sources})
 
 
+def test_require(require: str) -> Union[str, bool]:
+    errors = []
+    if require:
+        for x in require.split(','):
+            if '.' in x:
+                space, name = x.split('.', 1)
+            else:
+                space, name = None, x
+
+            if space:
+                space = Namespace.objects.filter(name=space).first()
+                if space is None:
+                    errors.append('In {} error: namespace {} not exists'.format(x, space))
+
+            resource = Resource.objects.filter(name=name, namespace=space).first()
+            resource_only_name = Resource.objects.filter(name=name).first()
+            if resource is None and resource_only_name is None:
+                errors.append('In {} error: resource {} not exists'.format(x, name))
+
+    if errors:
+        return '\n'.join(errors)
+
+    return True
+
+
 def get_list_or_create(req: HttpRequest) -> JsonResponse:
     if req.method == 'POST':
+
         data = json.loads(req.body)
+        require = data['require']
+
+        test_result = test_require(require)
+        if isinstance(test_result, str):
+            return create_response(code=500, msg=test_result)
+
         namespace = Namespace.objects.get(id=data['namespaceId']) if data['namespaceId'] else None
         obj = Transform.objects.create(name=data['name'], info=data['info'],
-                                       sql=data['sql'], require=json.dumps(data['columns']),
+                                       sql=data['sql'], require=require,
                                        yaml=data['config'], namespace=namespace, is_publish=data['isPublish'],
                                        is_available=data['isAvailable'])
         return create_response(data={'id': obj.id, 'namespaceId': obj.namespace.id if obj.namespace else 0})
@@ -108,19 +142,37 @@ def get_list_or_create(req: HttpRequest) -> JsonResponse:
     return create_response(data=res)
 
 
-def debug_transform(req: HttpRequest) -> JsonResponse:
+def debug_transform(req: HttpRequest, pk: int) -> JsonResponse:
     data = json.loads(req.body)
     print(data)
-    command, file_name = run_debug_transform(data)
+    try:
+        command, file_name = run_debug_transform(data)
+    except Exception as err:
+        out = StringIO()
+        traceback.print_exc(file=out)
+        out.seek(0)
+        msg = out.read()
+        return create_response(code=500, msg=msg)
     encode_file_name = quote(file_name)
     url = TERMINAL_WEB_HOST_FMT.format(b64encode(command.encode()).decode(), encode_file_name)
     return create_response(data={"url": url})
 
 
-def start_run(req: HttpRequest, pk: int) -> JsonResponse:
+def get_job_redirect(pk: int, method: str):
     obj = Transform.objects.get(pk=pk)
-    success, out = run_transform(obj)
-    return create_response(msg=out, code=0 if success else 500)
+    return HttpResponseRedirect('/api/jobs/{}/{}'.format(obj.name, method))
+
+
+def start_run(req: HttpRequest, pk: int) -> HttpResponseRedirect:
+    return get_job_redirect(pk, 'start')
+
+
+def stop_run(req: HttpRequest, pk: int) -> HttpResponseRedirect:
+    return get_job_redirect(pk, 'stop')
+
+
+def restart_run(req: HttpRequest, pk: int) -> HttpResponseRedirect:
+    return get_job_redirect(pk, 'restart')
 
 
 def get_or_update_or_delete(req: HttpRequest, pk: int) -> JsonResponse:
@@ -144,17 +196,24 @@ def get_or_update_or_delete(req: HttpRequest, pk: int) -> JsonResponse:
         obj.info = data['info']
         obj.is_available = data['isAvailable']
         obj.is_publish = data['isPublish']
-        obj.require = json.dumps(data['columns'])
+        require = data['require']
+        test_result = test_require(require)
+        if isinstance(test_result, str):
+            return create_response(code=500, msg=test_result)
+        obj.require = require
         namespace = Namespace.objects.get(id=data['namespaceId']) if data['namespaceId'] else None
         obj.namespace = namespace
         obj.sql = data['sql']
-        assert check_yaml(data['config'])
-        obj.yaml = data['config']
+        assert check_yaml(data['yaml'])
+        obj.yaml = data['yaml']
         obj.save()
     return create_response(data={'id': obj.id, 'namespaceId': obj.namespace.id if obj.namespace else 0})
 
 
 JobStatus = namedtuple('JobStatus', ['name', 'job_id', 'status'])
+
+FAIL_HEADER = 'FAIL:'
+SUCCESS_HEADER = 'SUCCESS:'
 
 
 class JobControl:
@@ -201,7 +260,7 @@ class JobControl:
         msgs = []
         msgs.append(self.handle_stop(transform))
         msgs.append(self.start_flink_job(transform, **kwargs))
-        return '\n'.join(msgs)
+        return SUCCESS_HEADER + '\n'.join(msgs)
 
     def handle_stop(self, transform: Transform, **kwargs) -> str:
         msgs = []
@@ -216,7 +275,7 @@ class JobControl:
         msgs.append('kill {} jobs: {}'.format(len(kill_jobs), ', '.join(str(x) for x in kill_jobs)))
 
         self.stop_flink_jobs(kill_jobs)
-        return '\n'.join(msgs)
+        return SUCCESS_HEADER + '\n'.join(msgs)
 
     def handle_start(self, transform: Transform, **kwargs) -> str:
         return self.start_flink_job(transform, **kwargs)
@@ -229,8 +288,8 @@ class JobControl:
 
     @classmethod
     def start_flink_job(cls, transform: Transform, **kwargs) -> str:
-        is_ok, _ = run_transform(transform, **kwargs)
-        return 'Job {} {}'.format(transform.name, 'success' if is_ok else 'fail')
+        is_ok, txt = run_transform(transform, **kwargs)
+        return '{} JOB {}\n{}'.format(SUCCESS_HEADER if is_ok else FAIL_HEADER, transform.name, '' if is_ok else txt)
 
 
 JobControlHandle = JobControl()
@@ -246,7 +305,14 @@ def job_control_api(req: HttpRequest, name: str, mode: str) -> JsonResponse:
             data = json.loads(req.body)
         else:
             data = dict()
-        return create_response(msg=getattr(JobControlHandle, handle_name)(transform, **data))
+        try:
+            run_res = getattr(JobControlHandle, handle_name)(transform, **data)
+        except Exception as e:
+            out = StringIO()
+            traceback.print_exc(file=out)
+            out.seek(0)
+            return create_response(msg=out.read(), code=500)
+        return create_response(msg=run_res, code=500 if run_res.startswith(FAIL_HEADER) else 0)
     else:
         return create_response(code=500, msg=' {} not support!!!'.format(mode))
 
