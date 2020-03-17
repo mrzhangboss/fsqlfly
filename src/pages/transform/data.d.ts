@@ -35,8 +35,8 @@ export interface TransformInfo {
   createAt: string;
   updateAt: string;
   require: string;
-  sql?: string;
-  config?: string;
+  sql: string;
+  yaml: string;
 }
 
 export interface OneColumn {

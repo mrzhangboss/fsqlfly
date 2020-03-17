@@ -571,13 +571,13 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               <AceEditor
                 mode="yaml"
                 theme="solarized_dark"
-                onChange={x => this.setState({ current: { ...current, config: x } })}
+                onChange={x => this.setState({ current: { ...current, yaml: x } })}
                 name="functionConstructorConfig"
                 editorProps={{ $blockScrolling: true }}
                 readOnly={false}
                 placeholder={'请输入Yaml配置'}
-                defaultValue={current === undefined ? '' : current.config}
-                value={current === undefined ? '' : current.config}
+                defaultValue={current === undefined ? '' : current.yaml}
+                value={current === undefined ? '' : current.yaml}
                 //@ts-ignore
                 width={765}
                 //@ts-ignore
