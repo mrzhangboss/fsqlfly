@@ -23,6 +23,7 @@ class Command(BaseCommand):
                             choices=['damon'],
                             type=str,
                             default='damon')
+        parser.add_argument('--debug', action='store_true', help='debug')
 
         parser.add_argument('--flink_api_host', action='store', help='flink api host',
                             default=None)
@@ -32,6 +33,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         host = options['flink_api_host']
+        is_debug = options['debug']
         sleep = options['frequency']
         session = Session()
         if host is None:
@@ -68,7 +70,10 @@ class Command(BaseCommand):
             for k, v in job_names.items():
                 if k not in run_jobs:
                     print(datetime.now(), 'begin run ', k)
-                    run_transform(v)
+                    is_ok, r = run_transform(v)
+                    if is_debug:
+                        print(r)
+
 
             end_time = time.time()
 
