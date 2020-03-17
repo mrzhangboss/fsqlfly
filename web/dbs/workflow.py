@@ -60,6 +60,8 @@ def _create_config(require: str, config: Optional[str], **kwargs) -> str:
             data = _create_config_from_resource(resource, **kwargs)
             tables.append(data)
     base_config = yaml.load(handle_template(config, **kwargs), yaml.FullLoader) if config else dict()
+    if base_config is None:
+        base_config = dict()
     if base_config.get('tables'):
         base_config['tables'].extend(tables)
     else:
@@ -116,9 +118,9 @@ def run_transform(transform: Transform, **kwargs) -> (bool, str):
 def run_debug_transform(data: dict) -> (str, str):
     _, yaml_f = tempfile.mkstemp(suffix='.yaml')
     _, sql_f = tempfile.mkstemp(suffix='.sql')
-    yaml_conf = _create_config(data['require'], data['yaml'])
+    yaml_conf = _create_config(data.get('require', ''), data.get('yaml', ''))
     print(yaml_conf, file=open(yaml_f, 'w'))
-    print(handle_template(data['sql']), file=open(sql_f, 'w'))
+    print(handle_template(data.get('sql', '')), file=open(sql_f, 'w'))
     run_commands = [FLINK_BIN_PATH, 'embedded',
                     '-s', '{}_{}'.format(data.get('id', 'null'), "{}"),
                     '--environment', yaml_f,
