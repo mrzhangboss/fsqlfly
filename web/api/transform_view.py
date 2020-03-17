@@ -121,7 +121,7 @@ def get_list_or_create(req: HttpRequest) -> JsonResponse:
         namespace = Namespace.objects.get(id=data['namespaceId']) if data['namespaceId'] else None
         obj = Transform.objects.create(name=data['name'], info=data['info'],
                                        sql=data['sql'], require=require,
-                                       yaml=data['config'], namespace=namespace, is_publish=data['isPublish'],
+                                       yaml=data['yaml'], namespace=namespace, is_publish=data['isPublish'],
                                        is_available=data['isAvailable'])
         return create_response(data={'id': obj.id, 'namespaceId': obj.namespace.id if obj.namespace else 0})
     res = []
