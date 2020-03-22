@@ -86,7 +86,7 @@ def serialize_model_fields(_obj: Model, not_used=None) -> dict:
         _obj.cache = cache_back
 
     return dict(id=model_['pk'],
-                **{k if k != 'namespace' else k + '_id': v for k, v in model_['fields'].items() if k not in not_used})
+                **{k if not k in ('namespace', 'resource') else k + '_id': v for k, v in model_['fields'].items() if k not in not_used})
 
 
 # Create your views here.
