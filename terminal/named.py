@@ -21,8 +21,7 @@ class TerminalPageHandler(tornado.web.RequestHandler):
     """Render the /ttyX pages"""
 
     def get(self, term_name):
-        return self.render("termpage.html", static=self.static_url,
-                           xstatic=self.application.settings['xstatic_url'],
+        return self.render("xterm.html",
                            ws_url_path="/_websocket/" + term_name)
 
 
@@ -67,11 +66,9 @@ def main():
          {'term_manager': term_manager}),
         (r"/new/?", NewTerminalHandler),
         (r"/(\w+)/?", TerminalPageHandler),
-        (r"/xstatic/(.*)", tornado_xstatic.XStaticFileHandler)
     ]
-    application = tornado.web.Application(handlers, static_path=STATIC_DIR,
+    application = tornado.web.Application(handlers, static_path='static',
                                           template_path=TEMPLATE_DIR,
-                                          xstatic_url=tornado_xstatic.url_maker('/xstatic/'),
                                           term_manager=term_manager)
 
     application.listen(8700, '0.0.0.0')
