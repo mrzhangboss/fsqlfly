@@ -36,8 +36,9 @@ def _get_functions() -> list:
 def _get_jar() -> str:
     res = []
     for f in Functions.objects.filter(is_deleted=False).all():
-        res.append(os.path.join(BASE_DIR, f.resource.real_path)[1:])
-    return ' '.join('-j {} '.format(x) for x in res)
+        r_p = os.path.join(BASE_DIR, f.resource.real_path[1:])
+        res.append(r_p)
+    return ' '.join('-j {} '.format(x) for x in set(res))
 
 
 def _create_config(require: str, config: Optional[str], **kwargs) -> str:
