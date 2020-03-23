@@ -6,7 +6,7 @@ function make_terminal(element, size, ws_url) {
     var ws = new WebSocket(ws_url);
     var term = new Terminal({
         cols: size.cols,
-        rows: size.rows,
+        rows: size.rows - 15,
         screenKeys: true,
         useStyle: true
     });
