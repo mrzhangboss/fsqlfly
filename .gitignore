@@ -60,3 +60,5 @@ screenshot
 .firebase
 
 build/
+
+fsqlfly.egg-info
