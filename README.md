@@ -1,11 +1,23 @@
 # Flink SQL 管理平台
 
-> 基于Flink SQL Client 管理SQL任务并提供实时调试功能
+> 基于tornado开发Flink SQL Client 管理SQL任务并提供实时调试功能web平台
 
-## 基于分支开发
+## 依赖
 
-- back-end 后端代码
-- frontend 前端代码
+1. Python3.6+
+2. Flink 1.9+（推荐Flink1.10)已安装
+
+
+## 安装
+
+    pip install fsqlfly
+ 
+
+## 部署
+
+    fsqlfly webserver
+ 
+  
 
 ## 效果展示
 
@@ -29,6 +41,8 @@
 - 管理SQL函数
 - 管理SQL编写及发布
 - 动态调试SQL任务
+- 导入关系数据库源
+- 监控SQL任务运行并能自动重启
 
 
 ## TODO
