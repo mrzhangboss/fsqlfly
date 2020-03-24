@@ -8,7 +8,7 @@ from setuptools import Command, setup
 with open("readme-en.md", "r") as fh:
     long_description = fh.read()
 
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 REQUIRED = [x for x in open("requirement.txt", "r").read() if x]
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -67,6 +67,9 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    extras_require={
+        'test': ['pytest', 'requests', 'TorMySQL'],
+    },
     python_requires=">=3.6.0",
     install_requires=REQUIRED,
     cmdclass={
