@@ -391,7 +391,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 },
               ],
             })(
-              <Select placeholder="请选择" size="large" style={{ width: 120 }}>
+              <Select size="large" style={{ width: 120 }}>
                 {supportConnectionType.map((x: string) => {
                   return (
                     <SelectOption key={x} value={x}>

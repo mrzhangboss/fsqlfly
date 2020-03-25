@@ -383,7 +383,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 },
               ],
             })(
-              <Select placeholder="请选择" size="large" style={{ width: 120 }}>
+              <Select style={{ width: 120 }}>
                 {resource.length > 0 &&
                   resource.map((x: FileResource) => {
                     return (
