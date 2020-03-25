@@ -114,6 +114,7 @@ export default {
         {
           name: 'visualization',
           icon: 'bulb',
+          hideInMenu: true,
           path: '/visualization',
           component: './visualization',
         },
@@ -146,6 +147,7 @@ export default {
             {
               path: '/resouces/relationship',
               name: 'relationship',
+              hideInMenu: true,
               exact: true,
               icon: 'api',
               component: './resources/relationship',
@@ -179,6 +181,19 @@ export default {
               component: './resources/functions',
             },
           ],
+        },
+        {
+          name: 'login',
+          icon: 'smile',
+          hideInMenu: true,
+          path: '/login',
+          component: './login',
+        },
+        {
+          name: 'result-success',
+          icon: 'smile',
+          path: '/result-success',
+          component: './result-success',
         },
       ],
     },
