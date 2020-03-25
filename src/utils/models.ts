@@ -1,8 +1,5 @@
 // import { Reducer } from 'redux';
 
-import { AnyAction, Reducer } from 'redux';
-import { EffectsCommandMap } from 'dva';
-
 import { IDObject } from './data';
 import { getAllService, createService, deleteService, updateService, runService } from './services';
 
@@ -11,30 +8,7 @@ type IStateType<T> = {
   [key: string]: any[];
 };
 
-// import { number } from 'prop-types';
-type Effect<T> = (
-  action: AnyAction,
-  effects: EffectsCommandMap & {
-    select: (func: (state: IStateType<T>) => T) => T;
-  },
-) => void;
-
-type ModelType<T> = {
-  namespace: string;
-  state: IStateType<T>;
-  effects: {
-    fetch: Effect<T>;
-    submit: Effect<T>;
-    run: Effect<T>;
-  };
-  reducers: {
-    init: Reducer<IStateType<T>>;
-    initDependence: Reducer<IStateType<T>>;
-    createOne: Reducer<IStateType<T>>;
-    updateList: Reducer<IStateType<T>>;
-    deleteOne: Reducer<IStateType<T>>;
-  };
-};
+type JsonResult = any & { data: any[]; success: boolean };
 
 function getListModel<T extends IDObject>(
   namespace: string,
@@ -44,18 +18,15 @@ function getListModel<T extends IDObject>(
     submit(
       { payload, callback }: { payload: any; callback: any },
       { call, put }: { call: any; put: any },
-    ): // @ts-ignore
-    Generator<any, void, unknown>;
+    ): Generator<any, void, unknown>;
     fetch(
       { payload }: { payload: any },
       { call, put }: { call: any; put: any },
-    ): // @ts-ignore
-    Generator<any, void, unknown>;
+    ): Generator<any, void, unknown>;
     run(
       { payload, callback }: { payload: any; callback: any },
       { call }: { call: any },
-    ): // @ts-ignore
-    Generator<any, void, unknown>;
+    ): Generator<any, void, unknown>;
   };
   namespace: string;
   reducers: {
@@ -91,7 +62,7 @@ function getListModel<T extends IDObject>(
     },
     effects: {
       *fetch({ payload }, { call, put }) {
-        const res = yield call(getAllService(namespace), payload);
+        const res: JsonResult = yield call(getAllService(namespace), payload);
         yield put({
           type: 'init',
           data: Array.isArray(res.data) ? res.data : [],
@@ -99,7 +70,7 @@ function getListModel<T extends IDObject>(
         if (dependNamespces.length > 0) {
           for (var i = 0; i < dependNamespces.length; i++) {
             let name = dependNamespces[i];
-            const dependence = yield call(getAllService(name), payload);
+            const dependence: JsonResult = yield call(getAllService(name), payload);
             let saveName = i === 0 ? 'dependence' : 'dependence' + i;
             yield put({
               type: 'initDependence',
@@ -116,7 +87,7 @@ function getListModel<T extends IDObject>(
             : Object.keys(payload).length === 1
             ? deleteService(namespace)
             : updateService(namespace);
-        const res = yield call(actionMethod, payload);
+        const res: JsonResult = yield call(actionMethod, payload);
         const actionType =
           payload.id === undefined
             ? 'createOne'
@@ -146,7 +117,7 @@ function getListModel<T extends IDObject>(
       createOne(state, { payload }) {
         return state === undefined ? state : { ...state, list: [payload, ...state.list] };
       },
-      updateList(state, { payload }) {
+      updateList(state: { list: any[] }, { payload }) {
         return {
           ...state,
           list: state.list.map(x => {
@@ -157,7 +128,7 @@ function getListModel<T extends IDObject>(
           }),
         };
       },
-      deleteOne(state, { payload }) {
+      deleteOne(state: { list: any[] }, { payload }) {
         return { ...state, list: state.list.filter(x => x.id !== payload.id) };
       },
     },

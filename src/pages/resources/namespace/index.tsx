@@ -31,7 +31,7 @@ import styles from '../style.less';
 const FormItem = Form.Item;
 const { Search, TextArea } = Input;
 import { AnyAction } from 'redux';
-import { UploadFile } from '../../../../node_modules/antd/es/upload/interface';
+import { UploadFile } from 'antd/es/upload/interface';
 import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
 
 interface BasicListProps extends FormComponentProps {

@@ -401,7 +401,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 },
               ],
             })(
-              <Select placeholder="请选择" size="default" style={{ width: 120 }}>
+              <Select placeholder="请选择" size="large" style={{ width: 120 }}>
                 <SelectOption key={-1} value={0}>
                   默认
                 </SelectOption>

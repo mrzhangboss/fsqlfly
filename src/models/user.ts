@@ -1,7 +1,6 @@
 import { query as queryUsers, queryCurrent } from '@/services/user';
 import { Effect } from 'dva';
 import { Reducer } from 'redux';
-import router from 'umi/router';
 
 export interface CurrentUser {
   code?: number;
@@ -35,7 +34,7 @@ export interface UserModelType {
     changeNotifyCount: Reducer<UserModelState>;
   };
   subscriptions: {
-    setup: any;
+    setup: Reducer;
   };
 }
 
@@ -62,9 +61,9 @@ const UserModel: UserModelType = {
       });
     },
     *checkLogin(_, { call, put, select }) {
-      const { currentUser } = yield select(x => x.user);
+      const { currentUser } = yield select((x: { user: UserModelState }) => x.user);
       if (currentUser.code === 500) {
-        window.location = '/admin/login?next=/static/index.html';
+        window.location.href = '/admin/login?next=/static/index.html';
       }
     },
   },
@@ -94,7 +93,7 @@ const UserModel: UserModelType = {
   },
   subscriptions: {
     setup({ dispatch, history, select }) {
-      return history.listen(({ pathname, query }) => {
+      return history.listen(({ pathname, query }: { pathname: string; query: string }) => {
         // 进入 '/home' 路由，发起一个名叫 'query' 的 effect
         if (pathname !== '/admin/login') {
           dispatch({

@@ -2,7 +2,7 @@ import { AnyAction, Reducer } from 'redux';
 import { EffectsCommandMap } from 'dva';
 
 export interface Namespace {
-  id?: number;
+  id: number;
   name: string;
   info: string;
   typ?: string;
@@ -14,7 +14,7 @@ export interface Namespace {
 }
 
 export interface FileResource {
-  id?: number;
+  id: number;
   uniqueName: string;
   info: string;
   realPath: string;

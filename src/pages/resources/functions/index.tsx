@@ -37,7 +37,7 @@ const SelectOption = Select.Option;
 const FormItem = Form.Item;
 const { Search } = Input;
 import { AnyAction } from 'redux';
-import { UploadFile } from '../../../../node_modules/antd/es/upload/interface';
+import { UploadFile } from 'antd/es/upload/interface';
 import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
 
 interface BasicListProps extends FormComponentProps {
@@ -383,7 +383,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 },
               ],
             })(
-              <Select placeholder="请选择" size="default" style={{ width: 120 }}>
+              <Select placeholder="请选择" size="large" style={{ width: 120 }}>
                 {resource.length > 0 &&
                   resource.map((x: FileResource) => {
                     return (
