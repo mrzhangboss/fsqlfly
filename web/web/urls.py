@@ -16,7 +16,7 @@ Including another URLconf
 import os
 from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import path, include, re_path
 from .settings import BASE_DIR
 import magic
@@ -33,7 +33,14 @@ def get_picture(req: HttpRequest, name: str) -> HttpResponse:
 
 
 def to_static(*args, **kwargs) -> HttpResponse:
-    return redirect('/static/index.html')
+    def _get_index():
+        return open(os.path.join(BASE_DIR, 'static', 'index.html'), 'rb').read()
+
+    name = '__index_val'
+    if not hasattr(to_static, name):
+        setattr(to_static, name, _get_index())
+    res = getattr(to_static, name)
+    return HttpResponse(content=res, content_type='text/html; charset=utf-8')
 
 
 urlpatterns = [
@@ -41,5 +48,5 @@ urlpatterns = [
     path('api/', include('api.urls')),
     path('upload/logo/<str:name>', get_picture),
     path('', to_static),
-    re_path('(resouces|transform|visualization)/.*', to_static),
+    re_path('(resouces|transform|visualization|login)/.*', to_static),
 ]
