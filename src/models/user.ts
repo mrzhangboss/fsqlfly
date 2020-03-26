@@ -103,6 +103,9 @@ const UserModel: UserModelType = {
     setup({ dispatch, history, select }) {
       return history.listen(({ pathname, query }: { pathname: string; query: string }) => {
         console.log('route in ' + pathname);
+        dispatch({
+          type: 'fetchCurrent',
+        });
       });
     },
   },

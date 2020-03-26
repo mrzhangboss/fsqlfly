@@ -20,6 +20,7 @@ import {
 } from '@ant-design/pro-layout';
 import Link from 'umi/link';
 
+// @ts-ignore
 export interface BasicLayoutProps extends ProLayoutComponentsProps, ConnectProps {
   breadcrumbNameMap: {
     [path: string]: MenuDataItem;
@@ -48,6 +49,7 @@ const menuDataRender = (menuList: MenuDataItem[]): MenuDataItem[] => {
 const noFooterRender: BasicLayoutProps['footerRender'] = (_, defaultDom) => {
   return <></>;
 };
+// @ts-ignore
 const footerRender: BasicLayoutProps['footerRender'] = (_, defaultDom) => {
   if (!isAntDesignPro()) {
     return defaultDom;
@@ -105,6 +107,7 @@ const BasicLayout: React.FC<BasicLayoutProps> = props => {
       logo={logo}
       onCollapse={handleMenuCollapse}
       menuItemRender={(menuItemProps, defaultDom) => {
+        // @ts-ignore
         return <Link to={menuItemProps.path}>{defaultDom}</Link>;
       }}
       breadcrumbRender={(routers = []) => {

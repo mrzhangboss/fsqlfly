@@ -122,7 +122,7 @@ export default {
           path: '/transform',
           name: 'transform',
           exact: true,
-          icon: 'experiment',
+          icon: 'ConsoleSql',
           component: './transform',
         },
         {
@@ -188,6 +188,19 @@ export default {
           hideInMenu: true,
           path: '/login',
           component: './login',
+        },
+        {
+          name: 'terminal',
+          icon: 'profile',
+          path: '/terminal',
+          component: './terminal',
+        },
+        {
+          name: 'terminal_detail',
+          icon: 'profile',
+          hideInMenu: true,
+          path: '/terminal/:id',
+          component: './terminal/[id]',
         },
         {
           name: 'log',
