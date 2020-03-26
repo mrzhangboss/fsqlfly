@@ -2,6 +2,7 @@
 
 // import MergeLessPlugin from 'antd-pro-merge-less';
 // import AntDesignThemePlugin from 'antd-theme-webpack-plugin';
+// @ts-ignore
 import ThemeColorReplacer from 'webpack-theme-color-replacer';
 import path from 'path';
 import generate from '@ant-design/colors/lib/generate';
@@ -107,6 +108,7 @@ const getAntdSerials = (color: string) => {
   const lightNum = 9;
   const devide10 = 10;
   // 淡化（即less的tint）
+  // @ts-ignore
   const lightens = new Array(lightNum).fill().map((t, i) => {
     return ThemeColorReplacer.varyColor.lighten(color, i / devide10);
   });

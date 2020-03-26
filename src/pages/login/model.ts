@@ -1,7 +1,6 @@
 import { AnyAction, Reducer } from 'redux';
 import { message } from 'antd';
 import { EffectsCommandMap } from 'dva';
-import { routerRedux } from 'dva/router';
 import { fakeAccountLogin, getFakeCaptcha } from './service';
 import { getPageQuery, setAuthority } from './utils/utils';
 
@@ -45,22 +44,15 @@ const Model: ModelType = {
       // Login successfully
       if (response.status === 'ok') {
         message.success('登录成功！');
-        const urlParams = new URL(window.location.href);
         const params = getPageQuery();
         let { redirect } = params as { redirect: string };
+        console.log(params);
         if (redirect) {
-          const redirectUrlParams = new URL(redirect);
-          if (redirectUrlParams.origin === urlParams.origin) {
-            redirect = redirect.substr(urlParams.origin.length);
-            if (redirect.match(/^\/.*#/)) {
-              redirect = redirect.substr(redirect.indexOf('#') + 1);
-            }
-          } else {
-            window.location.href = redirect;
-            return;
-          }
+          window.location.href = redirect.startsWith('http')
+            ? redirect
+            : window.location.origin + redirect;
         }
-        yield put(routerRedux.replace(redirect || '/'));
+        // yield put(routerRedux.replace(redirect || '/'));
       }
     },
 

@@ -63,4 +63,5 @@ export default {
   'menu.analysis': 'analysis',
   'menu.resources.relationship': '关系图',
   'menu.resources.connection': '展示数据源',
+  'menu.log': '日志',
 };

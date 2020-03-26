@@ -3,6 +3,7 @@ import { getAuthority } from './authority';
 
 describe('getAuthority should be strong', () => {
   it('empty', () => {
+    // @ts-ignore
     expect(getAuthority(null)).toEqual(null); // default value
   });
   it('string', () => {

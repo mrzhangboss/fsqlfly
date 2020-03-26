@@ -35,7 +35,7 @@ const Login: React.FC<LoginProps> = props => {
   const handleSubmit = (values: LoginParamsType) => {
     const { dispatch } = props;
     dispatch({
-      type: 'login/login',
+      type: 'sign/login',
       payload: {
         ...values,
         type,
@@ -88,17 +88,17 @@ const Login: React.FC<LoginProps> = props => {
 
 export default connect(
   ({
-    login,
+    sign,
     loading,
   }: {
-    login: StateType;
+    sign: StateType;
     loading: {
       effects: {
         [key: string]: boolean;
       };
     };
   }) => ({
-    login,
-    submitting: loading.effects['login/login'],
+    login: sign,
+    submitting: loading.effects['sign/login'],
   }),
 )(Login);

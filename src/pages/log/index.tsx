@@ -16,9 +16,12 @@ class LastestLog extends PureComponent<State> {
     disable: false,
   };
 
+  getFullUrl = (path: string) => {
+    return document.location.origin + path;
+  };
+
   refreshScroll = () => {
-    const urls = document.location.href.split('/');
-    const url = urls[0] + '//' + urls[2] + '/api/blank';
+    const url = this.getFullUrl('/api/blank');
     this.setState({ url: url, disable: true });
     setTimeout(() => this.setState({ url: realUrl, disable: false }), 100);
   };
@@ -35,16 +38,7 @@ class LastestLog extends PureComponent<State> {
           startFollowing
           render={({ onScroll, follow, startFollowing, stopFollowing }) => (
             // @ts-ignore
-            <LazyLog
-              disabled={this.state.disable}
-              filterActive={this.state.disable}
-              extraLines={100}
-              enableSearch
-              url={this.state.url}
-              stream
-              onScroll={onScroll}
-              follow={follow}
-            />
+            <LazyLog extraLines={100} url={this.state.url} stream follow={follow} />
           )}
         />
       </div>

@@ -2,6 +2,10 @@ import { query as queryUsers, queryCurrent } from '@/services/user';
 import { Effect } from 'dva';
 import { Reducer } from 'redux';
 
+// import router from 'umi/router';
+// import { history } from 'umi';
+// import { browserHistory } from 'react-router';
+
 export interface CurrentUser {
   code?: number;
   avatar?: string;
@@ -26,7 +30,6 @@ export interface UserModelType {
   state: UserModelState;
   effects: {
     fetch: Effect;
-    checkLogin: Effect;
     fetchCurrent: Effect;
   };
   reducers: {
@@ -55,16 +58,21 @@ const UserModel: UserModelType = {
     },
     *fetchCurrent(_, { call, put }) {
       const response = yield call(queryCurrent);
+      if (response.code === undefined || response.code === 500) {
+        // router.push({pathname: '/login', query: { from : ''}})
+        console.log(response);
+
+        // history.push({ pathname: '/login', query: { from: document.location.pathname } });
+        const pathname = document.location.pathname;
+        if (!pathname.startsWith('/login')) {
+          window.location.href = '/login?redirect=' + encodeURI(document.location.pathname);
+        }
+        return;
+      }
       yield put({
         type: 'saveCurrentUser',
         payload: response,
       });
-    },
-    *checkLogin(_, { call, put, select }) {
-      const { currentUser } = yield select((x: { user: UserModelState }) => x.user);
-      if (currentUser.code === 500) {
-        window.location.href = '/admin/login?next=/static/index.html';
-      }
     },
   },
 
@@ -94,12 +102,7 @@ const UserModel: UserModelType = {
   subscriptions: {
     setup({ dispatch, history, select }) {
       return history.listen(({ pathname, query }: { pathname: string; query: string }) => {
-        // 进入 '/home' 路由，发起一个名叫 'query' 的 effect
-        if (pathname !== '/admin/login') {
-          dispatch({
-            type: 'checkLogin',
-          });
-        }
+        console.log('route in ' + pathname);
       });
     },
   },

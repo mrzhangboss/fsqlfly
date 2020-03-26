@@ -1,3 +1,5 @@
+import { Request, Response } from 'express';
+
 // 代码中会兼容本地 service mock 以及部署站点的静态数据
 const user = {
   code: 0,
@@ -51,10 +53,14 @@ const user = {
   phone: '0752-268888888',
 };
 
+var isLogin = false;
 export default {
   // 支持值为 Object 和 Array
-  'GET /api/currentUser': (req, res) => {
-    if (Math.random() < 0.999) {
+  'GET /api/currentUser': (
+    req: any,
+    res: { send: (x: { code: number; msg: string } & any) => void },
+  ) => {
+    if (isLogin) {
       return res.send(user);
     } else {
       return res.send({ code: 500, msg: '需要登录' });
@@ -81,28 +87,31 @@ export default {
       address: 'Sidney No. 1 Lake Park',
     },
   ],
-  'POST /api/login/account': (req, res) => {
-    const { password, userName, type } = req.body;
-    if (password === 'ant.design' && userName === 'admin') {
+  'POST  /api/login/account': (req: Request, res: Response) => {
+    const { password, type, token } = req.body;
+    if (password === 'p' && type === 'account') {
       res.send({
         status: 'ok',
         type,
         currentAuthority: 'admin',
       });
+      isLogin = true;
       return;
     }
-    if (password === 'ant.design' && userName === 'user') {
+    if (type === 'token' && token === 't') {
       res.send({
         status: 'ok',
         type,
-        currentAuthority: 'user',
+        currentAuthority: 'admin',
       });
+      isLogin = true;
       return;
     }
     res.send({
       status: 'error',
       type,
       currentAuthority: 'guest',
+      p: password,
     });
   },
   'POST /api/register': (req, res) => {
