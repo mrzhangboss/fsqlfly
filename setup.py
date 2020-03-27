@@ -69,6 +69,9 @@ setup(
     ],
     extras_require={
         'test': ['pytest', 'requests', 'TorMySQL'],
+        'mysql': ['pymysql'],
+        'postgresql': ['psycopg2'],
+        'all': ['pymysql', 'psycopg2']
     },
     python_requires=">=3.6.0",
     install_requires=REQUIRED,
