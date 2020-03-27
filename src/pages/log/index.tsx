@@ -8,22 +8,22 @@ interface State {
   disable: boolean;
 }
 
-const realUrl = 'https://runkit.io/eliperelman/streaming-endpoint/branches/master';
+const realUrl = '/api/log';
+
+const getFullUrl = (path: string) => {
+  return document.location.origin + path;
+};
 
 class LastestLog extends PureComponent<State> {
   state: State = {
-    url: realUrl,
+    url: getFullUrl(realUrl),
     disable: false,
   };
 
-  getFullUrl = (path: string) => {
-    return document.location.origin + path;
-  };
-
   refreshScroll = () => {
-    const url = this.getFullUrl('/api/blank');
+    const url = getFullUrl('/api/blank');
     this.setState({ url: url, disable: true });
-    setTimeout(() => this.setState({ url: realUrl, disable: false }), 100);
+    setTimeout(() => this.setState({ url: getFullUrl(realUrl), disable: false }), 100);
   };
 
   render() {
