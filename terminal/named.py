@@ -28,8 +28,6 @@ class TerminalPageHandler(tornado.web.RequestHandler):
 class NewTerminalHandler(tornado.web.RequestHandler):
     """Redirect to an unused terminal name"""
 
-
-
     def get(self):
         command = self.get_query_argument('command', None)
         command_file = self.get_query_argument('filename', None)
@@ -41,7 +39,6 @@ class NewTerminalHandler(tornado.web.RequestHandler):
             real_command = shell_command.format('__TEMPORARY__' + name).split()
             print(real_command)
             terminal_commands['shell_command'] = real_command
-
 
         term = manager.new_terminal(**terminal_commands)
 
@@ -57,12 +54,17 @@ class NewTerminalHandler(tornado.web.RequestHandler):
         self.redirect("/" + name, permanent=False)
 
 
+class MyTermSocket(TermSocket):
+    def check_origin(self, origin: str) -> bool:
+        return True
+
+
 def main():
     term_manager = NamedTermManager(shell_command=['bash', '/opt/flink-1.9.0/bin/sql-client.sh'],
                                     max_terminals=100)
 
     handlers = [
-        (r"/_websocket/(\w+)", TermSocket,
+        (r"/_websocket/(\w+)", MyTermSocket,
          {'term_manager': term_manager}),
         (r"/new/?", NewTerminalHandler),
         (r"/(\w+)/?", TerminalPageHandler),
