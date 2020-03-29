@@ -25,7 +25,7 @@ const updateMethod = (req: { body: { updateAt?: string } }, res: { send: (arg: a
 };
 export default {
   //create
-  'POST /api/:model': (req: any, res: { send: (arg: { id: number }) => void }) => {
+  'POST /notapi/:model': (req: any, res: { send: (arg: { id: number }) => void }) => {
     res.send(
       mockjs.mock({
         data: { id: ID++ },

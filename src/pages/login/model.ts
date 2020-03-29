@@ -42,7 +42,7 @@ const Model: ModelType = {
         payload: response,
       });
       // Login successfully
-      if (response.status === 'ok') {
+      if (response.code === 200) {
         message.success('登录成功！');
         const params = getPageQuery();
         let { redirect } = params as { redirect: string };
@@ -53,6 +53,8 @@ const Model: ModelType = {
             : window.location.origin + redirect;
         }
         // yield put(routerRedux.replace(redirect || '/'));
+      } else {
+        message.error(response.msg);
       }
     },
 

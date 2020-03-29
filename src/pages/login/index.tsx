@@ -27,7 +27,7 @@ const LoginMessage: React.FC<{
   />
 );
 
-const Login: React.FC<LoginProps> = props => {
+const Login: React.FC<LoginProps> = (props: LoginProps) => {
   const { login = {}, submitting } = props;
   const { status, type: loginType } = login;
   const [type, setType] = useState<string>('account');
@@ -74,7 +74,7 @@ const Login: React.FC<LoginProps> = props => {
                 message: '请输入token！',
               },
               {
-                pattern: /^[a-zA-Z0-9-]{16}$/,
+                pattern: /^[a-zA-Z0-9-]{32}$/,
                 message: 'token格式错误！',
               },
             ]}
