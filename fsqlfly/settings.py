@@ -8,9 +8,9 @@ from playhouse.cockroachdb import CockroachDatabase
 from playhouse.db_url import connect
 
 
-def generate_cookie_secret(s: str) -> str:
+def generate_cookie_secret(s: str, typ: str = '___cookie_secret') -> str:
     md5 = hashlib.md5()
-    md5.update(f'{s}___cookie_secret'.encode())
+    md5.update(f'{s}{typ}'.encode())
     return md5.hexdigest()
 
 
@@ -23,6 +23,7 @@ if os.path.exists(ENV_FILE_PATH) and os.path.isfile(ENV_FILE_PATH):
 ENV = os.environ.get
 
 FSQLFLY_PASSWORD = ENV('FSQLFLY_PASSWORD', 'password')
+FSQLFLY_TOKEN = generate_cookie_secret(FSQLFLY_PASSWORD, '')
 
 FSQLFLY_COOKIE_SECRET = generate_cookie_secret(FSQLFLY_PASSWORD)
 
@@ -50,3 +51,12 @@ else:
     db_class = db_classes[FSQLFLY_DB_TYPE]
     DATABASE = db_class(database=FSQLFLY_DATABASE,
                         password=FSQLFLY_DB_PASSWORD, user=FSQLFLY_DB_USER, host=FSQLFLY_DB_HOST, port=FSQLFLY_DB_PORT)
+
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+FSQLFLY_STATIC_ROOT = ENV('FSQLFLY_STATIC_ROOT', os.path.join(ROOT_DIR, 'static'))
+
+assert os.path.exists(FSQLFLY_STATIC_ROOT), "FSQLFLY_STATIC_ROOT ({}) not set correct".format(FSQLFLY_STATIC_ROOT)
+INDEX_HTML_PATH = os.path.join(FSQLFLY_STATIC_ROOT, 'index.html')
+assert os.path.exists(INDEX_HTML_PATH), "FSQLFLY_STATIC_ROOT ({}) can't find index.html".format(FSQLFLY_STATIC_ROOT)
+INDEX_HTML = open(INDEX_HTML_PATH, 'rb').read()
