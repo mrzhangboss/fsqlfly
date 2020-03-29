@@ -29,9 +29,10 @@ you can change by write in `env file` (~/.fsqlfly) or just in environment variab
     FSQLFLY_DATABASE         database                       test        
     FSQLFLY_DB_PASSWORD         database passowrd                       xxx        
     FSQLFLY_DB_USER         database user                       root        
-    FSQLFLY_DB_PORT         database port                       3306        
+    FSQLFLY_DB_PORT         database port                       3306
+    FSQLFLY_STATIC_ROOT     the dir of static file(if not set then it will be fsqlfly/static)  None        
 
-> connection url detail in [FSQLFLY_DB_URL](http://docs.peewee-orm.com/en/latest/peewee/playhouse.html#connection-pool)
+> connection url detail in [FSQLFLY_DB_URL](http://docs.peewee-orm.com/en/latest/peewee/playhouse.html#database-url)
 
 ps: the admin token value is `FSQLFLY_PASSWORD` md5 hex value, you can generate it by 
 
