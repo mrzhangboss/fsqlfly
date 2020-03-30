@@ -65,7 +65,7 @@ const UserModel: UserModelType = {
         // history.push({ pathname: '/login', query: { from: document.location.pathname } });
         const pathname = document.location.pathname;
         if (!pathname.startsWith('/login')) {
-          window.location.href = '/login?redirect=' + encodeURI(document.location.pathname);
+          window.location.href = '/login?next=' + encodeURI(document.location.pathname);
         }
         return;
       }

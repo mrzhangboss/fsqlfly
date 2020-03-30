@@ -45,7 +45,7 @@ const Model: ModelType = {
       if (response.code === 200) {
         message.success('登录成功！');
         const params = getPageQuery();
-        let { redirect } = params as { redirect: string };
+        const redirect = params.next;
         console.log(params);
         if (redirect) {
           window.location.href = redirect.startsWith('http')

@@ -4,7 +4,7 @@ import '../../../node_modules/xterm/css/xterm.css';
 import { FitAddon } from 'xterm-addon-fit';
 
 export interface TProps {
-  id: number
+  match: {params: {id: number}}
 }
 
 const TERMINAL_ID = 'terminal-container';
@@ -13,7 +13,7 @@ class LiveTerminal extends Component<TProps, any> {
   __term = document.body;
 
   componentDidMount(): void {
-    const { id } = this.props;
+    const { id } = this.props.match.params;
     const rows = 45, cols = 1600;
     const terminal = new Terminal(
       {
@@ -25,8 +25,8 @@ class LiveTerminal extends Component<TProps, any> {
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
     const protocol = (window.location.protocol.indexOf('https') === 0) ? 'wss' : 'ws';
-    var ws_url = protocol + '://' + window.location.host + '/ws/' + id;
-    ws_url = 'ws://localhost:8700/_websocket/1';
+    var ws_url = protocol + '://' + window.location.host + '/_websocket/' + id;
+    console.info("begin open " + ws_url);
     const ws = new WebSocket(ws_url);
     ws.onopen = function(event) {
       ws.send(JSON.stringify(['set_size', rows, cols,
