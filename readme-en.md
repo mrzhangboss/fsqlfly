@@ -30,7 +30,12 @@ you can change by write in `env file` (~/.fsqlfly) or just in environment variab
     FSQLFLY_DB_PASSWORD         database passowrd                       xxx        
     FSQLFLY_DB_USER         database user                       root        
     FSQLFLY_DB_PORT         database port                       3306
-    FSQLFLY_STATIC_ROOT     the dir of static file(if not set then it will be fsqlfly/static)  None        
+    FSQLFLY_STATIC_ROOT     the dir of static file(if not set then it will be fsqlfly/static)  None
+    FSQLFLY_FLINK_BIN_DIR     the dir of flink bin dir                                     /opt/flink/bin
+    FSQLFLY_FLINK_MAX_TERMINAL   the max value of living terminal                             1000
+    FSQLFLY_DEBUG                   set web debug(if set then set True else False)                None
+    FSQLFLY_WEB_PORT              set http port                                             8081
+                                                  
 
 > connection url detail in [FSQLFLY_DB_URL](http://docs.peewee-orm.com/en/latest/peewee/playhouse.html#database-url)
 
