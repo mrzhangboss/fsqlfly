@@ -10,9 +10,16 @@
 
     pip install fsqlfly
     
+> init database
+
+    fsqlfly initdb 
 
 > run website
    
+    fsqlfly webserver
+    
+> reset database (warning it'll delete all data)
+    
     fsqlfly webserver
     
     

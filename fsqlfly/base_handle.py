@@ -16,6 +16,10 @@ class RespCode:
 class BaseHandler(tornado.web.RequestHandler):
     """Request handler where requests and responses speak JSON."""
 
+    @property
+    def terminal_manager(self):
+        return self.settings['terminal_manager']
+
     def get_current_user(self) -> Any:
         return self.get_cookie('user')
 
