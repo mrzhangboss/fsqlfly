@@ -12,6 +12,7 @@ class RespCode:
     Success = 200
     NeedLogin = 500
     LoginFail = 501
+    APIFail = 502
     InvalidHttpMethod = 405
 
 
@@ -25,16 +26,16 @@ class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self) -> Any:
         cookie = self.get_cookie('user')
         if cookie:
-            return True
+            return cookie
         token = self.request.arguments.get('token')
-        if len(token) == 0:
+        if token is None:
             token = self.request.headers.get('token')
         logging.debug("Try Login By token {}".format(token))
 
-        if len(token) == 1 and token[0] == settings.FSQLFLY_TOKEN_BYTE:
+        if token is not None and len(token) == 1 and token[0] == settings.FSQLFLY_TOKEN_BYTE:
             logging.debug("Login By token {}".format(token))
-            return True
-        return False
+            return token
+        return None
 
     def get_login_url(self) -> str:
         return '/login'
@@ -42,15 +43,17 @@ class BaseHandler(tornado.web.RequestHandler):
     def set_login_status(self):
         self.set_cookie('user', 'admin')
 
-    def prepare(self):
-        # Incorporate request JSON into arguments dictionary.
-        if self.request.body:
+    @property
+    def json_body(self) -> dict:
+        _name = '_save_json_data'
+        if not hasattr(self, _name):
             try:
                 json_data = json.loads(self.request.body)
-                self.request.arguments.update(json_data)
+                setattr(self, _name, json_data)
             except ValueError:
-                msg = 'Unable to parse JSON.'
-                self.send_error(400, msg=msg)  # Bad Request
+                setattr(self, _name, {})
+
+        return getattr(self, _name)
 
     def set_default_headers(self):
         self.set_header('Content-Type', 'application/json; charset=utf-8')
@@ -58,7 +61,8 @@ class BaseHandler(tornado.web.RequestHandler):
     code_msg = {
         RespCode.NeedLogin: 'Need Login',
         RespCode.LoginFail: 'Wrong Password or Token',
-        RespCode.InvalidHttpMethod: 'Invalid HTTP method.'
+        RespCode.InvalidHttpMethod: 'Invalid HTTP method.',
+        RespCode.APIFail: 'Invalid API Request',
     }
 
     def write_error(self, status_code, **kwargs):

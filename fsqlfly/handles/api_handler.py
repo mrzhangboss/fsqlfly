@@ -17,7 +17,7 @@ class LoginHandler(BaseHandler):
 
     def post(self):
         print(self.request.arguments)
-        arg = self.request.arguments
+        arg = self.json_body
         if (arg.get('type') == 'account' and arg.get('password') == settings.FSQLFLY_PASSWORD) or (
                 arg.get('type') == 'token' and arg.get('token') == settings.FSQLFLY_TOKEN
         ):
