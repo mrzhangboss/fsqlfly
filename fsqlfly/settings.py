@@ -1,11 +1,16 @@
 import os
+import sys
 import hashlib
 import logging
+import logging
+import logzero
+from logzero import logger
 from dotenv import load_dotenv
 from pathlib import Path
 from peewee import MySQLDatabase, SqliteDatabase, PostgresqlDatabase
 from playhouse.cockroachdb import CockroachDatabase
 from playhouse.db_url import connect
+from terminado.management import NamedTermManager
 
 
 def generate_cookie_secret(s: str, typ: str = '___cookie_secret') -> str:
@@ -21,9 +26,15 @@ if os.path.exists(ENV_FILE_PATH) and os.path.isfile(ENV_FILE_PATH):
     load_dotenv(dotenv_path=Path(ENV_FILE_PATH))
 
 ENV = os.environ.get
+FSQLFLY_DEBUG = ENV('FSQLFLY_DEBUG') is not None
+if FSQLFLY_DEBUG:
+    logzero.loglevel(logging.DEBUG)
 
 FSQLFLY_PASSWORD = ENV('FSQLFLY_PASSWORD', 'password')
+logger.debug('FSQLFLY_PASSWORD is {}'.format(FSQLFLY_PASSWORD))
 FSQLFLY_TOKEN = generate_cookie_secret(FSQLFLY_PASSWORD, '')
+FSQLFLY_TOKEN_BYTE = FSQLFLY_TOKEN.encode()
+logger.debug('FSQLFLY_TOKEN_BYTE is {}'.format(FSQLFLY_TOKEN_BYTE))
 
 FSQLFLY_COOKIE_SECRET = generate_cookie_secret(FSQLFLY_PASSWORD)
 
@@ -38,8 +49,10 @@ FSQLFLY_DB_PORT = int(ENV('FSQLFLY_DB_PORT', '3306'))
 
 if FSQLFLY_DB_URL is not None:
     DATABASE = connect(FSQLFLY_DB_URL)
+    logger.debug('DATABASE is connect by url : {}'.format(FSQLFLY_DB_URL))
 elif FSQLFLY_DB_TYPE == 'sqlite':
     DATABASE = SqliteDatabase(FSQLFLY_DB_FILE)
+    logger.debug('DATABASE is connect by sqlite: {}'.format(FSQLFLY_DB_URL))
 else:
     assert FSQLFLY_DB_TYPE in (
         'mysql', 'postgresql', 'cockroach'), 'env FSQLFLY_DB_TYPE must in (sqlite|mysql|postgresql|cockroach)'
@@ -49,6 +62,11 @@ else:
         'cockroach': CockroachDatabase
     }
     db_class = db_classes[FSQLFLY_DB_TYPE]
+    logger.debug('DATABASE is connect by {}: {}:{}@{}:{}/{}'.format(FSQLFLY_DB_TYPE,
+                                                                    FSQLFLY_DB_USER, FSQLFLY_DB_PASSWORD,
+                                                                    FSQLFLY_DB_HOST, FSQLFLY_DB_PORT,
+                                                                    FSQLFLY_DATABASE))
+
     DATABASE = db_class(database=FSQLFLY_DATABASE,
                         password=FSQLFLY_DB_PASSWORD, user=FSQLFLY_DB_USER, host=FSQLFLY_DB_HOST, port=FSQLFLY_DB_PORT)
 
@@ -64,5 +82,11 @@ INDEX_HTML = open(INDEX_HTML_PATH, 'rb').read()
 FSQLFLY_FLINK_BIN_DIR = ENV('FSQLFLY_FLINK_BIN_DIR', '/opt/flink/bin')
 assert os.path.exists(FSQLFLY_FLINK_BIN_DIR), "FSQLFLY_FLINK_BIN_DIR ({}) not exists, please confirm".format(
     FSQLFLY_STATIC_ROOT)
+FSQLFLY_FLINK_BIN = os.path.join(FSQLFLY_FLINK_BIN_DIR, 'sql-client.sh')
+
 FSQLFLY_FLINK_MAX_TERMINAL = int(ENV('FSQLFLY_FLINK_MAX_TERMINAL', '100'))
 FSQLFLY_WEB_PORT = int(ENV('FSQLFLY_WEB_PORT', '8081'))
+
+TERMINAL_MANAGER = NamedTermManager(
+    shell_command=['bash', os.path.join(FSQLFLY_FLINK_BIN_DIR, 'sql-client.sh')],
+    max_terminals=FSQLFLY_FLINK_MAX_TERMINAL)

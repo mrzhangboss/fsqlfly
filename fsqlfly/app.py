@@ -29,9 +29,8 @@ def run_web():
         cookie_secret=settings.FSQLFLY_COOKIE_SECRET,
         login_url='/login',
         debug=settings.FSQLFLY_DEBUG,
-        terminal_manager=NamedTermManager(
-            shell_command=['bash', os.path.join(settings.FSQLFLY_FLINK_BIN_DIR, 'sql-client.sh')],
-            max_terminals=settings.FSQLFLY_FLINK_MAX_TERMINAL),
+        autoreload=settings.FSQLFLY_DEBUG,
+        terminal_manager=settings.TERMINAL_MANAGER,
     )
     logger.info("start running on http://localhost:{} ... ".format(settings.FSQLFLY_WEB_PORT))
     application.listen(settings.FSQLFLY_WEB_PORT)

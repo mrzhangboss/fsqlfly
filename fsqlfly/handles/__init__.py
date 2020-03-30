@@ -1,3 +1,4 @@
-from .api_handler import default_handlers
+from . import api_handler
+from . import terminal_handler
 
-all_handles = default_handlers
+all_handles = api_handler.default_handlers + terminal_handler.default_handlers

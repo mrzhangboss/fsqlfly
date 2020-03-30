@@ -1,10 +1,6 @@
 # -*- coding:utf-8 -*-
-import tornado
-import tornado.web
-import json
-from typing import Optional, Awaitable
 
-from fsqlfly.handles.base_handle import BaseHandler, RespCode
+from fsqlfly.base_handle import BaseHandler, RespCode
 from fsqlfly import settings
 
 is_login = False
@@ -17,8 +13,7 @@ class LoginHandler(BaseHandler):
         if self.current_user is None:
             self.write_error(500)
         else:
-            self.response = user
-            self.write_json()
+            self.write_json(user)
 
     def post(self):
         print(self.request.arguments)
@@ -27,8 +22,7 @@ class LoginHandler(BaseHandler):
                 arg.get('type') == 'token' and arg.get('token') == settings.FSQLFLY_TOKEN
         ):
             self.set_login_status()
-            self.response = user
-            self.write_json()
+            self.write_json(user)
         else:
             self.write_error(RespCode.LoginFail)
 

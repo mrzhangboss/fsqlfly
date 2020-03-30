@@ -4,17 +4,10 @@ import importlib
 from fsqlfly import settings
 from peewee import SqliteDatabase, IntegrityError
 import fsqlfly.models
+from fsqlfly.tests.base_test import BaseTestCase
 
 
-class MyTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        settings.DATABASE = SqliteDatabase(':memory:')
-        importlib.reload(fsqlfly.models)
-        fsqlfly.models.create_all_tables()
-
-    def tearDown(self) -> None:
-        fsqlfly.models.delete_all_tables(force=True)
-
+class MyTestCase(BaseTestCase):
     def test_namespace_unique(self):
         name = 'abcdd'
         sample = fsqlfly.models.Namespace.create(name=name)

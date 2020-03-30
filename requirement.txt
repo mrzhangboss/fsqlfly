@@ -2,3 +2,7 @@ tornado
 terminado
 peewee
 python-dotenv
+logzero
+
+pyyaml
+jinja2
