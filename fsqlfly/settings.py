@@ -60,3 +60,9 @@ assert os.path.exists(FSQLFLY_STATIC_ROOT), "FSQLFLY_STATIC_ROOT ({}) not set co
 INDEX_HTML_PATH = os.path.join(FSQLFLY_STATIC_ROOT, 'index.html')
 assert os.path.exists(INDEX_HTML_PATH), "FSQLFLY_STATIC_ROOT ({}) can't find index.html".format(FSQLFLY_STATIC_ROOT)
 INDEX_HTML = open(INDEX_HTML_PATH, 'rb').read()
+
+FSQLFLY_FLINK_BIN_DIR = ENV('FSQLFLY_FLINK_BIN_DIR', '/opt/flink/bin')
+assert os.path.exists(FSQLFLY_FLINK_BIN_DIR), "FSQLFLY_FLINK_BIN_DIR ({}) not exists, please confirm".format(
+    FSQLFLY_STATIC_ROOT)
+FSQLFLY_FLINK_MAX_TERMINAL = int(ENV('FSQLFLY_FLINK_MAX_TERMINAL', '100'))
+FSQLFLY_WEB_PORT = int(ENV('FSQLFLY_WEB_PORT', '8081'))
