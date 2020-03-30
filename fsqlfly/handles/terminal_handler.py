@@ -12,8 +12,8 @@ class TerminalHandler(BaseHandler):
     @authenticated
     def get(self):
         tm = self.terminal_manager
-        terms = [{'name': name} for name in tm.terminals]
-        self.write_json(terms)
+        terms = [{'name': name, 'id': name} for name in tm.terminals]
+        self.write_json(dict(data=terms))
 
 
 class TerminalNewHandler(BaseHandler):
@@ -27,8 +27,17 @@ class TerminalNewHandler(BaseHandler):
         self.write_json(create_response({"url": '/terminal/{}'.format(num)}))
 
 
+class TerminalStopHandler(BaseHandler):
+
+    @authenticated
+    def post(self, *args, **kwargs):
+        print(args)
+        self.write_json(create_response())
+
+
 default_handlers = [
     (r'/api/terminal', TerminalHandler),
     (r"/_websocket/(\w+)", TermSocket, {'term_manager': settings.TERMINAL_MANAGER}),
     (r'/api/transform/debug/(\d+)', TerminalNewHandler),
+    (r'/api/terminal/stop/(\d+)', TerminalStopHandler),
 ]
