@@ -88,5 +88,5 @@ FSQLFLY_FLINK_MAX_TERMINAL = int(ENV('FSQLFLY_FLINK_MAX_TERMINAL', '100'))
 FSQLFLY_WEB_PORT = int(ENV('FSQLFLY_WEB_PORT', '8081'))
 
 TERMINAL_MANAGER = NamedTermManager(
-    shell_command=['bash', os.path.join(FSQLFLY_FLINK_BIN_DIR, 'sql-client.sh')],
+    shell_command=[os.path.join(FSQLFLY_FLINK_BIN_DIR, 'sql-client.sh'), 'embedded'],
     max_terminals=FSQLFLY_FLINK_MAX_TERMINAL)

@@ -18,26 +18,26 @@ class TerminalHandler(BaseHandler):
 
 class TerminalNewHandler(BaseHandler):
     @authenticated
-    def get(self):
-        pass
-
-    @authenticated
     def post(self, *args, **kwargs):
         num = run_debug_transform(self.request.arguments, self.terminal_manager)
         self.write_json(create_response({"url": '/terminal/{}'.format(num)}))
 
 
 class TerminalStopHandler(BaseHandler):
-
     @authenticated
-    def post(self, *args, **kwargs):
-        print(args)
-        self.write_json(create_response())
+    async def post(self, name: str):
+        print(name)
+        tm = self.terminal_manager
+        if name in tm.terminals:
+            await tm.terminate(name, force=True)
+            self.write_json(create_response())
+        else:
+            raise tornado.web.HTTPError(404, "Terminal not found: %r" % name)
 
 
 default_handlers = [
     (r'/api/terminal', TerminalHandler),
     (r"/_websocket/(\w+)", TermSocket, {'term_manager': settings.TERMINAL_MANAGER}),
     (r'/api/transform/debug/(\d+)', TerminalNewHandler),
-    (r'/api/terminal/stop/(\d+)', TerminalStopHandler),
+    (r'/api/terminal/stop/(?P<name>\d+)', TerminalStopHandler),
 ]
