@@ -4,7 +4,6 @@ import logging
 import tornado.ioloop
 import tornado.web
 import tornado.log
-import colorama
 from tornado.options import parse_command_line, options
 from terminado.management import NamedTermManager
 from logzero import logger
@@ -19,7 +18,6 @@ class IndexHandler(tornado.web.RequestHandler):
 
 
 def run_web():
-    colorama.init()
     application = tornado.web.Application(
         handles.all_handles + [
             (r"/static/(.*)", tornado.web.StaticFileHandler,
