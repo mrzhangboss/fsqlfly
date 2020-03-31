@@ -77,8 +77,8 @@ class Functions(BaseModel):
 class Transform(BaseModel):
     name = CharField(max_length=256, unique=True)
     info = CharField(max_length=2048, null=True)
-    sql = TextField()
-    require = TextField()
+    sql = TextField(default='')
+    require = TextField(default='')
     yaml = TextField(default='')
     namespace = ForeignKeyField(Namespace, on_delete='NO ACTION', null=True)
 

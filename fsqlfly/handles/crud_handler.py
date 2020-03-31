@@ -67,7 +67,7 @@ class UDHandler(BaseHandler):
         obj = _MODELS[model].select().where(_MODELS[model].id == pk).get()
         data = self.json_body
         for k, v in dict2underline(data).items():
-            if k not in ('update_at', 'create_at', 'is_deleted'):
+            if k not in ('update_at', 'create_at', 'is_deleted', 'id') and not (k.endswith('_id') and v == 0):
                 setattr(obj, k, v)
         obj.save()
         self.write_json(create_response(data=obj.to_dict()))
