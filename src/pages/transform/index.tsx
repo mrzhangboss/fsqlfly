@@ -334,7 +334,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             <Menu.Item key="delete">删除</Menu.Item>
             <Menu.Item key="run">运行</Menu.Item>
             <Menu.Item key="stop">停止</Menu.Item>
-            <Menu.Item key="restart">停止</Menu.Item>
+            <Menu.Item key="restart">重启</Menu.Item>
             <Menu.Item key="copy">
               <CopyToClipboard
                 text={item.require}
