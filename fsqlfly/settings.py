@@ -71,6 +71,7 @@ else:
                         password=FSQLFLY_DB_PASSWORD, user=FSQLFLY_DB_USER, host=FSQLFLY_DB_HOST, port=FSQLFLY_DB_PORT)
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_ROOT_DIR = os.path.join(ROOT_DIR, 'upload')
 
 FSQLFLY_STATIC_ROOT = ENV('FSQLFLY_STATIC_ROOT', os.path.join(ROOT_DIR, 'static'))
 

@@ -6,3 +6,6 @@ logzero
 
 pyyaml
 jinja2
+
+
+python-magic
