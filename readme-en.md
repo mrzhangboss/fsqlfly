@@ -3,7 +3,7 @@
 > require
 
 1. python3.6+
-2. flink 1.9.0+ installed
+2. flink 1.9.0+ installed (need set `FSQLFLY_FLINK_BIN_DIR` in ~/.fsqlfly or in env)
 
 
 > install
@@ -21,6 +21,10 @@
 > reset database (warning it'll delete all data)
     
     fsqlfly webserver
+    
+> daemon all flink sql job
+
+    fsqlfly jobdaemon
     
     
 # settings
@@ -41,7 +45,13 @@ you can change by write in `env file` (~/.fsqlfly) or just in environment variab
     FSQLFLY_FLINK_BIN_DIR     the dir of flink bin dir                                     /opt/flink/bin
     FSQLFLY_FLINK_MAX_TERMINAL   the max value of living terminal                             1000
     FSQLFLY_DEBUG                   set web debug(if set then set True else False)                None
-    FSQLFLY_WEB_PORT              set http port                                             8081
+    FSQLFLY_WEB_PORT              set http port                                             8082
+    FSQLFLY_FINK_HOST              flink resetful api host                                   http://localhost:8081
+    FSQLFLY_JOB_DAEMON_FREQUENCY              each job check damon time second                                    30
+    FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY              each job maxium try times in one day                                    3
+    FSQLFLY_JOB_LOG_DIR              flink job damon log file                                     /tmp/fsqlfly_job_log
+    
+    
                                                   
 
 > connection url detail in [FSQLFLY_DB_URL](http://docs.peewee-orm.com/en/latest/peewee/playhouse.html#database-url)

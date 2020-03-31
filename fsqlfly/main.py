@@ -4,10 +4,21 @@ import argparse
 
 from fsqlfly.models import delete_all_tables, create_all_tables
 from fsqlfly.app import run_web
+from fsqlfly import settings
 
 
 def run_webserver(commands: list):
     run_web()
+
+
+def run_job_daemon(commands: list):
+    from fsqlfly.job_manager.daemon import FlinkJobDaemon
+    daemon = FlinkJobDaemon(settings.FSQLFLY_FINK_HOST,
+                            settings.FSQLFLY_JOB_DAEMON_FREQUENCY,
+                            settings.FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY,
+                            settings.FSQLFLY_JOB_LOG_FILE)
+    print('daemon running...')
+    daemon.run()
 
 
 def init_db(commands: list):
@@ -26,6 +37,7 @@ def main():
         "webserver": run_webserver,
         "initdb": init_db,
         "resetdb": reset_db,
+        "jobdaemon": run_job_daemon,
     }
     args = sys.argv[1:]
     method = args[0]

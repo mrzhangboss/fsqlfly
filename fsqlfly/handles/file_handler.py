@@ -7,7 +7,7 @@ from tornado.web import authenticated
 from fsqlfly.base_handle import BaseHandler, RespCode
 from fsqlfly.utils.response import create_response
 from fsqlfly import settings
-from fsqlfly.settings import UPLOAD_ROOT_DIR
+from fsqlfly.settings import UPLOAD_ROOT_DIR, FSQLFLY_JOB_LOG_FILE
 
 is_login = False
 user = dict(code=200, name='flink', status='ok', currentAuthority='admin', type='password',
@@ -48,7 +48,26 @@ class UploadHandler(BaseHandler):
         return self.write_json(create_response(data={"realPath": real_path}))
 
 
+class LogHandler(BaseHandler):
+    @authenticated
+    def get(self):
+        if not os.path.exists(FSQLFLY_JOB_LOG_FILE):
+            raise tornado.web.HTTPError(status_code=404)
+        self.set_header('content-type', 'text')
+        self.write(open(FSQLFLY_JOB_LOG_FILE, "rb").read())
+        self.finish()
+
+
+class BlankHandler(BaseHandler):
+    def get(self):
+        self.set_header('content-type', 'text')
+        self.write('...')
+        self.finish()
+
+
 default_handlers = [
     (r'/api/upload', UploadHandler),
+    (r'/api/log', LogHandler),
+    (r'/api/blank', BlankHandler),
     (r'/upload/(?P<path>.+)', UploadHandler),
 ]

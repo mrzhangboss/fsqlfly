@@ -74,6 +74,9 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_ROOT_DIR = os.path.join(ROOT_DIR, 'upload')
 
 FSQLFLY_STATIC_ROOT = ENV('FSQLFLY_STATIC_ROOT', os.path.join(ROOT_DIR, 'static'))
+FSQLFLY_FINK_HOST = ENV('FSQLFLY_FINK_HOST', 'http://localhost:8081')
+FSQLFLY_JOB_DAEMON_FREQUENCY = int(ENV('FSQLFLY_JOB_DAEMON_FREQUENCY', '30'))
+FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY = int(ENV('FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY', '3'))
 
 assert os.path.exists(FSQLFLY_STATIC_ROOT), "FSQLFLY_STATIC_ROOT ({}) not set correct".format(FSQLFLY_STATIC_ROOT)
 INDEX_HTML_PATH = os.path.join(FSQLFLY_STATIC_ROOT, 'index.html')
@@ -86,8 +89,13 @@ assert os.path.exists(FSQLFLY_FLINK_BIN_DIR), "FSQLFLY_FLINK_BIN_DIR ({}) not ex
 FSQLFLY_FLINK_BIN = os.path.join(FSQLFLY_FLINK_BIN_DIR, 'sql-client.sh')
 
 FSQLFLY_FLINK_MAX_TERMINAL = int(ENV('FSQLFLY_FLINK_MAX_TERMINAL', '100'))
-FSQLFLY_WEB_PORT = int(ENV('FSQLFLY_WEB_PORT', '8081'))
+FSQLFLY_WEB_PORT = int(ENV('FSQLFLY_WEB_PORT', '8082'))
 
 TERMINAL_MANAGER = NamedTermManager(
     shell_command=[os.path.join(FSQLFLY_FLINK_BIN_DIR, 'sql-client.sh'), 'embedded'],
     max_terminals=FSQLFLY_FLINK_MAX_TERMINAL)
+
+FSQLFLY_JOB_LOG_DIR = ENV('FSQLFLY_JOB_LOG_DIR', '/tmp/fsqlfly_job_log')
+FSQLFLY_JOB_LOG_FILE = os.path.join(FSQLFLY_JOB_LOG_DIR, 'job_damon.log')
+os.makedirs(FSQLFLY_JOB_LOG_DIR, exist_ok=True)
+

@@ -5,7 +5,8 @@ from fsqlfly import settings
 
 is_login = False
 user = dict(code=200, name='flink', status='ok', currentAuthority='admin', type='password',
-            avatar='https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png')
+            avatar='https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',
+            token=settings.FSQLFLY_TOKEN)
 
 
 class LoginHandler(BaseHandler):
