@@ -25,8 +25,28 @@
 > daemon all flink sql job
 
     fsqlfly jobdaemon
+
+> support canal consumer(load mysql log data to kafka)
+
+    pip install fsqlfly[canal]
+    fsqlfly canal --bootstrap_servers=localhost:9092 --canal_host=localhost --canal_port=10000 --canal_destination=demo \
+    --canal_username=example --canal_password=pp --canal_client_id=12312412 --canal_table_filter=.*
     
+you can use   `fsqlfly canal -h` get more information
+
+ 
+if you want to read this in kafka mysql  
+support load mysql database as mysql(both) |kafka(update and create)|elasticsearch(save) resource
+
+
+    pip install fsqlfly[canal]
+    fsqlfly loadmysql --host=localhost --database=fsqlfly --namespace=demo --category=kafka --tables=* --password=password --username=root
     
+you can set category as (kafka,mysql,es), it will create resource automatic by database  
+
+    
+
+
 # settings
 
 you can change by write in `env file` (~/.fsqlfly) or just in environment variables (`eg: export name=value`)

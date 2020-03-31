@@ -71,8 +71,8 @@ setup(
         'test': ['pytest', 'requests', 'TorMySQL'],
         'mysql': ['pymysql'],
         'postgresql': ['psycopg2'],
-        'canal': ['canal-python', 'kafka-python', 'protobuf'],
-        'all': ['pymysql', 'psycopg2', 'canal-python', 'kafka-python', 'protobuf']
+        'canal': ['canal-python', 'kafka-python', 'protobuf', 'sqlalchemy'],
+        'all': ['pymysql', 'psycopg2', 'canal-python', 'kafka-python', 'protobuf', 'sqlalchemy']
     },
     python_requires=">=3.6.0",
     install_requires=REQUIRED,
