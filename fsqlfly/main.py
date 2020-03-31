@@ -25,10 +25,11 @@ def main():
     support_command = {
         "webserver": run_webserver,
         "initdb": init_db,
-        "reset_db": reset_db,
+        "resetdb": reset_db,
     }
     args = sys.argv[1:]
-    if len(args) < 1 or args[0] in ('-h', 'help') or args[0] not in support_command:
+    method = args[0]
+    if len(args) == 0 or method in ('-h', 'help') or method not in support_command:
         print("Usage : fsqlfly [-h] webserver|initdb|resetdb|help")
         return
     process = support_command[args[0]]

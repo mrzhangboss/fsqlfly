@@ -26,7 +26,6 @@ class TerminalNewHandler(BaseHandler):
 class TerminalStopHandler(BaseHandler):
     @authenticated
     async def post(self, name: str):
-        print(name)
         tm = self.terminal_manager
         if name in tm.terminals:
             await tm.terminate(name, force=True)
