@@ -11,6 +11,16 @@ def run_webserver(commands: list):
     run_web()
 
 
+def run_canal(commands: list):
+    from fsqlfly.canal_manager.canal_consumer import CanalConsumer
+    CanalConsumer().execute()
+
+
+def run_load_mysql_resource(commands: list):
+    from fsqlfly.canal_manager.load_mysql_resource import LoadMySQLResource
+    LoadMySQLResource().execute()
+
+
 def run_job_daemon(commands: list):
     from fsqlfly.job_manager.daemon import FlinkJobDaemon
     daemon = FlinkJobDaemon(settings.FSQLFLY_FINK_HOST,
@@ -38,6 +48,8 @@ def main():
         "initdb": init_db,
         "resetdb": reset_db,
         "jobdaemon": run_job_daemon,
+        "loadmysql": run_load_mysql_resource,
+        "canal": run_canal,
     }
     args = sys.argv[1:]
     method = args[0]
