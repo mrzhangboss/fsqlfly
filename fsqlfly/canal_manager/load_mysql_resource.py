@@ -272,10 +272,10 @@ class LoadMySQLResource(CanalConsumer):
         data['is_publish'] = True
         data['is_available'] = True
         if name not in resource:
-            res = Resource.objects.create(**data)
+            res = Resource.create(**data)
             print(' create a resource', res.id, res.name)
         else:
-            resource = Resource.objects.filter(pk=resource[name]).first()
+            resource = Resource.select().where(id=resource[name]).first()
             for k, v in data.items():
                 setattr(resource, k, v)
             resource.save()
@@ -294,7 +294,7 @@ class LoadMySQLResource(CanalConsumer):
         category = options['category']
         full_namespace = self.NAMESPACE + '_' + category
 
-        namespace = Namespace.select().where(Namespace.name==full_namespace).first()
+        namespace = Namespace.select().where(Namespace.name == full_namespace).first()
 
         if namespace is None:
             namespace = Namespace.create(name=full_namespace, info="auto generate by script")
@@ -311,7 +311,7 @@ class LoadMySQLResource(CanalConsumer):
         else:
             need_tables = set(tables_str.strip().split(','))
 
-        resources = {x.name: x.id for x in Resource.objects.filter(namespace=namespace).all()}
+        resources = {x.name: x.id for x in Resource.select().where(Resource.namespace == namespace).objects()}
         for n in table_names:
             if n not in need_tables:
                 continue
