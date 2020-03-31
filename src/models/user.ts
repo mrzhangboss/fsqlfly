@@ -19,6 +19,7 @@ export interface CurrentUser {
     label: string;
   }[];
   unreadCount?: number;
+  token?: string;
 }
 
 export interface UserModelState {

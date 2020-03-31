@@ -140,6 +140,7 @@ export default {
             {
               path: '/resouces/connection',
               name: 'connection',
+              hideInMenu: true,
               exact: true,
               icon: 'database',
               component: './resources/connection',

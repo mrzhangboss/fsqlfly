@@ -214,7 +214,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   getResourceName = (id: number) => {
     const { resource } = this.props;
     const data = resource.filter(x => x.id === id);
-    return data.length > 0 ? data[0].uniqueName : '#';
+    return data.length > 0 ? data[0].name : '#';
   };
 
   render() {
@@ -388,7 +388,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                   resource.map((x: FileResource) => {
                     return (
                       <SelectOption key={x.id} value={x.id}>
-                        {x.uniqueName}
+                        {x.name}
                       </SelectOption>
                     );
                   })}
@@ -404,9 +404,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               editorProps={{ $blockScrolling: true }}
               readOnly={false}
               placeholder={'请输入Yaml配置'}
-              defaultValue={
-                current.constructorConfig === '' ? 'constructor:' : current.constructorConfig
-              }
+              defaultValue={current.constructorConfig === '' ? '' : current.constructorConfig}
               value={current.constructorConfig}
               // width={'765'}
               // height={'650'}

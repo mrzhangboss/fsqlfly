@@ -188,7 +188,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   getFilterPageData = () => {
     const { search } = this.state;
     const { listBasicList } = this.props;
-    return listBasicList.filter(x => x.uniqueName.indexOf(search) >= 0);
+    return listBasicList.filter(x => x.name.indexOf(search) >= 0);
   };
 
   getCurrentPageData = () => {
@@ -259,7 +259,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       </div>
     );
     const ListContent = ({
-      data: { uniqueName, info, isAvailable, isPublish, createAt, updateAt },
+      data: { name, info, isAvailable, isPublish, createAt, updateAt },
     }: {
       data: FileResource;
     }) => (
@@ -326,9 +326,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       return (
         <Form onSubmit={this.handleSubmit}>
           <FormItem label="名称" {...this.formLayout}>
-            {getFieldDecorator('uniqueName', {
+            {getFieldDecorator('name', {
               rules: UNIQUE_NAME_RULES,
-              initialValue: current.uniqueName,
+              initialValue: current.name,
             })(<Input placeholder="请输入" />)}
           </FormItem>
 
@@ -435,10 +435,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       <MoreBtn key="more" item={item} />,
                     ]}
                   >
-                    <List.Item.Meta
-                      title={<a href="#">{item.uniqueName}</a>}
-                      description={item.info}
-                    />
+                    <List.Item.Meta title={<a href="#">{item.name}</a>} description={item.info} />
                     <ListContent data={item} />
                   </List.Item>
                 )}
@@ -456,7 +453,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           visible={visible}
           {...modalFooter}
         >
-          {getModalContent(current.uniqueName === undefined)}
+          {getModalContent(current.name === undefined)}
         </Modal>
       </>
     );

@@ -5,7 +5,7 @@ export default {
     'data|50': [
       {
         'id|+1': 1,
-        uniqueName: '@word',
+        name: '@word',
         info: '@paragraph(1,1)',
         'isAvailable|1': true,
         'isPublish|1': true,

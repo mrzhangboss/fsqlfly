@@ -15,7 +15,7 @@ export interface Namespace {
 
 export interface FileResource {
   id: number;
-  uniqueName: string;
+  name: string;
   info: string;
   realPath: string;
   isPublish: boolean;

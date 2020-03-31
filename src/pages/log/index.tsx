@@ -1,8 +1,14 @@
 import { LazyLog, ScrollFollow } from 'react-lazylog';
 import { Button } from 'antd';
 import { RedoOutlined } from '@ant-design/icons';
-import React, { PureComponent } from 'react';
+import React, { Component } from 'react';
+import { ConnectProps, ConnectState } from '@/models/connect';
+import { CurrentUser } from '@/models/user';
+import { connect } from 'dva';
 
+export interface GlobalHeaderRightProps extends ConnectProps {
+  currentUser: CurrentUser;
+}
 interface State {
   url: string;
   disable: boolean;
@@ -10,20 +16,29 @@ interface State {
 
 const realUrl = '/api/log';
 
-const getFullUrl = (path: string) => {
-  return document.location.origin + path;
-};
-
-class LastestLog extends PureComponent<State> {
+class LastestLog extends Component<GlobalHeaderRightProps, State> {
   state: State = {
-    url: getFullUrl(realUrl),
+    url: '',
     disable: false,
   };
 
+  getFullUrl = (path: string) => {
+    const { currentUser } = this.props;
+    const token =
+      currentUser === undefined || currentUser.token === undefined
+        ? ''
+        : '?token=' + currentUser.token;
+    return document.location.origin + path + token;
+  };
+
+  componentDidMount(): void {
+    this.setState({ url: this.getFullUrl(realUrl) });
+  }
+
   refreshScroll = () => {
-    const url = getFullUrl('/api/blank');
+    const url = this.getFullUrl('/api/blank');
     this.setState({ url: url, disable: true });
-    setTimeout(() => this.setState({ url: getFullUrl(realUrl), disable: false }), 100);
+    setTimeout(() => this.setState({ url: this.getFullUrl(realUrl), disable: false }), 100);
   };
 
   render() {
@@ -46,4 +61,6 @@ class LastestLog extends PureComponent<State> {
   }
 }
 
-export default LastestLog;
+export default connect(({ user }: ConnectState) => ({
+  currentUser: user.currentUser,
+}))(LastestLog);
