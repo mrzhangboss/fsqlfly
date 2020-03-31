@@ -3,6 +3,7 @@ import datetime
 from playhouse.shortcuts import model_to_dict
 from peewee import *
 from fsqlfly.settings import DATABASE
+from fsqlfly.utils.strings import dict2underline, dict2camel
 
 
 class BaseModel(Model):
@@ -19,8 +20,18 @@ class BaseModel(Model):
         self.update_at = datetime.datetime.now()
         return super(BaseModel, self).save(*args, **kwargs)
 
-    def to_dict(self):
-        return {k: str(v) if isinstance(v, datetime.datetime) else v for k, v in model_to_dict(self).items()}
+    @classmethod
+    def _rename_foreign(cls, key: str) -> str:
+        return key + '_id' if key in ('namespace', 'resource') else key
+
+    @classmethod
+    def _get_foreign_id(cls):
+        pass
+
+    def to_dict(self, to_camel=False) -> dict:
+        _rename = self._rename_foreign
+        data = {_rename(k): v for k, v in model_to_dict(self, recurse=False).items()}
+        return dict2camel(data) if to_camel else data
 
 
 class Namespace(BaseModel):

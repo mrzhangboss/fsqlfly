@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Any
 from abc import ABC
+from datetime import datetime, date
 import tornado
 import tornado.web
 from fsqlfly import settings
@@ -14,6 +15,11 @@ class RespCode:
     LoginFail = 501
     APIFail = 502
     InvalidHttpMethod = 405
+
+
+def json_obj_hook(o):
+    if isinstance(o, (date, datetime)):
+        return str(o)
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -72,7 +78,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
         self.write_json(kwargs)
 
-    def write_json(self, res):
-        output = json.dumps(res)
+    def write_json(self, res: dict):
+        output = json.dumps(res, ensure_ascii=False, default=json_obj_hook)
         self.write(output)
         self.finish()
