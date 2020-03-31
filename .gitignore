@@ -64,3 +64,4 @@ build/
 fsqlfly.egg-info
 
 fsqlfly/upload
+fsqlfly/static
