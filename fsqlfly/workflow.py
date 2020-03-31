@@ -127,10 +127,9 @@ def run_debug_transform(data: dict, manager: NamedTermManager) -> (str, str):
                     _get_jar()]
     logger.debug('running commands is : {}'.format(' '.join(run_commands)))
     term = manager.new_terminal(shell_command=run_commands)
+    logger.debug('sql :{}'.format(real_sql))
     term.ptyproc.write(real_sql)
     term.term_name = name
     manager.terminals[name] = term
     manager.start_reading(term)
-    if not settings.FSQLFLY_DEBUG:
-        os.remove(yaml_f)
     return name

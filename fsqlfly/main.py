@@ -1,14 +1,19 @@
 # -*- coding:utf-8 -*-
 import sys
 import argparse
-
+import logzero
 from fsqlfly.models import delete_all_tables, create_all_tables
 from fsqlfly.app import run_web
 from fsqlfly import settings
 
 
+
 def run_webserver(commands: list):
-    run_web()
+    try:
+        run_web()
+    except KeyboardInterrupt:
+        logzero.logger.info("Stop Web...")
+
 
 
 def run_canal(commands: list):
@@ -52,7 +57,7 @@ def main():
         "canal": run_canal,
     }
     args = sys.argv[1:]
-    method = args[0]
+    method = args[0] if len(args) > 0 else 'help'
     if len(args) == 0 or method in ('-h', 'help') or method not in support_command:
         print("Usage : fsqlfly [-h] webserver|initdb|resetdb|help")
         return

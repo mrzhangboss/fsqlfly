@@ -85,7 +85,7 @@ INDEX_HTML = open(INDEX_HTML_PATH, 'rb').read()
 
 FSQLFLY_FLINK_BIN_DIR = ENV('FSQLFLY_FLINK_BIN_DIR', '/opt/flink/bin')
 assert os.path.exists(FSQLFLY_FLINK_BIN_DIR), "FSQLFLY_FLINK_BIN_DIR ({}) not exists, please confirm".format(
-    FSQLFLY_STATIC_ROOT)
+    FSQLFLY_FLINK_BIN_DIR)
 FSQLFLY_FLINK_BIN = os.path.join(FSQLFLY_FLINK_BIN_DIR, 'sql-client.sh')
 
 FSQLFLY_FLINK_MAX_TERMINAL = int(ENV('FSQLFLY_FLINK_MAX_TERMINAL', '100'))

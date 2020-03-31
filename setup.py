@@ -3,13 +3,13 @@ import sys
 import os
 import setuptools
 from shutil import rmtree
-from setuptools import Command, setup
+from setuptools import Command, setup, find_packages
 
 with open("readme-en.md", "r") as fh:
     long_description = fh.read()
 
 VERSION = "0.0.2"
-REQUIRED = [x for x in open("requirement.txt", "r").read() if x]
+REQUIRED = [x for x in open("requirement.txt", "r").read().split('\n') if x]
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -60,7 +60,9 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/mrzhangboss/fsqlfly",
-    packages=['fsqlfly'],
+    packages=find_packages(),
+    # packages=['fsqlfly'],
+    # package_data={'static': ['*']},
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",
