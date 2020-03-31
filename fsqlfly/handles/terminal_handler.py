@@ -1,4 +1,3 @@
-import json
 import tornado.web
 from terminado import TermSocket
 from tornado.web import authenticated
@@ -19,7 +18,7 @@ class TerminalHandler(BaseHandler):
 class TerminalNewHandler(BaseHandler):
     @authenticated
     def post(self, *args, **kwargs):
-        num = run_debug_transform(self.request.arguments, self.terminal_manager)
+        num = run_debug_transform(self.json_body, self.terminal_manager)
         self.write_json(create_response({"url": '/terminal/{}'.format(num)}))
 
 
