@@ -33,7 +33,7 @@ class Namespace(BaseModel):
 
 
 class FileResource(BaseModel):
-    unique_name = CharField(max_length=128, unique=True)
+    name = CharField(max_length=128, unique=True)
     info = CharField(max_length=1024, null=True)
     real_path = CharField(max_length=2048)
 
