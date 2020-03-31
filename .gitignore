@@ -66,3 +66,4 @@ fsqlfly.egg-info
 fsqlfly/upload
 fsqlfly/static
 *.sqlite3
+fsqlfly/out.shell.txt

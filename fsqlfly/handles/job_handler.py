@@ -19,7 +19,7 @@ SUCCESS_HEADER = 'SUCCESS:'
 
 
 class Cache:
-    def __init__(self, max_store_seconds=60):
+    def __init__(self, max_store_seconds=5):
         self.time = dict()
         self.store = dict()
         self._max = max_store_seconds
@@ -144,8 +144,7 @@ class JobList(BaseHandler):
     def get(self):
         jobs = defaultdict(lambda: defaultdict(int))
         job_names = {"{}_{}".format(x.id, x.name): x.name for x in
-                     Transform.objects.all().order_by(
-                         '-id').all()}
+                     Transform.select().order_by(Transform.id.desc()).objects()}
         for job in JobControlHandle.job_status:
 
             if job.name in job_names or '_'.join(job.name.split('_')[:-1]) in job_names:
