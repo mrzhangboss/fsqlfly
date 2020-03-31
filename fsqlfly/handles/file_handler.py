@@ -23,8 +23,9 @@ FileMagic = magic.Magic(mime=True, uncompress=True)
 class UploadHandler(BaseHandler):
     @authenticated
     def get(self, path: str):
+        if not any(map(lambda x: path.startswith(x), support_upload)):
+            raise tornado.web.HTTPError(status_code=404)
         full_path = os.path.join(UPLOAD_ROOT_DIR, path)
-        print(full_path, path)
         if not os.path.exists(full_path):
             self.write_error(RespCode.APIFail)
         mime = FileMagic.from_file(full_path)
