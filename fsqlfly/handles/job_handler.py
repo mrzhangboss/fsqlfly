@@ -53,6 +53,7 @@ class JobControl:
     restart = 'restart'
     stop = 'stop'
     start = 'start'
+    cancel = 'cancel'
     RUN_STATUS = 'RUNNING'
 
     def __contains__(self, item):
@@ -61,7 +62,8 @@ class JobControl:
         return False
 
     def __init__(self, flink_host=None):
-        self.host = FSQLFLY_FINK_HOST
+        print(flink_host)
+        self.host = flink_host
         self.session = Session()
         self.cache = Cache()
 
@@ -143,6 +145,7 @@ class JobControl:
     def stop_flink_jobs(self, job_ids: List):
         for j_id in job_ids:
             logger.debug('begin stop flink job {}'.format(j_id))
+            logger.debug(self.host)
             res = self.session.patch(self.host + '/jobs/' + j_id + '?mode=cancel')
             self.cache.remove(j_id)
             print(res.text)
@@ -153,7 +156,7 @@ class JobControl:
         return '{} JOB {}\n{}'.format(SUCCESS_HEADER if is_ok else FAIL_HEADER, transform.name, '' if is_ok else txt)
 
 
-JobControlHandle = JobControl()
+JobControlHandle = JobControl(FSQLFLY_FINK_HOST)
 
 
 class JobHandler(BaseHandler):
@@ -161,7 +164,7 @@ class JobHandler(BaseHandler):
     def get(self, mode: str, pk: str):
         handle_name = 'handle_' + mode
         if mode in JobControlHandle and handle_name in JobControlHandle:
-            if pk.isalnum():
+            if pk.isdigit():
                 transform = Transform.select().where(Transform.id == int(pk)).first()
                 if transform is None:
                     return self.write_json(create_response(code=500, msg='job id {} not found!!!'.format(pk)))
