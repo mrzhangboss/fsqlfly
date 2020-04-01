@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import time
+import re
 import traceback
 import math
 from io import StringIO
@@ -88,7 +89,7 @@ class JobControl:
             return ''.join(out)
 
         status = self.session.get(self.host + '/jobs/' + job_id).json()
-        name = status['name'].split(':', maxsplit=1)[0]
+        name = status['name'].split('.', maxsplit=1)[0]
         job_status = JobStatus(name, job_id, status['state'], full_name=status['name'],
                                start_time=p_time(status["start-time"]), end_time=p_time(status["end-time"]),
                                duration=p_duration(status['duration']))
@@ -112,7 +113,7 @@ class JobControl:
 
     @classmethod
     def get_job_header(cls, transform: Transform, **kwargs) -> str:
-        return "{}_{}{}".format(transform.id, transform.name, '_' + kwargs['pt'] if 'pt' in kwargs else '')
+        return "{}_{}.{}-".format(transform.id, transform.name, '_' + kwargs['pt'] if 'pt' in kwargs else '')
 
     def handle_restart(self, transform: Transform, **kwargs) -> str:
         msgs = []
@@ -205,6 +206,11 @@ def get_latest_transform(refresh_seconds: int = 5) -> Dict[str, dict]:
 
 
 class JobList(BaseHandler):
+    job_pattern = re.compile(r'\d+_')
+    @classmethod
+    def is_real_job(cls, name) -> bool:
+        return cls.job_pattern.search(name) is not None
+
     @authenticated
     def get(self):
         target = self.request.arguments.get('id')
@@ -213,6 +219,8 @@ class JobList(BaseHandler):
         job_infos = get_latest_transform()
         all_jobs = list()
         for job in JobControlHandle.job_status:
+            if not self.is_real_job(job.name):
+                continue
             if id_filter is not None and not job.name.startswith(id_filter + '_'):
                 continue
             base = dict(**job._asdict())
