@@ -21,7 +21,9 @@ def str2underline(v: str) -> str:
 
 
 def _dict2_(value: dict, method: Callable[[str], str]) -> dict:
-    return {method(k): _dict2_(v, method) if isinstance(v, dict) else v for k, v in value.items()}
+    return {method(k): _dict2_(v, method) if isinstance(v, dict) else (
+        [_dict2_(xx, method) for xx in v] if isinstance(v, list) else v) for k, v in
+            value.items()}
 
 
 def dict2camel(v: dict) -> dict:
@@ -110,6 +112,3 @@ def parse_sql(sql: str) -> List[SqlProps]:
 
 def clean_sql(sql: str) -> str:
     return SQL_COMMENT_PATTERN_CLEAN.sub('', sql).strip()
-
-
-
