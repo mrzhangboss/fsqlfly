@@ -27,6 +27,7 @@ class APICounter(BaseHandler):
             "resourceNum": Resource.select().where(Resource.is_deleted == False).count(),
             "functionNum": Functions.select().where(Functions.is_deleted == False).count(),
             "fileNum": FileResource.select().where(FileResource.is_deleted == False).count(),
+            "transformNum": Transform.select().where(Transform.is_deleted == False).count(),
         }
         return self.write_json(create_response(data=data))
 

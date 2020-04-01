@@ -99,3 +99,4 @@ FSQLFLY_JOB_LOG_DIR = ENV('FSQLFLY_JOB_LOG_DIR', '/tmp/fsqlfly_job_log')
 FSQLFLY_JOB_LOG_FILE = os.path.join(FSQLFLY_JOB_LOG_DIR, 'job_damon.log')
 os.makedirs(FSQLFLY_JOB_LOG_DIR, exist_ok=True)
 
+TEMP_TERMINAL_HEAD = '0__TEMPORARY__'

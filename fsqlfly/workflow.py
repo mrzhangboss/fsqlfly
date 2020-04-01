@@ -122,7 +122,7 @@ def run_debug_transform(data: dict, manager: NamedTermManager) -> (str, str):
     real_sql = handle_template(data.get('sql', ''))
     name = manager._next_available_name()
     run_commands = [FSQLFLY_FLINK_BIN, 'embedded',
-                    '-s', '{}_{}'.format(data.get('id', 'null'), '__TEMPORARY__' + str(name)),
+                    '-s', '{}{}:'.format(settings.TEMP_TERMINAL_HEAD, str(name)),
                     '--environment', yaml_f,
                     _get_jar()]
     logger.debug('running commands is : {}'.format(' '.join(run_commands)))

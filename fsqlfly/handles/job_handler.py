@@ -1,18 +1,22 @@
 # -*- coding:utf-8 -*-
 import time
 import traceback
+import math
 from io import StringIO
-from typing import List, Any
+from typing import List, Any, Dict
+from datetime import datetime
 from requests import Session
+from logzero import logger
 from tornado.web import authenticated
 from collections import namedtuple, defaultdict
-from fsqlfly.settings import FSQLFLY_FINK_HOST
+from fsqlfly.settings import FSQLFLY_FINK_HOST, TEMP_TERMINAL_HEAD
 from fsqlfly.models import Transform
 from fsqlfly.workflow import run_transform
 from fsqlfly.base_handle import BaseHandler
 from fsqlfly.utils.response import create_response
 
-JobStatus = namedtuple('JobStatus', ['name', 'job_id', 'status'])
+JobStatus = namedtuple('JobStatus', ['name', 'job_id', 'status', 'full_name',
+                                     'start_time', 'end_time', 'duration'])
 
 FAIL_HEADER = 'FAIL:'
 SUCCESS_HEADER = 'SUCCESS:'
@@ -38,6 +42,12 @@ class Cache:
         self.store[name] = value
         self.time[name] = time.time()
 
+    def remove(self, name: str):
+        if name in self.time:
+            del self.time[name]
+        if name in self.store[name]:
+            del self.store[name]
+
 
 class JobControl:
     restart = 'restart'
@@ -55,6 +65,33 @@ class JobControl:
         self.session = Session()
         self.cache = Cache()
 
+    def _get_job_status(self, job_id: str) -> JobStatus:
+        def p_time(t: int) -> str:
+            return str(datetime.fromtimestamp(t / 1000))[:19] if t > 0 else '-'
+
+        def p_duration(t: int) -> str:
+            second = 1000
+            minute = second * 60
+            hour = minute * 60
+            day = hour * 24
+            out = list()
+            for a, b in [(day, '天'), (hour, '小时'), (minute, '分')]:
+                cost = 0
+                while t > a:
+                    cost += 1
+                    t -= a
+                if cost > 0:
+                    out.append(f'{cost}{b}')
+            out.append('{}秒'.format(math.ceil(t / second)))
+            return ''.join(out)
+
+        status = self.session.get(self.host + '/jobs/' + job_id).json()
+        name = status['name'].split(':', maxsplit=1)[0]
+        job_status = JobStatus(name, job_id, status['state'], full_name=status['name'],
+                               start_time=p_time(status["start-time"]), end_time=p_time(status["end-time"]),
+                               duration=p_duration(status['duration']))
+        return job_status
+
     @property
     def job_status(self) -> List[JobStatus]:
         jobs_url = self.host + '/jobs'
@@ -62,14 +99,13 @@ class JobControl:
         all_jobs = list()
         for x in js['jobs']:
             j_id = x['id']
-            cache_name = '{}:flink:job:status'.format(j_id)
-            if self.cache.get(cache_name) is None:
-                status = self.session.get(self.host + '/jobs/' + j_id).json()
-                name = status['name'].split(':', maxsplit=1)[0]
-                self.cache.set(cache_name, name)
+            if self.cache.get(j_id) is None:
+                status = self._get_job_status(j_id)
+                self.cache.set(j_id, status)
             else:
-                name = self.cache.get(cache_name)
-            all_jobs.append(JobStatus(name, j_id, x['status']))
+                status = self.cache.get(j_id)
+
+            all_jobs.append(status)
         return all_jobs
 
     @classmethod
@@ -88,8 +124,8 @@ class JobControl:
         kill_jobs = []
         job_status = self.job_status
         for job in job_status:
-            if job.name == header and job.status == self.RUN_STATUS:
-                print('add a {} to kill '.format(job.name))
+            if job.status == self.RUN_STATUS and job.name == header:
+                logger.debug('add a {} to kill '.format(job.name))
                 kill_jobs.append(job.job_id)
 
         msgs.append('kill {} jobs: {}'.format(len(kill_jobs), ', '.join(str(x) for x in kill_jobs)))
@@ -100,10 +136,15 @@ class JobControl:
     def handle_start(self, transform: Transform, **kwargs) -> str:
         return self.start_flink_job(transform, **kwargs)
 
+    def handle_cancel(self, jid: str, **kwargs):
+        self.stop_flink_jobs([jid])
+        return 'kill {} '.format(jid)
+
     def stop_flink_jobs(self, job_ids: List):
         for j_id in job_ids:
-            print('begin stop flink job', j_id)
+            logger.debug('begin stop flink job {}'.format(j_id))
             res = self.session.patch(self.host + '/jobs/' + j_id + '?mode=cancel')
+            self.cache.remove(j_id)
             print(res.text)
 
     @classmethod
@@ -117,12 +158,15 @@ JobControlHandle = JobControl()
 
 class JobHandler(BaseHandler):
     @authenticated
-    def get(self, name: str, mode: str):
+    def get(self, mode: str, pk: str):
         handle_name = 'handle_' + mode
         if mode in JobControlHandle and handle_name in JobControlHandle:
-            transform = Transform.select().where(Transform.name == name).first()
-            if transform is None:
-                return self.write_json(create_response(code=500, msg='job {} not found!!!'.format(name)))
+            if pk.isalnum():
+                transform = Transform.select().where(Transform.id == int(pk)).first()
+                if transform is None:
+                    return self.write_json(create_response(code=500, msg='job id {} not found!!!'.format(pk)))
+            else:
+                transform = pk
 
             data = self.json_body
             try:
@@ -139,21 +183,52 @@ class JobHandler(BaseHandler):
     post = get
 
 
+def get_latest_transform(refresh_seconds: int = 5) -> Dict[str, dict]:
+    def _get():
+        job_infos = defaultdict(dict)
+        for x in Transform.select().order_by(Transform.id.desc()).objects():
+            name = "{}_{}".format(x.id, x.name)
+            job_infos[name] = x.to_dict()
+        return job_infos
+
+    __name = '__transforms'
+    if not hasattr(get_latest_transform, __name):
+        setattr(get_latest_transform, __name, (_get(), time.time()))
+    objects, t = getattr(get_latest_transform, __name)
+    if time.time() - t > refresh_seconds:
+        objects = _get()
+        setattr(get_latest_transform, __name, (objects, time.time()))
+    return objects
+
+
 class JobList(BaseHandler):
     @authenticated
     def get(self):
-        jobs = defaultdict(lambda: defaultdict(int))
-        job_names = {"{}_{}".format(x.id, x.name): x.name for x in
-                     Transform.select().order_by(Transform.id.desc()).objects()}
-        for job in JobControlHandle.job_status:
+        target = self.request.arguments.get('id')
+        id_filter = target[0].decode() if target else None
 
-            if job.name in job_names or '_'.join(job.name.split('_')[:-1]) in job_names:
-                print(job.name)
-                jobs[job.status][job.name] += 1
-        return self.write_json(dict(data=dict(jobs), code=0, success=0, msg=None))
+        job_infos = get_latest_transform()
+        all_jobs = list()
+        for job in JobControlHandle.job_status:
+            if id_filter is not None and not job.name.startswith(id_filter + '_'):
+                continue
+            base = dict(**job._asdict())
+            if job.name in job_infos:
+                base.update(job_infos[job.name])
+                base['t_id'] = job_infos[job.name]['id']
+            elif job.name.startswith(TEMP_TERMINAL_HEAD):
+                base['name'] = 'TEMPORARY'
+                base['url'] = '/terminal/{}'.format(job.name[len(TEMP_TERMINAL_HEAD):])
+
+            base['id'] = job.job_id
+            base['detail_url'] = FSQLFLY_FINK_HOST + '/#/job/{}/overview'.format(job.job_id)
+
+            all_jobs.append(base)
+
+        return self.write_json(create_response(data=all_jobs))
 
 
 default_handlers = [
-    (r'/api/jobs/(?P<name>[\w_]+)/(?P<mode>\w+)', JobHandler),
-    (r'/api/jobs', JobList),
+    (r'/api/job/(?P<mode>\w+)/(?P<pk>[a-zA-Z0-9]+)', JobHandler),
+    (r'/api/job', JobList),
 ]

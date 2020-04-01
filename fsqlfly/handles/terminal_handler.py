@@ -23,12 +23,7 @@ class TerminalNewHandler(BaseHandler):
             num = run_debug_transform(self.json_body, self.terminal_manager)
             self.write_json(create_response({"url": '/terminal/{}'.format(num)}))
         else:
-            pk = int(pk) if not isinstance(pk, int) else pk
-            transform = Transform.select().where(Transform.id==pk).first()
-            if transform is None:
-                return self.write_error(RespCode.APIFail)
-            else:
-                self.redirect('/api/jobs/{}/{}'.format(transform.name, 'start' if mode == 'run' else mode))
+            self.redirect('/api/job/{}/{}'.format(mode, pk))
 
 
 class TerminalStopHandler(BaseHandler):
@@ -45,6 +40,6 @@ class TerminalStopHandler(BaseHandler):
 default_handlers = [
     (r'/api/terminal', TerminalHandler),
     (r"/_websocket/(\w+)", TermSocket, {'term_manager': settings.TERMINAL_MANAGER}),
-    (r'/api/transform/(\w+)/(\d+)', TerminalNewHandler),
     (r'/api/terminal/stop/(?P<name>\d+)', TerminalStopHandler),
+    (r'/api/transform/(\w+)/(\d+)', TerminalNewHandler),
 ]
