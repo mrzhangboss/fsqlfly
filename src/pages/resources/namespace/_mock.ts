@@ -2,10 +2,10 @@ import mockjs from 'mockjs';
 
 export default {
   'GET /api/namespace': mockjs.mock({
-    'data|3': [
+    'data|6': [
       {
         'id|+1': 1,
-        name: '@word',
+        'name|1': ['@word', '@paragraph(20,30)'],
         info: '@paragraph(1,1)',
         'avatar|1': [
           'https://gw.alipayobjects.com/zos/rmsportal/WdGqmHpayyMjiEhcKoVE.png', // Alipay

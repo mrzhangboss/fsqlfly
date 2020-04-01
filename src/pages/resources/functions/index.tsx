@@ -19,6 +19,7 @@ import {
   Switch,
   Select,
   Tag,
+  Tooltip,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { FileResource, Functions } from '../data';
@@ -33,6 +34,7 @@ import 'brace/theme/solarized_dark';
 import styles from '../style.less';
 
 const SelectOption = Select.Option;
+import { cutStr } from '@/utils/utils';
 
 const FormItem = Form.Item;
 const { Search } = Input;
@@ -481,7 +483,13 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                     ]}
                   >
                     <List.Item.Meta
-                      title={<a href="#">{item.className}</a>}
+                      // @ts-ignore
+                      title={
+                        <Tooltip title={item.className} placement="right">
+                          {' '}
+                          <span>{cutStr(item.className)}</span>
+                        </Tooltip>
+                      }
                       description={this.getResourceName(item.resourceId)}
                     />
                     <ListContent data={item} />

@@ -21,6 +21,7 @@ import {
   Avatar,
   Radio,
   Tag,
+  Tooltip,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { Resource, Namespace } from '../data';
@@ -33,6 +34,7 @@ import 'brace/mode/yaml';
 // import 'brace/theme/chrome';
 import 'brace/theme/solarized_dark';
 import styles from '../style.less';
+import { cutStr } from '@/utils/utils';
 
 const SelectOption = Select.Option;
 const RadioGroup = Radio.Group;
@@ -401,7 +403,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 },
               ],
             })(
-              <Select placeholder="请选择" size="large" style={{ width: 120 }}>
+              <Select>
                 <SelectOption key={-1} value={0}>
                   默认
                 </SelectOption>
@@ -504,11 +506,21 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                     ]}
                   >
                     <List.Item.Meta
-                      title={<a href="#">{item.name}</a>}
+                      // @ts-ignore
+                      title={
+                        <Tooltip title={item.name}>
+                          {' '}
+                          <a href="#">{cutStr(item.name)}</a>
+                        </Tooltip>
+                      }
                       avatar={
                         <Avatar src={this.getAvar(item.namespaceId)} shape="square" size="large" />
                       }
-                      description={item.info}
+                      description={
+                        <Tooltip title={item.info}>
+                          <span>{cutStr(item.info)}</span>
+                        </Tooltip>
+                      }
                     />
                     <ListContent data={item} />
                   </List.Item>

@@ -19,6 +19,7 @@ import {
   Col,
   Switch,
   Upload,
+  Tooltip,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { Dispatch } from 'redux';
@@ -27,6 +28,7 @@ import Result from '../components/Result';
 import { PageHeaderWrapper } from '@ant-design/pro-layout';
 
 import styles from '../style.less';
+import { cutStr } from '@/utils/utils';
 
 const FormItem = Form.Item;
 const { Search, TextArea } = Input;
@@ -381,8 +383,16 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                   >
                     <List.Item.Meta
                       avatar={<Avatar src={item.avatar} shape="square" size="large" />}
-                      title={<a href={item.avatar}>{item.name}</a>}
-                      description={item.info}
+                      title={
+                        <Tooltip title={item.name}>
+                          <a href="#">{cutStr(item.name)}</a>
+                        </Tooltip>
+                      }
+                      description={
+                        <Tooltip title={item.info} placement="right">
+                          <span>{cutStr(item.info)}</span>
+                        </Tooltip>
+                      }
                     />
                     <ListContent data={item} />
                   </List.Item>

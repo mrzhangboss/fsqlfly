@@ -20,6 +20,7 @@ import {
   Row,
   Col,
   Switch,
+  Tooltip,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { TransformInfo } from './data';
@@ -42,6 +43,7 @@ import 'brace/mode/yaml';
 import 'brace/theme/solarized_dark';
 import 'brace/theme/github';
 import TextArea from 'antd/es/input/TextArea';
+import { cutStr } from '@/utils/utils';
 
 interface BasicListProps extends FormComponentProps {
   listBasicList: TransformInfo[];
@@ -260,6 +262,17 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     return namespace === null ? '' : namespace.name;
   };
 
+  getNameTag = (id?: number) => {
+    const name = this.getNamespaceTitle(id);
+    return (
+      <Tooltip title={name}>
+        <div>
+          <Tag>{cutStr(name)}</Tag>
+        </div>
+      </Tooltip>
+    );
+  };
+
   getNamespaceAvatar = (item: TransformInfo) => {
     const namespace = this.getNamespace(item.namespaceId);
     if (namespace === null) {
@@ -309,13 +322,35 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         <RadioGroup defaultValue={null} onChange={x => this.setState({ tag: x.target.value })}>
           <RadioButton value={0}>全部</RadioButton>
           {namespaces.length > 0 &&
-            namespaces.map((x: Namespace) => {
+            namespaces.slice(0, 8).map((x: Namespace) => {
               return (
-                <RadioButton key={x.id} value={x.id}>
-                  {x.name}
-                </RadioButton>
+                <Tooltip title={x.name} placement="left">
+                  <RadioButton key={x.id} value={x.id}>
+                    {cutStr(x.name, 6)}
+                  </RadioButton>
+                </Tooltip>
               );
             })}
+          {namespaces.length > 8 && (
+            <Dropdown
+              overlay={
+                // @ts-ignore
+                <Menu onClick={({ key }) => this.setState({ tag: key })}>
+                  {namespaces.slice(8, namespaces.length + 1).map((x: Namespace) => {
+                    return (
+                      <Menu.Item key={x.id}>
+                        <Button> {x.name}</Button>
+                      </Menu.Item>
+                    );
+                  })}
+                </Menu>
+              }
+            >
+              <a>
+                更多 <DownOutlined />
+              </a>
+            </Dropdown>
+          )}
         </RadioGroup>
         <Search
           defaultValue={search}
@@ -331,9 +366,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       data: TransformInfo;
     }) => (
       <div className={styles.listContent}>
-        <div className={styles.listContentItem}>
-          <Tag>{this.getNamespaceTitle(namespaceId)}</Tag>
-        </div>
+        <div className={styles.listContentItem}>{this.getNameTag(namespaceId)}</div>
         <div className={styles.listContentItem}>
           <span>创建时间</span>
           <p>{moment(createAt).format('YYYY-MM-DD HH:mm')}</p>
@@ -472,11 +505,15 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                   <List.Item.Meta
                     avatar={this.getNamespaceAvatar(item)}
                     title={
-                      <a href="#">
-                        {item.name.length < 8 ? item.name : item.name.substring(0, 8) + '...'}
-                      </a>
+                      <Tooltip title={item.name}>
+                        <a href="#">{cutStr(item.name)}</a>
+                      </Tooltip>
                     }
-                    description={item.info.length < 10 ? item.info : item.info.substring(0, 10)}
+                    description={
+                      <Tooltip title={item.info} placement="right">
+                        <span>{cutStr(item.info)}</span>
+                      </Tooltip>
+                    }
                   />
                   <ListContent data={item} />
                 </List.Item>
@@ -536,7 +573,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             <FormItem label="依赖" {...this.formLayout}>
               <Select
                 mode="tags"
-                style={{ width: '100%' }}
+                // @ts-ignore
                 onChange={this.handleChange}
                 tokenSeparators={[',']}
                 defaultValue={
@@ -559,7 +596,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                   },
                 ],
               })(
-                <Select placeholder="请选择" size="large" style={{ width: 120 }}>
+                <Select>
                   <SelectOption key={-1} value={0}>
                     默认
                   </SelectOption>

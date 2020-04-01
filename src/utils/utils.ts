@@ -1,8 +1,13 @@
 /* eslint no-useless-escape:0 import/prefer-default-export:0 */
 const reg = /(((^https?:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+(?::\d+)?|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)$/;
+const MAX_LENGTH = 13;
 
 const isUrl = (path: string): boolean => {
   return reg.test(path);
+};
+
+const cutStr = (str?: string, len?: number): string => {
+  return str === undefined ? '' : str.substring(0, len === undefined ? MAX_LENGTH : len);
 };
 
 const isAntDesignPro = (): boolean => {
@@ -21,4 +26,4 @@ const isAntDesignProOrDev = (): boolean => {
   return isAntDesignPro();
 };
 
-export { isAntDesignProOrDev, isAntDesignPro, isUrl };
+export { isAntDesignProOrDev, isAntDesignPro, isUrl, MAX_LENGTH, cutStr };

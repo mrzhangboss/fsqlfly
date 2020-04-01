@@ -18,12 +18,14 @@ import {
   Col,
   Switch,
   Upload,
+  Tooltip,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { Dispatch } from 'redux';
 import { FileResource } from '../data';
 import Result from '../components/Result';
 import { PageHeaderWrapper } from '@ant-design/pro-layout';
+import { cutStr } from '@/utils/utils';
 
 import styles from '../style.less';
 
@@ -435,7 +437,21 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       <MoreBtn key="more" item={item} />,
                     ]}
                   >
-                    <List.Item.Meta title={<a href="#">{item.name}</a>} description={item.info} />
+                    // @ts-ignore
+                    <List.Item.Meta
+                      title={
+                        <Tooltip title={item.name} placement="right">
+                          <a href="#">{cutStr(item.name)}</a>{' '}
+                        </Tooltip>
+                      }
+                      // @ts-ignore
+                      description={
+                        <Tooltip title={item.info} placement="right">
+                          {' '}
+                          <span>{cutStr(item.info)}</span>
+                        </Tooltip>
+                      }
+                    />
                     <ListContent data={item} />
                   </List.Item>
                 )}

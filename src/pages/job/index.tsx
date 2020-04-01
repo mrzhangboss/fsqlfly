@@ -25,6 +25,7 @@ import { Dispatch } from 'redux';
 import { ReloadOutlined } from '@ant-design/icons';
 // @ts-ignore
 import styles from '@/pages/resources/style.less';
+import { MAX_LENGTH } from '@/utils/utils';
 
 import { AnyAction } from 'redux';
 
@@ -122,9 +123,14 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   getNamespaceTitle = (id?: number) => {
     const namespace = this.getNamespace(id);
     if (namespace === null) {
-      return <Tag>---</Tag>;
+      return <Tag>-</Tag>;
     }
-    return <Tag>{namespace.name}</Tag>;
+    // @ts-ignore
+    return (
+      <Tooltip title={namespace.name} placement="top">
+        <Tag>{namespace.name.substring(0, MAX_LENGTH)}</Tag>
+      </Tooltip>
+    );
   };
 
   render() {
@@ -209,10 +215,14 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     }> = ({ item }) => (
       <Dropdown
         overlay={
-          <Menu onClick={({ key }) => confirmStopCurrentTerminal(key, item)}>
-            <Menu.Item key="stop">停止</Menu.Item>
-            {item.url !== undefined && <Menu.Item key={item.url}>连接</Menu.Item>}
-          </Menu>
+          item.status === 'RUNNING' || item.url !== undefined ? (
+            <Menu onClick={({ key }) => confirmStopCurrentTerminal(key, item)}>
+              {item.status === 'RUNNING' && <Menu.Item key="stop">停止</Menu.Item>}
+              {item.url !== undefined && <Menu.Item key={item.url}>连接</Menu.Item>}
+            </Menu>
+          ) : (
+            <span></span>
+          )
         }
       >
         <a>
@@ -241,20 +251,31 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               renderItem={item => (
                 <List.Item
                   actions={[
-                    <a href={item.detailUrl} target="_blank">
-                      详情
-                    </a>,
+                    <Tooltip title={item.fullName} placement="left">
+                      <a href={item.detailUrl} target="_blank">
+                        详情
+                      </a>
+                    </Tooltip>,
                     <MoreBtn key="more" item={item} />,
                   ]}
                 >
                   <List.Item.Meta
                     title={
-                      <a href={item.detailUrl} target="_blank">
-                        {item.name}
-                      </a>
+                      <Tooltip title={item.name} placement="left">
+                        <a href={item.detailUrl} target="_blank">
+                          {item.name.substring(0, MAX_LENGTH)}
+                        </a>
+                      </Tooltip>
                     }
                     avatar={this.getNamespaceAvatar(item)}
-                    description={item.info}
+                    // @ts-ignore
+                    description={
+                      <Tooltip title={item.info !== undefined ? item.info : ''}>
+                        <span>
+                          {item.info !== undefined ? item.info.substring(0, MAX_LENGTH) : '-'}
+                        </span>
+                      </Tooltip>
+                    }
                   />
                   <ListContent data={item} />
                 </List.Item>
