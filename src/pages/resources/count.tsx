@@ -43,8 +43,8 @@ class Welcome extends Component<CountPro> {
               </Card>
             </Col>
             <Col span={6}>
-              <Card title="文件" bordered={false}>
-                {count.fileNum}
+              <Card title="SQL" bordered={false}>
+                {count.transformNum}
               </Card>
             </Col>
           </Row>

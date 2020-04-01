@@ -84,7 +84,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             payload: { id: item.id },
           });
         } else {
-          message.success('成功！');
+          message.error(res.msg);
         }
       },
     });

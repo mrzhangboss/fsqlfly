@@ -244,10 +244,39 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       payload: { id },
     });
   };
-  getNamespace = (id: number) => {
+
+  getNamespace = (id?: number) => {
+    if (id === undefined) {
+      return null;
+    }
     const { namespaces } = this.props;
-    const data = namespaces.filter(x => x.id === id);
-    return data.length > 0 ? data[0] : { name: 'DEFAULT', id: 0, avatar: '' };
+    const ns = namespaces.filter(x => x.id === id);
+    if (ns.length === 0) return null;
+    return ns[0];
+  };
+
+  getNamespaceTitle = (id?: number) => {
+    const namespace = this.getNamespace(id);
+    return namespace === null ? '' : namespace.name;
+  };
+
+  getNamespaceAvatar = (item: TransformInfo) => {
+    const namespace = this.getNamespace(item.namespaceId);
+    if (namespace === null) {
+      return (
+        <Avatar alt={item.info} shape="square" size="large">
+          {item.name.substr(0, 2)}
+        </Avatar>
+      );
+    }
+    return (
+      <Avatar
+        src={namespace === null ? '' : namespace.avatar}
+        alt={item.info}
+        shape="square"
+        size="large"
+      />
+    );
   };
 
   render() {
@@ -257,7 +286,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const { listBasicList } = this.props;
 
     const editAndDelete = (key: string, currentItem: TransformInfo) => {
-      if (key === 'run' || key === 'stop' || key === 'restart') this.showRunModal(currentItem, key);
+      if (key === 'start' || key === 'stop' || key === 'restart')
+        this.showRunModal(currentItem, key);
       else if (key === 'delete') {
         Modal.confirm({
           title: '删除任务',
@@ -302,7 +332,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     }) => (
       <div className={styles.listContent}>
         <div className={styles.listContentItem}>
-          <Tag>{this.getNamespace(namespaceId).name}</Tag>
+          <Tag>{this.getNamespaceTitle(namespaceId)}</Tag>
         </div>
         <div className={styles.listContentItem}>
           <span>创建时间</span>
@@ -332,7 +362,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         overlay={
           <Menu onClick={({ key }) => editAndDelete(key, item)}>
             <Menu.Item key="delete">删除</Menu.Item>
-            <Menu.Item key="run">运行</Menu.Item>
+            <Menu.Item key="start">运行</Menu.Item>
             <Menu.Item key="stop">停止</Menu.Item>
             <Menu.Item key="restart">重启</Menu.Item>
             <Menu.Item key="copy">
@@ -440,15 +470,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                   ]}
                 >
                   <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        src={this.getNamespace(item.namespaceId).avatar}
-                        shape="square"
-                        size="large"
-                      />
-                    }
+                    avatar={this.getNamespaceAvatar(item)}
                     title={
-                      <a href={this.getNamespace(item.namespaceId).avatar}>
+                      <a href="#">
                         {item.name.length < 8 ? item.name : item.name.substring(0, 8) + '...'}
                       </a>
                     }

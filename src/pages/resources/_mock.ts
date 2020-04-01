@@ -6,5 +6,6 @@ export default {
     'resourceNum|1-100': 100,
     'functionNum|1-100': 100,
     'fileNum|1-100': 100,
+    'transformNum|1-100': 100,
   }),
 };

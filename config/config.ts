@@ -191,6 +191,13 @@ export default {
           component: './login',
         },
         {
+          path: '/job',
+          name: 'job',
+          exact: true,
+          icon: 'Heart',
+          component: './job',
+        },
+        {
           name: 'terminal',
           icon: 'profile',
           path: '/terminal',

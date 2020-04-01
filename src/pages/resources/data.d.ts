@@ -60,6 +60,7 @@ export interface CountPage {
   resourceNum: number;
   functionNum: number;
   fileNum: number;
+  transformNum: number;
 }
 
 export interface IStateType<T> {
