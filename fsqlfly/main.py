@@ -67,7 +67,7 @@ def main():
     args = sys.argv[1:]
     method = args[0] if len(args) > 0 else 'help'
     if len(args) == 0 or method in ('-h', 'help') or method not in support_command:
-        print("Usage : fsqlfly [-h] webserver|initdb|resetdb|help")
+        print("Usage : fsqlfly [-h] {}".format('|'.join(list(support_command.keys()) + ['help'])))
         return
     process = support_command[args[0]]
     process(sys.argv[2:])
