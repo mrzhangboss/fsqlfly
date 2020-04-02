@@ -51,6 +51,9 @@ class UploadCommand(Command):
         sys.exit()
 
 
+canal_require = ['canal-python == 0.4', 'kafka-python >= 1.3.4, <= 1.4.7', 'protobuf == 3.11.3', 'sqlalchemy == 1.3.15']
+postgresql_require = ['psycopg2 == 2.8.4']
+mysql_require = ['PyMySQL == 0.9.3']
 setup(
     name="fsqlfly",
     version=VERSION,
@@ -70,11 +73,11 @@ setup(
         "Operating System :: OS Independent",
     ],
     extras_require={
-        'test': ['pytest', 'requests', 'TorMySQL'],
-        'mysql': ['pymysql'],
-        'postgresql': ['psycopg2'],
-        'canal': ['canal-python', 'kafka-python', 'protobuf', 'sqlalchemy'],
-        'all': ['pymysql', 'psycopg2', 'canal-python', 'kafka-python', 'protobuf', 'sqlalchemy']
+        'test': ['TorMySQL'],
+        'mysql': mysql_require,
+        'postgresql': postgresql_require,
+        'canal': canal_require,
+        'all': mysql_require + postgresql_require + canal_require
     },
     python_requires=">=3.6.0",
     install_requires=REQUIRED,
