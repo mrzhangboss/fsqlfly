@@ -280,17 +280,46 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <ReloadOutlined />
         </Button>
 
-        <RadioGroup defaultValue={null} onChange={this.onTagChage}>
-          <RadioButton value={0}>全部</RadioButton>
+        <RadioGroup defaultValue={null} onChange={x => this.setState({ tag: x.target.value })}>
+          <RadioButton className={styles.namespaceButton} value={0}>
+            全部
+          </RadioButton>
           {namespaces.length > 0 &&
-            namespaces.map(x => {
+            namespaces.slice(0, 8).map((x: Namespace) => {
               return (
-                <RadioButton key={x.id} value={x.id}>
-                  {x.name}
-                </RadioButton>
+                <Tooltip title={x.name} placement="left">
+                  <RadioButton className={styles.namespaceButton} key={x.id} value={x.id}>
+                    {cutStr(x.name, 6)}
+                  </RadioButton>
+                </Tooltip>
               );
             })}
+          {namespaces.length > 8 && (
+            <Dropdown
+              className={styles.namespaceButton}
+              overlay={
+                // @ts-ignore
+                <Menu onClick={({ key }) => this.setState({ tag: key })}>
+                  {namespaces.slice(8, namespaces.length + 1).map((x: Namespace) => {
+                    return (
+                      <Menu.Item key={x.id}>
+                        <Tooltip title={x.name} placement="left">
+                          <span>{cutStr(x.name)}</span>
+                        </Tooltip>
+                      </Menu.Item>
+                    );
+                  })}
+                </Menu>
+              }
+            >
+              <Button>
+                更多
+                <DownOutlined />
+              </Button>
+            </Dropdown>
+          )}
         </RadioGroup>
+
         <Search
           defaultValue={search}
           className={styles.extraContentSearch}
@@ -509,7 +538,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       // @ts-ignore
                       title={
                         <Tooltip title={item.name}>
-                          {' '}
                           <a href="#">{cutStr(item.name)}</a>
                         </Tooltip>
                       }

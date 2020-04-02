@@ -25,7 +25,7 @@ import { Dispatch } from 'redux';
 import { ReloadOutlined } from '@ant-design/icons';
 // @ts-ignore
 import styles from '@/pages/resources/style.less';
-import { MAX_LENGTH } from '@/utils/utils';
+import { cutStr } from '@/utils/utils';
 
 import { AnyAction } from 'redux';
 
@@ -128,7 +128,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     // @ts-ignore
     return (
       <Tooltip title={namespace.name} placement="top">
-        <Tag>{namespace.name.substring(0, MAX_LENGTH)}</Tag>
+        <Tag>{cutStr(namespace.name)}</Tag>
       </Tooltip>
     );
   };
@@ -160,16 +160,45 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <ReloadOutlined />
         </Button>
         <RadioGroup defaultValue={null} onChange={x => this.setState({ tag: x.target.value })}>
-          <RadioButton value={0}>全部</RadioButton>
+          <RadioButton className={styles.namespaceButton} value={0}>
+            全部
+          </RadioButton>
           {namespaces.length > 0 &&
-            namespaces.map((x: Namespace) => {
+            namespaces.slice(0, 8).map((x: Namespace) => {
               return (
-                <RadioButton key={x.id} value={x.id}>
-                  {x.name}
-                </RadioButton>
+                <Tooltip title={x.name} placement="left">
+                  <RadioButton className={styles.namespaceButton} key={x.id} value={x.id}>
+                    {cutStr(x.name, 6)}
+                  </RadioButton>
+                </Tooltip>
               );
             })}
+          {namespaces.length > 8 && (
+            <Dropdown
+              className={styles.namespaceButton}
+              overlay={
+                // @ts-ignore
+                <Menu onClick={({ key }) => this.setState({ tag: key })}>
+                  {namespaces.slice(8, namespaces.length + 1).map((x: Namespace) => {
+                    return (
+                      <Menu.Item key={x.id}>
+                        <Tooltip title={x.name} placement="left">
+                          <span>{cutStr(x.name)}</span>
+                        </Tooltip>
+                      </Menu.Item>
+                    );
+                  })}
+                </Menu>
+              }
+            >
+              <Button>
+                更多
+                <DownOutlined />
+              </Button>
+            </Dropdown>
+          )}
         </RadioGroup>
+
         <Search
           defaultValue={search}
           className={styles.extraContentSearch}
@@ -201,10 +230,11 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Progress
             type="circle"
             percent={100}
-            status={status === 'RUNNING' ? 'success' : 'exception'}
+            status={status === 'RUNNING' ? 'success' : status === 'FAILED' ? 'exception' : 'normal'}
             strokeWidth={1}
             width={50}
             style={{ width: 180 }}
+            format={() => status}
           />
         </div>
       </div>
@@ -263,7 +293,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                     title={
                       <Tooltip title={item.name} placement="left">
                         <a href={item.detailUrl} target="_blank">
-                          {item.name.substring(0, MAX_LENGTH)}
+                          {cutStr(item.name)}
                         </a>
                       </Tooltip>
                     }
@@ -271,9 +301,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                     // @ts-ignore
                     description={
                       <Tooltip title={item.info !== undefined ? item.info : ''}>
-                        <span>
-                          {item.info !== undefined ? item.info.substring(0, MAX_LENGTH) : '-'}
-                        </span>
+                        <span>{cutStr(item.info)}</span>
                       </Tooltip>
                     }
                   />

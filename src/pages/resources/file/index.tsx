@@ -437,17 +437,16 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       <MoreBtn key="more" item={item} />,
                     ]}
                   >
-                    // @ts-ignore
                     <List.Item.Meta
                       title={
                         <Tooltip title={item.name} placement="right">
-                          <a href="#">{cutStr(item.name)}</a>{' '}
+                          <span>
+                            <a href="#">{cutStr(item.name)}</a>
+                          </span>
                         </Tooltip>
                       }
-                      // @ts-ignore
                       description={
                         <Tooltip title={item.info} placement="right">
-                          {' '}
                           <span>{cutStr(item.info)}</span>
                         </Tooltip>
                       }

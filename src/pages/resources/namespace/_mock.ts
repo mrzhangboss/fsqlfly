@@ -2,7 +2,7 @@ import mockjs from 'mockjs';
 
 export default {
   'GET /api/namespace': mockjs.mock({
-    'data|6': [
+    'data|29': [
       {
         'id|+1': 1,
         'name|1': ['@word', '@paragraph(20,30)'],

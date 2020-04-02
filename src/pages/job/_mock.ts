@@ -3,12 +3,12 @@ import { Request, Response } from 'express';
 
 export default {
   'GET /api/job': mockjs.mock({
-    'data|5-9': [
+    'data|9-20': [
       {
         id: '@word',
         'name|1': ['@word', '@paragraph', '@paragraph(1000)'],
         jobId: '@word',
-        'status|1': ['RUNNING', 'CANCEL', 'FAIL'],
+        'status|1': ['RUNNING', 'CANCELED', 'FAILED', 'FINISHED', 'SUSPENDED', 'RECONCILING'],
         fullName: '@paragraph(1000)',
         startTime: '2020-03-18 15:40:35',
         'endTime|1': ['2020-03-18 15:40:35', '-'],
