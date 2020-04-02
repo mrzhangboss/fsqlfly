@@ -4,6 +4,7 @@ import os
 import logging
 import sys
 import json
+from logzero import logger
 from typing import Optional
 from collections import defaultdict
 from datetime import datetime
@@ -71,11 +72,11 @@ class CanalConsumer(BaseCommand):
                             default=None)
         parser.add_argument('--canal_port', action='store', type=int, help='canal server port you can set in .env file',
                             default=None)
-        parser.add_argument('--canal_destination', action='store', type=int,
+        parser.add_argument('--canal_destination', action='store', type=str,
                             help='canal server destination you can set in .env file',
                             default=None)
 
-        parser.add_argument('--canal_username', action='store', type=int, help='canal instance username', default=None)
+        parser.add_argument('--canal_username', action='store', type=str, help='canal instance username', default=None)
         parser.add_argument('--canal_password', action='store', type=str,
                             help='canal instance password you can set in .env file ', default=None)
         parser.add_argument('--canal_client_id', action='store', type=str,
@@ -234,9 +235,7 @@ class CanalConsumer(BaseCommand):
                     for t, n in topics.items():
                         print(' Topic: ', t, ' send ', n)
                     topics = defaultdict(int)
-                    self.stdout.write(self.style.SUCCESS(
-                        "{} wait for in {} already send {}".format(datetime.now(), sleep_times, send_times)))
-
+                    logger.debug("{} wait for in {} already send {}".format(datetime.now(), sleep_times, send_times))
                 sleep_times += 1
 
     def handle(self, *args, **options):
