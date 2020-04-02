@@ -29,7 +29,7 @@ class APICounter(BaseHandler):
             "fileNum": FileResource.select().where(FileResource.is_deleted == False).count(),
             "transformNum": Transform.select().where(Transform.is_deleted == False).count(),
         }
-        return self.write_json(create_response(data=data))
+        return self.write_json(data)
 
 
 class CRHandler(BaseHandler):
@@ -67,6 +67,10 @@ class UDHandler(BaseHandler):
             return self.write_error(RespCode.APIFail)
         obj = _MODELS[model].select().where(_MODELS[model].id == pk).get()
         data = self.json_body
+        if 'name' in data:
+            if data['name'] != obj.name:
+                return self.write_error(RespCode.APIFail, msg='创建之后禁止修改名字')
+
         for k, v in dict2underline(data).items():
             if k not in ('update_at', 'create_at', 'is_deleted', 'id') and not (k.endswith('_id') and v == 0):
                 setattr(obj, k, v)
