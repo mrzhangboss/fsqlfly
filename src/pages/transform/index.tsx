@@ -328,7 +328,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               return (
                 <Tooltip title={x.name} placement="left">
                   <RadioButton className={styles.namespaceButton} key={x.id} value={x.id}>
-                    {cutStr(x.name, 6)}
+                    {cutStr(x.name)}
                   </RadioButton>
                 </Tooltip>
               );

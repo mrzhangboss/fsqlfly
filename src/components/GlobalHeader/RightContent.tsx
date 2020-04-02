@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import { GithubOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
 import { formatMessage } from 'umi-plugin-react/locale';
-import HeaderSearch from '../HeaderSearch';
+// import HeaderSearch from '../HeaderSearch';
 import SelectLang from '../SelectLang';
 import styles from './index.less';
 import Avatar from './AvatarDropdown';
@@ -41,9 +41,8 @@ class GlobalHeaderRight extends Component<GlobalHeaderRightProps> {
             <GithubOutlined />
           </a>
         </Tooltip>
-        <Avatar />
-        {/*<SelectLang className={styles.action} />*/}
-        <SelectLang />
+        <Avatar menu />
+        <SelectLang className={styles.action} />
       </div>
     );
   }

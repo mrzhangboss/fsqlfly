@@ -1,7 +1,8 @@
-import { routerRedux } from 'dva/router';
 import { Reducer, AnyAction } from 'redux';
 import { EffectsCommandMap } from 'dva';
-import { stringify, parse } from 'qs';
+import { parse } from 'qs';
+import { logout } from '@/services/user';
+import { message } from 'antd';
 
 export function getPageQuery() {
   return parse(window.location.href.split('?')[1]);
@@ -31,18 +32,17 @@ const Model: ModelType = {
   },
 
   effects: {
-    *logout(_, { put }) {
-      const { redirect } = getPageQuery();
-      // redirect
-      if (window.location.pathname !== '/user/login' && !redirect) {
-        yield put(
-          routerRedux.replace({
-            pathname: '/user/login',
-            search: stringify({
-              redirect: window.location.href,
-            }),
-          }),
-        );
+    *logout(_, { put, call }) {
+      const response = yield call(logout);
+      if (response.success) {
+        message.success('退出登录成功');
+        if (response.url !== undefined) {
+          window.location.href = response.url;
+        } else {
+          window.location.href = '/';
+        }
+      } else {
+        message.error('退出登录失败 错误代码： ' + response.code);
       }
     },
   },

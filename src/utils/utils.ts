@@ -6,8 +6,10 @@ const isUrl = (path: string): boolean => {
   return reg.test(path);
 };
 
-const cutStr = (str?: string, len?: number): string => {
-  return str === undefined ? '' : str.substring(0, len === undefined ? MAX_LENGTH : len);
+const cutStr = (str?: string | null, len?: number): string => {
+  return str === undefined || str === null
+    ? ''
+    : str.substring(0, len === undefined ? MAX_LENGTH : len);
 };
 
 const isAntDesignPro = (): boolean => {

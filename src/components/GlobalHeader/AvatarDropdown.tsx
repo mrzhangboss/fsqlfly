@@ -31,6 +31,7 @@ class AvatarDropdown extends React.Component<GlobalHeaderRightProps> {
     }
     router.push(`/account/${key}`);
   };
+
   render() {
     const { currentUser = {}, menu } = this.props;
     if (!menu) {
@@ -41,8 +42,9 @@ class AvatarDropdown extends React.Component<GlobalHeaderRightProps> {
         </span>
       );
     }
-    const menuHeaderDropdown = (
-      <Menu className={styles.menu} selectedKeys={[]} onClick={this.onMenuClick}>
+    // @ts-ignore do it in future
+    const notUsed = (
+      <div>
         <Menu.Item key="center">
           <UserOutlined />
           <FormattedMessage id="menu.account.center" defaultMessage="account center" />
@@ -51,7 +53,10 @@ class AvatarDropdown extends React.Component<GlobalHeaderRightProps> {
           <SettingOutlined />
           <FormattedMessage id="menu.account.settings" defaultMessage="account settings" />
         </Menu.Item>
-        <Menu.Divider />
+      </div>
+    );
+    const menuHeaderDropdown = (
+      <Menu className={styles.menu} selectedKeys={[]} onClick={this.onMenuClick}>
         <Menu.Item key="logout">
           <LogoutOutlined />
           <FormattedMessage id="menu.account.logout" defaultMessage="logout" />
@@ -71,6 +76,7 @@ class AvatarDropdown extends React.Component<GlobalHeaderRightProps> {
     );
   }
 }
+
 export default connect(({ user }: ConnectState) => ({
   currentUser: user.currentUser,
 }))(AvatarDropdown);

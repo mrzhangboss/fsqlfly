@@ -64,4 +64,7 @@ export default {
   'menu.resources.relationship': '关系图',
   'menu.resources.connection': '展示数据源',
   'menu.log': '日志',
+  'menu.job': '任务',
+  'menu.terminal': '进程',
+  'menu.terminal_detail': '进程详情',
 };

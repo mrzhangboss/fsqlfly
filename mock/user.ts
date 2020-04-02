@@ -57,7 +57,16 @@ const user = {
 var isLogin = false;
 export default {
   // 支持值为 Object 和 Array
-  'GET /api/login': (req: any, res: { send: (x: { code: number; msg: string } & any) => void }) => {
+  'GET /api/logout': (req: Request, res: Response) => {
+    if (isLogin) {
+      isLogin = false;
+      return res.send({ code: 200, success: true });
+    } else {
+      return res.send({ code: 500, msg: '未登录' });
+    }
+  },
+
+  'GET /api/login': (req: Request, res: Response) => {
     if (isLogin) {
       return res.send(user);
     } else {

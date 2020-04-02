@@ -31,6 +31,7 @@ const Model: ModelType = {
     resourceNum: 0,
     functionNum: 0,
     fileNum: 0,
+    transformNum: 0,
   },
   effects: {
     *fetch({}, { call, put }) {
