@@ -20,10 +20,17 @@ def generate_cookie_secret(s: str, typ: str = '___cookie_secret') -> str:
 
 
 BASE_DIR = os.path.expanduser('~')
+ENV_FILE_PATH_FROM_LOCAL_ENV = os.environ.get('FSQLFLY')
 ENV_FILE_PATH = os.path.join(BASE_DIR, '.fsqlfly')
+if ENV_FILE_PATH_FROM_LOCAL_ENV and os.path.exists(ENV_FILE_PATH_FROM_LOCAL_ENV):
+    logger.debug('Change Env File to {}'.format(ENV_FILE_PATH_FROM_LOCAL_ENV))
+    ENV_FILE_PATH = ENV_FILE_PATH_FROM_LOCAL_ENV
 if os.path.exists(ENV_FILE_PATH) and os.path.isfile(ENV_FILE_PATH):
     logging.debug("Load Env File From {} ".format(ENV_FILE_PATH))
     load_dotenv(dotenv_path=Path(ENV_FILE_PATH))
+else:
+    logging.debug("Not Found Valid Env File ".format(ENV_FILE_PATH))
+
 
 ENV = os.environ.get
 FSQLFLY_DEBUG = ENV('FSQLFLY_DEBUG') is not None

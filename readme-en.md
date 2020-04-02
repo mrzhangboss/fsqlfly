@@ -1,9 +1,22 @@
 # Flink SQL Job Management Website
 
+
+## Display
+
+
+
+
 > require
 
 1. python3.6+
 2. flink 1.9.0+ installed (need set `FSQLFLY_FLINK_BIN_DIR` in ~/.fsqlfly or in env)
+
+ps: if you want run multi fsqlfly in one computer, you can set `FSQLFLY` in env , like
+
+    export FSQLFLY=/path/where/you/like
+    fsqlfly comand
+    
+you can generate a env template by `fsqlfly echoenv [filename]`
 
 
 > install
@@ -28,15 +41,26 @@
 
 > support canal consumer(load mysql log data to kafka)
 
+**require install [canal v1.1.4+](https://github.com/alibaba/canal)** 
+
     pip install fsqlfly[canal]
-    fsqlfly canal --bootstrap_servers=localhost:9092 --canal_host=localhost --canal_port=10000 --canal_destination=demo \
-    --canal_username=example --canal_password=pp --canal_client_id=12312412 --canal_table_filter=.*
+    fsqlfly canal --bootstrap_servers=localhost:9092 --canal_host=localhost --canal_port=11111 --canal_destination=demo \
+    --canal_username=example --canal_password=pp --canal_client_id=1232
     
-you can use   `fsqlfly canal -h` get more information
+ps: you can use   `fsqlfly canal -h` get more information, you can set all varies in `.fsqlfly` file 
+eg: 
+
+    canal_username=root
+    canal_destination=example
+    canal_password=password
+    canal_client_id=123
+    bootstrap_servers=hadoop-1:9092,hadoop-2:9092
+    canal_table_filter="database\\..*"
+    canal_host=localhost
+    
 
  
-if you want to read this in kafka mysql  
-support load mysql database as mysql(both) |kafka(update and create)|elasticsearch(save) resource
+if you want to use canal data in flink , support load mysql database as mysql(both) |kafka(update and create)|elasticsearch(save) resource
 
 
     pip install fsqlfly[canal]
@@ -82,3 +106,27 @@ ps: the admin token value is `FSQLFLY_PASSWORD` md5 hex value, you can generate 
         md5 = hashlib.md5()
         md5.update(b'password')
         token = md5.hexdigest()
+
+
+if you want control all flink sql job start and stop by api, you can add token in url or header without login
+
+
+## API
+
+> need login by token(in request params `token`)
+
+- jobs
+
+        url: /api/job
+        method: get
+        
+
+- job control 
+
+      url: /api/job/<mode(start|stop|restart)>/<id>
+      method: post
+
+ 
+ 
+
+

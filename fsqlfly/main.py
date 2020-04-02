@@ -7,13 +7,11 @@ from fsqlfly.app import run_web
 from fsqlfly import settings
 
 
-
 def run_webserver(commands: list):
     try:
         run_web()
     except KeyboardInterrupt:
         logzero.logger.info("Stop Web...")
-
 
 
 def run_canal(commands: list):
@@ -47,8 +45,18 @@ def reset_db(commands: list):
     delete_all_tables(force=args.force)
 
 
+def run_echo_env(commands: list):
+    if len(commands) > 0:
+        out = open(commands[0], 'w')
+    else:
+        out = sys.stdout
+    import os
+    print(open(os.path.join(settings.ROOT_DIR, 'env.template'), 'r').read(), file=out)
+
+
 def main():
     support_command = {
+        "echoenv": run_echo_env,
         "webserver": run_webserver,
         "initdb": init_db,
         "resetdb": reset_db,
