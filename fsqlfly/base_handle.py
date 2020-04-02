@@ -76,6 +76,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def write_error(self, status_code, **kwargs):
         kwargs['code'] = status_code
+        kwargs['success'] = status_code == 200
         if 'msg' not in kwargs:
             kwargs['msg'] = self.code_msg.get(status_code, 'Unknown error.')
 
