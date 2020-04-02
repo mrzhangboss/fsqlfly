@@ -47,7 +47,10 @@ class BaseHandler(tornado.web.RequestHandler):
         return '/login'
 
     def set_login_status(self):
-        self.set_cookie('user', 'admin')
+        self.set_secure_cookie('user', 'admin')
+
+    def set_logout_status(self):
+        self.clear_cookie('user')
 
     @property
     def json_body(self) -> dict:

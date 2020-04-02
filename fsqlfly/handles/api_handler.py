@@ -28,4 +28,14 @@ class LoginHandler(BaseHandler):
             self.write_error(RespCode.LoginFail)
 
 
-default_handlers = [(r'/api/login', LoginHandler)]
+class LoginOutHandler(BaseHandler):
+    def get(self):
+        if self.current_user:
+            self.set_logout_status()
+            self.write_json(user)
+
+
+default_handlers = [
+    (r'/api/login', LoginHandler),
+    (r'/api/logout', LoginOutHandler),
+]
