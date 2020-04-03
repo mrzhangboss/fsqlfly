@@ -54,7 +54,7 @@ class LoadMySQLResource(CanalConsumer):
                             default=None)
 
         parser.add_argument('--kafka_connector_start_mode', action='store', type=int,
-                            help='kafka connector start mode',
+                            help='kafka connector start mode support [earliest-offset|latest-offset|group-offsets|specific-offsets]',
                             default=None)
         parser.add_argument('--kafka_process_time_name', action='store', type=int,
                             help='kafka process time name',
