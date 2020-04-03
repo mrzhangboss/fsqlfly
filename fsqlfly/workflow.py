@@ -135,8 +135,7 @@ def run_debug_transform(data: dict, manager: NamedTermManager) -> (str, str):
     logger.debug('sql :{}'.format(real_sql))
     term.ptyproc.write(real_sql)
     term.term_name = name
+    setattr(term, settings.TERMINAL_OPEN_NAME, True)
     term.run_command = ' '.join(run_commands)
-
     manager.terminals[name] = term
-    manager.start_reading(term)
-    return term
+    return name
