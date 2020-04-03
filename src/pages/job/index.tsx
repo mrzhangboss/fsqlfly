@@ -39,6 +39,7 @@ interface BasicListProps extends FormComponentProps {
 interface BasicListState {
   search: string;
   tag: number;
+  status: string;
 }
 
 const NAMESPACE = 'job';
@@ -47,6 +48,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   state: BasicListState = {
     search: '',
     tag: 0,
+    status: 'RUNNING',
   };
 
   componentDidMount() {
@@ -85,11 +87,15 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   getListContent = () => {
-    const { tag, search } = this.state;
+    const { tag, search, status } = this.state;
     const { listBasicList } = this.props;
-    return listBasicList.filter(
-      x => x.name.indexOf(search) >= 0 && (tag !== 0 ? x.namespaceId === tag : true),
-    );
+    return listBasicList.filter(x => {
+      const isMatch = x.name.indexOf(search) >= 0 && (tag !== 0 ? x.namespaceId === tag : true);
+      if (status === 'ALL') {
+        return isMatch;
+      }
+      return x.status === status && isMatch;
+    });
   };
 
   getNamespace = (id?: number) => {
@@ -153,6 +159,16 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const RadioButton = Radio.Button;
     const { Search } = Input;
     const { search } = this.state;
+    const disNum = 6;
+    const allStatus = [
+      'ALL',
+      'RUNNING',
+      'CANCELED',
+      'FAILED',
+      'FINISHED',
+      'SUSPENDED',
+      'RECONCILING',
+    ];
 
     const extraContent = (
       <div className={styles.extraContent}>
@@ -164,7 +180,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             全部
           </RadioButton>
           {namespaces.length > 0 &&
-            namespaces.slice(0, 8).map((x: Namespace) => {
+            namespaces.slice(0, disNum).map((x: Namespace) => {
               return (
                 <Tooltip title={x.name} placement="left">
                   <RadioButton className={styles.namespaceButton} key={x.id} value={x.id}>
@@ -173,13 +189,13 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 </Tooltip>
               );
             })}
-          {namespaces.length > 8 && (
+          {namespaces.length > disNum && (
             <Dropdown
               className={styles.namespaceButton}
               overlay={
                 // @ts-ignore
                 <Menu onClick={({ key }) => this.setState({ tag: key })}>
-                  {namespaces.slice(8, namespaces.length + 1).map((x: Namespace) => {
+                  {namespaces.slice(disNum, namespaces.length + 1).map((x: Namespace) => {
                     return (
                       <Menu.Item key={x.id}>
                         <Tooltip title={x.name} placement="left">
@@ -197,6 +213,25 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               </Button>
             </Dropdown>
           )}
+          <Dropdown
+            className={styles.namespaceButton}
+            overlay={
+              <Menu onClick={({ key }) => this.setState({ status: key })}>
+                {allStatus.map((x: string) => {
+                  return (
+                    <Menu.Item key={x}>
+                      <span>{x}</span>
+                    </Menu.Item>
+                  );
+                })}
+              </Menu>
+            }
+          >
+            <Button>
+              状态
+              <DownOutlined />
+            </Button>
+          </Dropdown>
         </RadioGroup>
 
         <Search

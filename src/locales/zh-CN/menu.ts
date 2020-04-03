@@ -50,7 +50,7 @@ export default {
   'menu.source-table': '来源表',
   'menu.resources': '资源管理',
   'menu.resources.count': '统计',
-  'menu.resources.resource': '脚本数据源',
+  'menu.resources.resource': '数据源',
   'menu.transform': '数据处理',
   'menu.resources.function': '函数',
   'menu.resources.file': '文件',

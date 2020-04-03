@@ -179,6 +179,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     this.setState({
       editVisible: true,
       current: item,
+      submitted: false,
+      edithSubmit: false,
     });
   };
 
