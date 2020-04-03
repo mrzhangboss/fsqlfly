@@ -12,6 +12,10 @@ const cutStr = (str?: string | null, len?: number): string => {
     : str.substring(0, len === undefined ? MAX_LENGTH : len);
 };
 
+const nullif = (v: any | null | undefined, t: any): any => {
+  return v === undefined || v === null ? t : v;
+};
+
 const isAntDesignPro = (): boolean => {
   if (ANT_DESIGN_PRO_ONLY_DO_NOT_USE_IN_YOUR_PRODUCTION === 'site') {
     return true;
@@ -28,4 +32,4 @@ const isAntDesignProOrDev = (): boolean => {
   return isAntDesignPro();
 };
 
-export { isAntDesignProOrDev, isAntDesignPro, isUrl, MAX_LENGTH, cutStr };
+export { isAntDesignProOrDev, isAntDesignPro, isUrl, MAX_LENGTH, cutStr, nullif };

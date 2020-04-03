@@ -28,7 +28,7 @@ import Result from '../components/Result';
 import { PageHeaderWrapper } from '@ant-design/pro-layout';
 
 import styles from '../style.less';
-import { cutStr } from '@/utils/utils';
+import { cutStr, nullif } from '@/utils/utils';
 
 const FormItem = Form.Item;
 const { Search, TextArea } = Input;
@@ -382,7 +382,11 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                     ]}
                   >
                     <List.Item.Meta
-                      avatar={<Avatar src={item.avatar} shape="square" size="large" />}
+                      avatar={
+                        <Avatar src={item.avatar} shape="square" size="large">
+                          {nullif(item.avatar, item.name)}
+                        </Avatar>
+                      }
                       title={
                         <Tooltip title={item.name}>
                           <a href="#">{cutStr(item.name)}</a>

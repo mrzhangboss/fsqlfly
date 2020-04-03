@@ -213,10 +213,16 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     this.getAllData().slice((currentPage - 1) * pageSize, currentPage * pageSize);
   };
 
-  getAvar = (id: number) => {
+  getAvatar = (id: number) => {
     const { namespaces } = this.props;
     const data = namespaces.filter(x => x.id === id);
     return data.length > 0 ? data[0].avatar : '';
+  };
+
+  getNamespaceText = (id: number) => {
+    const { namespaces } = this.props;
+    const data = namespaces.filter(x => x.id === id);
+    return data.length > 0 ? (data[0].avatar !== null ? '' : data[0].name) : 'DEFAULT';
   };
 
   onTagChage = (event: RadioChangeEvent) => {
@@ -542,7 +548,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                         </Tooltip>
                       }
                       avatar={
-                        <Avatar src={this.getAvar(item.namespaceId)} shape="square" size="large" />
+                        <Avatar src={this.getAvatar(item.namespaceId)} shape="square" size="large">
+                          {this.getNamespaceText(item.namespaceId)}{' '}
+                        </Avatar>
                       }
                       description={
                         <Tooltip title={item.info}>

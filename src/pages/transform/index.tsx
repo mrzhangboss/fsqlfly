@@ -43,7 +43,7 @@ import 'brace/mode/yaml';
 import 'brace/theme/solarized_dark';
 import 'brace/theme/github';
 import TextArea from 'antd/es/input/TextArea';
-import { cutStr } from '@/utils/utils';
+import { cutStr, nullif } from '@/utils/utils';
 
 interface BasicListProps extends FormComponentProps {
   listBasicList: TransformInfo[];
@@ -280,17 +280,14 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     if (namespace === null) {
       return (
         <Avatar alt={item.info} shape="square" size="large">
-          {item.name.substr(0, 2)}
+          DEFAULT
         </Avatar>
       );
     }
     return (
-      <Avatar
-        src={namespace === null ? '' : namespace.avatar}
-        alt={item.info}
-        shape="square"
-        size="large"
-      />
+      <Avatar src={namespace.avatar} alt={item.info} shape="square" size="large">
+        {nullif(namespace.avatar, namespace.name)}
+      </Avatar>
     );
   };
 
