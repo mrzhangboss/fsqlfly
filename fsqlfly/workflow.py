@@ -7,7 +7,7 @@ import yaml
 from typing import Optional
 from jinja2 import Template
 from terminado.management import NamedTermManager
-from fsqlfly.settings import BASE_DIR, FSQLFLY_FLINK_BIN, logger
+from fsqlfly.settings import FSQLFLY_UPLOAD_DIR, FSQLFLY_FLINK_BIN, logger
 from fsqlfly.models import Transform, Namespace, Resource, Functions
 from fsqlfly import settings
 
@@ -35,9 +35,13 @@ def _get_functions() -> list:
 def _get_jar() -> str:
     res = []
     for f in Functions.select().where(Functions.is_deleted == False).objects():
-        r_p = os.path.join(BASE_DIR, f.resource.real_path[1:])
+        r_p = os.path.join(FSQLFLY_UPLOAD_DIR, f.resource.real_path[1:])
         res.append(r_p)
-    return ' '.join('-j {} '.format(x) for x in set(res))
+
+    out = []
+    for x in set(res):
+        out.extend(['-j', x])
+    return out
 
 
 def _create_config(require: str, config: Optional[str], **kwargs) -> str:
@@ -52,8 +56,8 @@ def _create_config(require: str, config: Optional[str], **kwargs) -> str:
             if space:
                 space = Namespace.select().where(Namespace.name == space).get()
 
-            resource = Resource.select().where(Namespace.name == name & Namespace.namespace == space).get()
-            resource_only_name = Resource.select().where(Resource.name == name).get()
+            resource = Resource.select().where(Namespace.name == name & Resource.namespace == space).first()
+            resource_only_name = Resource.select().where(Resource.name == name).first()
             if resource is None and resource_only_name is not None:
                 resource = resource_only_name
 
@@ -91,7 +95,7 @@ def run_transform(transform: Transform, **kwargs) -> (bool, str):
     run_commands = [FSQLFLY_FLINK_BIN, 'embedded',
                     '-s', '{}_{}.{}-'.format(transform.id, transform.name, pt),
                     '--environment', yaml_f,
-                    _get_jar(),
+                    *_get_jar(),
                     '<', sql_f]
     print(' '.join(run_commands))
     try:
@@ -124,9 +128,10 @@ def run_debug_transform(data: dict, manager: NamedTermManager) -> (str, str):
     run_commands = [FSQLFLY_FLINK_BIN, 'embedded',
                     '-s', '{}{}.'.format(settings.TEMP_TERMINAL_HEAD, str(name)),
                     '--environment', yaml_f,
-                    _get_jar()]
+                    *_get_jar()]
     logger.debug('running commands is : {}'.format(' '.join(run_commands)))
     term = manager.new_terminal(shell_command=run_commands)
+
     logger.debug('sql :{}'.format(real_sql))
     term.ptyproc.write(real_sql)
     term.term_name = name
