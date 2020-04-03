@@ -1,3 +1,5 @@
+import asyncio
+import time
 import tornado.web
 from terminado import TermSocket
 from tornado.web import authenticated
@@ -13,15 +15,36 @@ class TerminalHandler(BaseHandler):
     def get(self):
         tm = self.terminal_manager
         terms = [{'name': name, 'id': name} for name in tm.terminals]
-        self.write_json(dict(data=terms))
+        self.write_json(create_response(data=terms))
 
 
 class TerminalNewHandler(BaseHandler):
+    @classmethod
+    async def test_term_alive(cls, term, max_s=2):
+        start = time.time()
+        msgs = ['running commands: \n', term.run_command, '\nerror info\n']
+        while time.time() - start < max_s:
+            if not term.ptyproc.isalive():
+                return ''.join(msgs)
+            msgs.append(term.ptyproc.read())
+            await asyncio.sleep(.5)
+        return ''.join(msgs)
+
+
+
+
     @authenticated
-    def post(self, mode: str, pk: int):
+    async def post(self, mode: str, pk: int):
         if mode == 'debug':
-            num = run_debug_transform(self.json_body, self.terminal_manager)
-            self.write_json(create_response({"url": '/terminal/{}'.format(num)}))
+            term = run_debug_transform(self.json_body, self.terminal_manager)
+            msg = await self.test_term_alive(term)
+            if term.ptyproc.isalive():
+                self.write_json(create_response({"url": '/terminal/{}'.format(term.term_name)}))
+            else:
+                # self.write_error(RespCode.APIFail, msg=term.ptyproc.read())
+                self.write_error(RespCode.APIFail, msg=msg)
+
+
         else:
             self.redirect('/api/job/{}/{}'.format(mode, pk))
 
