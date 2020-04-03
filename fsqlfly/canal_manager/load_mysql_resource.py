@@ -275,7 +275,7 @@ class LoadMySQLResource(CanalConsumer):
             res = Resource.create(**data)
             print(' create a resource', res.id, res.name)
         else:
-            resource = Resource.select().where(id=resource[name]).first()
+            resource = Resource.select().where(Resource.id==resource[name]).first()
             for k, v in data.items():
                 setattr(resource, k, v)
             resource.save()
