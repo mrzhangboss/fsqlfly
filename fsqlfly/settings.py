@@ -103,7 +103,7 @@ FSQLFLY_FLINK_MAX_TERMINAL = int(ENV('FSQLFLY_FLINK_MAX_TERMINAL', '100'))
 FSQLFLY_WEB_PORT = int(ENV('FSQLFLY_WEB_PORT', '8082'))
 
 TERMINAL_MANAGER = NamedTermManager(
-    shell_command=[join(FSQLFLY_FLINK_BIN_DIR, 'sql-client.sh'), 'embedded'],
+    shell_command=['bash', '-c', '"echo you flink sql job execute error please see log for more detail;exit;"'],
     max_terminals=FSQLFLY_FLINK_MAX_TERMINAL)
 
 FSQLFLY_JOB_LOG_DIR = ENV('FSQLFLY_JOB_LOG_DIR', '/tmp/fsqlfly_job_log')
