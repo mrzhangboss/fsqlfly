@@ -35,7 +35,6 @@ class LoadMySQLResource(CanalConsumer):
     def add_arguments(self, parser):
         parser.add_argument('--host', action='store', help='mysql host')
         parser.add_argument('--database', action='store', help='mysql database')
-        parser.add_argument('--namespace', action='store', help='basic namespace')
         parser.add_argument('--category', action='store', help='from system', default="mysql",
                             choices=['mysql', 'es', 'kafka'])
         parser.add_argument('--tables', action='store', help='mysql tables', default="*")
@@ -62,7 +61,6 @@ class LoadMySQLResource(CanalConsumer):
         self.add_arguments_for_canal_suffix(parser)
 
     def _init_global_args(self, options: dict):
-        self.NAMESPACE = options['namespace']
         es_hosts = []
         for url in options['es'].split(','):
             protocol, h_p = url.split('//')
@@ -78,6 +76,7 @@ class LoadMySQLResource(CanalConsumer):
 
         host, port, database = options['host'], options['port'], options['database']
         self.JDBC_URL = f"jdbc:mysql://{host}:{port}/{database}?useSSL=false"
+        self.NAMESPACE = database
 
         self.KAFKA_BOOTSTRAP_SERVERS = options['kafka']
 
@@ -275,7 +274,7 @@ class LoadMySQLResource(CanalConsumer):
             res = Resource.create(**data)
             print(' create a resource', res.id, res.name)
         else:
-            resource = Resource.select().where(Resource.id==resource[name]).first()
+            resource = Resource.select().where(Resource.id == resource[name]).first()
             for k, v in data.items():
                 setattr(resource, k, v)
             resource.save()

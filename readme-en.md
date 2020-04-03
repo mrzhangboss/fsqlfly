@@ -64,7 +64,7 @@ if you want to use canal data in flink , support load mysql database as mysql(bo
 
 
     pip install fsqlfly[canal]
-    fsqlfly loadmysql --host=localhost --database=fsqlfly --namespace=demo --category=kafka --tables=* --password=password --username=root
+    fsqlfly loadmysql --host=localhost --database=fsqlfly --category=kafka --tables=* --password=password --username=root
     
 you can set category as (kafka,mysql,es), it will create resource automatic by database  
 
