@@ -2,12 +2,10 @@
 import sys
 import argparse
 import logzero
-from fsqlfly.models import delete_all_tables, create_all_tables
-from fsqlfly.app import run_web
-from fsqlfly import settings
 
 
 def run_webserver(commands: list):
+    from fsqlfly.app import run_web
     try:
         run_web()
     except KeyboardInterrupt:
@@ -25,6 +23,7 @@ def run_load_mysql_resource(commands: list):
 
 
 def run_job_daemon(commands: list):
+    from fsqlfly import settings
     from fsqlfly.job_manager.daemon import FlinkJobDaemon
     daemon = FlinkJobDaemon(settings.FSQLFLY_FINK_HOST,
                             settings.FSQLFLY_JOB_DAEMON_FREQUENCY,
@@ -35,10 +34,13 @@ def run_job_daemon(commands: list):
 
 
 def init_db(commands: list):
+    from fsqlfly.models import create_all_tables
+
     create_all_tables()
 
 
 def reset_db(commands: list):
+    from fsqlfly.models import delete_all_tables
     conformed_parser = argparse.ArgumentParser("Conformed")
     conformed_parser.add_argument('-f', '--force', type=bool, default=False, help='force running')
     args = conformed_parser.parse_args(commands)
@@ -51,6 +53,7 @@ def run_echo_env(commands: list):
     else:
         out = sys.stdout
     import os
+    from fsqlfly import settings
     print(open(os.path.join(settings.ROOT_DIR, 'env.template'), 'r').read(), file=out)
 
 
