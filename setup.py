@@ -8,7 +8,7 @@ from setuptools import Command, setup, find_packages
 with open("readme-en.md", "r") as fh:
     long_description = fh.read()
 
-VERSION = "2.0.0"
+VERSION = "3.0.1"
 REQUIRED = [x for x in open("requirement.txt", "r").read().split('\n') if x]
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -51,9 +51,9 @@ class UploadCommand(Command):
         sys.exit()
 
 
-canal_require = ['canal-python == 0.4', 'kafka-python >= 1.3.4, <= 1.4.7', 'protobuf == 3.11.3', 'sqlalchemy == 1.3.15']
-postgresql_require = ['psycopg2 == 2.8.4']
-mysql_require = ['PyMySQL == 0.9.3']
+canal_require = ['canal-python <= 0.4', 'kafka-python >= 1.3.4, <= 1.4.7', 'protobuf <= 3.11.3', 'sqlalchemy <= 1.3.15']
+postgresql_require = ['psycopg2 <= 2.8.4']
+mysql_require = ['PyMySQL <= 0.9.3']
 setup(
     name="fsqlfly",
     version=VERSION,
