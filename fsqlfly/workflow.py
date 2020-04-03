@@ -54,7 +54,7 @@ def _create_config(require: str, config: Optional[str], **kwargs) -> str:
                 space, name = None, x
 
             if space:
-                space = Namespace.select().where(Namespace.name == space).get()
+                space = Namespace.select().where(Namespace.name == space).first()
 
             resource = Resource.select().where(Namespace.name == name & Resource.namespace == space).first()
             resource_only_name = Resource.select().where(Resource.name == name).first()
