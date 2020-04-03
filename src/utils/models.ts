@@ -2,6 +2,7 @@
 
 import { IDObject } from './data';
 import { getAllService, createService, deleteService, updateService, runService } from './services';
+import { message } from 'antd';
 
 type IStateType<T> = {
   list: T[];
@@ -63,20 +64,29 @@ function getListModel<T extends IDObject>(
     effects: {
       *fetch({ payload }, { call, put }) {
         const res: JsonResult = yield call(getAllService(namespace), payload);
-        yield put({
-          type: 'init',
-          data: Array.isArray(res.data) ? res.data : [],
-        });
+        if (res !== undefined && res.success) {
+          yield put({
+            type: 'init',
+            data: Array.isArray(res.data) ? res.data : [],
+          });
+        } else {
+          message.error(res.msg);
+        }
+
         if (dependNamespces.length > 0) {
           for (var i = 0; i < dependNamespces.length; i++) {
             let name = dependNamespces[i];
             const dependence: JsonResult = yield call(getAllService(name), payload);
             let saveName = i === 0 ? 'dependence' : 'dependence' + i;
-            yield put({
-              type: 'initDependence',
-              name: saveName,
-              data: Array.isArray(dependence.data) ? dependence.data : [],
-            });
+            if (dependence !== undefined && dependence.success) {
+              yield put({
+                type: 'initDependence',
+                name: saveName,
+                data: Array.isArray(dependence.data) ? dependence.data : [],
+              });
+            } else {
+              message.error(dependence.msg);
+            }
           }
         }
       },

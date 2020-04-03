@@ -5,6 +5,7 @@ import { AnyAction, Reducer } from 'redux';
 // import { number } from 'prop-types';
 import { CountPage } from './data';
 import { queryCountInfo } from './servers';
+import { message } from 'antd';
 
 export type Effect = (
   action: AnyAction,
@@ -36,10 +37,14 @@ const Model: ModelType = {
   effects: {
     *fetch({}, { call, put }) {
       const response = yield call(queryCountInfo);
-      yield put({
-        type: 'update',
-        payload: response !== undefined ? response : {},
-      });
+      if (response !== undefined && response.success) {
+        yield put({
+          type: 'update',
+          payload: response !== undefined ? response : {},
+        });
+      } else {
+        message.error(response.msg);
+      }
     },
   },
   reducers: {
