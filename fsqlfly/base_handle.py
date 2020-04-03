@@ -11,7 +11,8 @@ from fsqlfly import settings
 
 class RespCode:
     Success = 200
-    NeedLogin = 500
+    ServerError = 500
+    NeedLogin = 503
     LoginFail = 501
     APIFail = 502
     InvalidHttpMethod = 405
@@ -69,6 +70,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     code_msg = {
         RespCode.NeedLogin: 'Need Login',
+        RespCode.ServerError: 'Web Server Error',
         RespCode.LoginFail: 'Wrong Password or Token',
         RespCode.InvalidHttpMethod: 'Invalid HTTP method.',
         RespCode.APIFail: 'Invalid API Request',
@@ -79,7 +81,7 @@ class BaseHandler(tornado.web.RequestHandler):
         kwargs['success'] = status_code == 200
         if 'msg' not in kwargs:
             kwargs['msg'] = self.code_msg.get(status_code, 'Unknown error.')
-
+        self.set_status(200)
         self.write_json(kwargs)
 
     def write_json(self, res: dict):
