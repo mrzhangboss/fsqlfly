@@ -135,3 +135,14 @@ you can send `pt` value in request body.I recommend you control daily job by `ai
  
 
 
+
+## Quick Start
+
+
+1. unzip Flink 1.10.0 to /opt/flink
+2. `pip install fsqlfly`
+3. `fsqlfly echoenv ~/.fsqlfly`
+4.  change the value `FSQLFLY_FLINK_BIN_DIR` in `~/.fsqlfly` to your flink bin dir  like `/opt/flink/bin`
+5.  `fsqlfly initdb`
+6. `fsqlfly runwebserver`
+7. open your browser in `http://localhost:8082` the password is `password`

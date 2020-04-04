@@ -6,16 +6,6 @@
 
 1. Python3.6+
 2. Flink 1.9+（推荐Flink1.10)已安装
-
-
-## 安装
-
-    pip install fsqlfly
- 
-
-## 部署
-
-    fsqlfly webserver
  
   
 
@@ -25,13 +15,13 @@
 
 ![命名空间](images/namespace.png)
 
-> 编写实时SQL
-
-![实时SQL](images/sql.png)
 
 > 实时动态调试SQL
 
 ![SQL调试](images/debug.png)
+
+> 管理实时任务
+![任务管理](images/job.png)
 
 
 ## 支持功能
@@ -43,9 +33,13 @@
 - 动态调试SQL任务
 - 导入关系数据库源
 - 监控SQL任务运行并能自动重启
-
+- Flink集群任务总览
+- SQL任务管理（当前可以通过Flink自带的管理界面管理）
 
 ## TODO
 
-- Flink集群任务总览
-- SQL任务管理（当前可以通过Flink自带的管理界面管理）
+
+[具体部署细节](readme-en.md)
+[flink hive and connecter 支持](flink_install.md)
+
+
