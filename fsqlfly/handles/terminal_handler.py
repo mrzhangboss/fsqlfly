@@ -46,7 +46,9 @@ class MyTermSocket(TermSocket):
         terminal = self.term_manager.get_terminal(url_component)
         open_name = settings.TERMINAL_OPEN_NAME
         if hasattr(terminal, open_name) and getattr(terminal, open_name):
+            setattr(terminal, open_name, False)
             self.term_manager.start_reading(terminal)
+
 
 
 default_handlers = [
