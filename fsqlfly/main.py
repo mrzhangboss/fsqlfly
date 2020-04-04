@@ -1,7 +1,9 @@
 # -*- coding:utf-8 -*-
+import os
 import sys
 import argparse
 import logzero
+from os.path import join, dirname, abspath
 
 
 def run_webserver(commands: list):
@@ -52,9 +54,9 @@ def run_echo_env(commands: list):
         out = open(commands[0], 'w')
     else:
         out = sys.stdout
-    import os
-    from fsqlfly import settings
-    print(open(os.path.join(settings.ROOT_DIR, 'env.template'), 'r').read(), file=out)
+
+    lib_path = dirname(abspath(__file__))
+    print(open(join(lib_path, 'env.template'), 'r').read(), file=out)
 
 
 def main():
