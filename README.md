@@ -40,6 +40,6 @@
 
 
 [具体部署细节](readme-en.md)
-[flink hive and connecter 支持](flink_install.md)
+[flink hive and connector 支持](flink_install.md)
 
 
