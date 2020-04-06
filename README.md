@@ -40,6 +40,9 @@
 
 
 [具体部署细节](readme-en.md)
+
+[快速开始](readme-en.md#quick-start)
+
 [flink hive and connector 支持](flink_install.md)
 
 
