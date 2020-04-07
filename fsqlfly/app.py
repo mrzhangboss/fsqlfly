@@ -1,11 +1,8 @@
 # -*- coding:utf-8 -*-
-import os
-import logging
 import tornado.ioloop
 import tornado.web
 import tornado.log
-from tornado.options import parse_command_line, options
-from terminado.management import NamedTermManager
+from typing import Callable, Optional
 from logzero import logger
 from fsqlfly import settings
 from fsqlfly import handles
@@ -17,7 +14,7 @@ class IndexHandler(tornado.web.RequestHandler):
         self.write(settings.INDEX_HTML)
 
 
-def run_web():
+def run_web(*args, extend_command: Optional[Callable] = None, **kwargs):
     application = tornado.web.Application(
         handles.all_handles + [
             (r"/static/(.*)", tornado.web.StaticFileHandler,
@@ -32,12 +29,8 @@ def run_web():
     )
     logger.info("start running on http://localhost:{} ... ".format(settings.FSQLFLY_WEB_PORT))
     application.listen(settings.FSQLFLY_WEB_PORT)
-    # tornado.options.options.logging = 'error'
-    tornado.options.options.logging = None
-    tornado.options.options.log_to_stderr = False
-    # parse_command_line()
-
-
+    if extend_command is not None:
+        extend_command()
     tornado.ioloop.IOLoop.current().start()
 
 

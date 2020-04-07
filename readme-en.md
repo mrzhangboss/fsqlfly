@@ -29,15 +29,16 @@ you can generate a env template by `fsqlfly echoenv [filename]`
 
 > run website
    
-    fsqlfly webserver
+    fsqlfly webserver [--jobdaemon]
+    
+ps: if you want daemon all flink sql job(need set publish and available), add `--jobdaemon` in commands
+
     
 > reset database (warning it'll delete all data)
     
-    fsqlfly webserver
+    fsqlfly resetdb
     
-> daemon all flink sql job
 
-    fsqlfly jobdaemon
 
 > support canal consumer(load mysql log data to kafka)
 

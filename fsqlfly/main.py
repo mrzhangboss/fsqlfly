@@ -5,9 +5,22 @@ import logzero
 
 
 def run_webserver(commands: list):
+    extend_command = None
+    if '--jobdaemon' in commands:
+        from fsqlfly.job_manager.daemon import FlinkJobDaemon
+        from fsqlfly import settings
+        daemon = FlinkJobDaemon(settings.FSQLFLY_FINK_HOST,
+                                settings.FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY,
+                                settings.FSQLFLY_JOB_LOG_FILE)
+        extend_command = daemon.get_periodic_callback(settings.FSQLFLY_JOB_DAEMON_FREQUENCY)
+        logzero.logger.debug('add job daemon command {}: {}: {}: {}'.format(settings.FSQLFLY_FINK_HOST,
+                                                                        settings.FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY,
+                                                                        settings.FSQLFLY_JOB_LOG_FILE,
+                                                                        settings.FSQLFLY_JOB_DAEMON_FREQUENCY))
+
     from fsqlfly.app import run_web
     try:
-        run_web()
+        run_web(extend_command=extend_command)
     except KeyboardInterrupt:
         logzero.logger.info("Stop Web...")
 
@@ -20,17 +33,6 @@ def run_canal(commands: list):
 def run_load_mysql_resource(commands: list):
     from fsqlfly.canal_manager.load_mysql_resource import LoadMySQLResource
     LoadMySQLResource().execute()
-
-
-def run_job_daemon(commands: list):
-    from fsqlfly import settings
-    from fsqlfly.job_manager.daemon import FlinkJobDaemon
-    daemon = FlinkJobDaemon(settings.FSQLFLY_FINK_HOST,
-                            settings.FSQLFLY_JOB_DAEMON_FREQUENCY,
-                            settings.FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY,
-                            settings.FSQLFLY_JOB_LOG_FILE)
-    print('daemon running...')
-    daemon.run()
 
 
 def init_db(commands: list):
@@ -63,7 +65,6 @@ def main():
         "webserver": run_webserver,
         "initdb": init_db,
         "resetdb": reset_db,
-        "jobdaemon": run_job_daemon,
         "loadmysql": run_load_mysql_resource,
         "canal": run_canal,
     }
