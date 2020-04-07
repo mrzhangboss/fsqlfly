@@ -57,7 +57,6 @@ class JobControl:
         return False
 
     def __init__(self, flink_host=None):
-        print(flink_host)
         self.host = flink_host
         self.session = Session()
         self.cache = Cache()
