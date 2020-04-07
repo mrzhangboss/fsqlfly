@@ -11,7 +11,7 @@ from logzero import logger
 from tornado.web import authenticated
 from collections import namedtuple, defaultdict
 from fsqlfly.settings import FSQLFLY_FINK_HOST, TEMP_TERMINAL_HEAD
-from fsqlfly.models import Transform
+from fsqlfly.models import Transform, auto_close
 from fsqlfly.workflow import run_transform
 from fsqlfly.base_handle import BaseHandler
 from fsqlfly.utils.response import create_response
@@ -162,6 +162,7 @@ JobControlHandle = JobControl(FSQLFLY_FINK_HOST)
 
 class JobHandler(BaseHandler):
     @authenticated
+    @auto_close
     def get(self, mode: str, pk: str):
         handle_name = 'handle_' + mode
         if mode in JobControlHandle and handle_name in JobControlHandle:

@@ -6,7 +6,7 @@ from tornado.web import authenticated
 from logzero import logger
 from fsqlfly import settings
 from fsqlfly.base_handle import BaseHandler, RespCode
-from fsqlfly.models import Namespace, FileResource, Functions, Transform, Resource
+from fsqlfly.models import Namespace, FileResource, Functions, Transform, Resource, auto_close
 from fsqlfly.utils.strings import dict2camel, dict2underline
 from fsqlfly.utils.response import create_response
 
@@ -21,6 +21,7 @@ _MODELS = {
 
 class APICounter(BaseHandler):
     @authenticated
+    @auto_close
     def get(self):
         data = {
             "namespaceNum": Namespace.select().where(Namespace.is_deleted == False).count(),
@@ -35,6 +36,7 @@ class APICounter(BaseHandler):
 
 class CRHandler(BaseHandler):
     @authenticated
+    @auto_close
     def get(self, model: str):
         if model not in _MODELS:
             return self.write_error(RespCode.APIFail)
@@ -44,6 +46,7 @@ class CRHandler(BaseHandler):
         return self.write_json(create_response(data))
 
     @authenticated
+    @auto_close
     def post(self, model: str):
         if model not in _MODELS:
             return self.write_error(RespCode.APIFail)
@@ -63,6 +66,7 @@ class CRHandler(BaseHandler):
 
 class UDHandler(BaseHandler):
     @authenticated
+    @auto_close
     def post(self, model: str, pk: int):
         if model not in _MODELS:
             return self.write_error(RespCode.APIFail)
@@ -79,6 +83,7 @@ class UDHandler(BaseHandler):
         self.write_json(create_response(data=obj.to_dict()))
 
     @authenticated
+    @auto_close
     def delete(self, model: str, pk: int):
         if model not in _MODELS:
             return self.write_error(RespCode.APIFail)

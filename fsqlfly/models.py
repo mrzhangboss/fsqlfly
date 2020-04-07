@@ -1,5 +1,6 @@
 import logging
 import datetime
+import traceback
 from playhouse.shortcuts import model_to_dict
 from peewee import *
 from fsqlfly.settings import DATABASE
@@ -100,3 +101,18 @@ def delete_all_tables(force: bool = False):
 
 def create_all_tables():
     DATABASE.create_tables(TABLES)
+
+
+def auto_close(func):
+    def _wrapper(*args, **kwargs):
+        try:
+            if DATABASE.is_closed():
+                DATABASE.connect()
+            return func(*args, **kwargs)
+        except Exception as e:
+            traceback.print_exc(e)
+        finally:
+            if not DATABASE.is_closed():
+                DATABASE.close()
+
+    return _wrapper
