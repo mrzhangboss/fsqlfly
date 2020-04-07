@@ -103,11 +103,13 @@ FSQLFLY_FLINK_MAX_TERMINAL = int(ENV('FSQLFLY_FLINK_MAX_TERMINAL', '100'))
 FSQLFLY_WEB_PORT = int(ENV('FSQLFLY_WEB_PORT', '8082'))
 
 TERMINAL_MANAGER = NamedTermManager(
-    shell_command=['bash', '-c', '"echo you flink sql job execute error please see log for more detail;exit;"'],
+    shell_command=[FSQLFLY_FLINK_BIN, 'embedded'],
     max_terminals=FSQLFLY_FLINK_MAX_TERMINAL)
 
+TERMINAL_OPEN_NAME = '__NEED_OPEN_'
 FSQLFLY_JOB_LOG_DIR = ENV('FSQLFLY_JOB_LOG_DIR', '/tmp/fsqlfly_job_log')
 FSQLFLY_JOB_LOG_FILE = join(FSQLFLY_JOB_LOG_DIR, 'job_damon.log')
 os.makedirs(FSQLFLY_JOB_LOG_DIR, exist_ok=True)
 
 TEMP_TERMINAL_HEAD = '0__TEMPORARY__'
+

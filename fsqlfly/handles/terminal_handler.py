@@ -19,31 +19,11 @@ class TerminalHandler(BaseHandler):
 
 
 class TerminalNewHandler(BaseHandler):
-    @classmethod
-    async def test_term_alive(cls, term, max_s=2):
-        start = time.time()
-        msgs = ['running commands: \n', term.run_command, '\nerror info\n']
-        while time.time() - start < max_s:
-            if not term.ptyproc.isalive():
-                return ''.join(msgs)
-            msgs.append(term.ptyproc.read())
-            await asyncio.sleep(.5)
-        return ''.join(msgs)
-
-
-
-
     @authenticated
-    async def post(self, mode: str, pk: int):
+    def post(self, mode: str, pk: int):
         if mode == 'debug':
             term = run_debug_transform(self.json_body, self.terminal_manager)
-            msg = await self.test_term_alive(term)
-            if term.ptyproc.isalive():
-                self.write_json(create_response({"url": '/terminal/{}'.format(term.term_name)}))
-            else:
-                # self.write_error(RespCode.APIFail, msg=term.ptyproc.read())
-                self.write_error(RespCode.APIFail, msg=msg)
-
+            self.write_json(create_response({"url": '/terminal/{}'.format(term)}))
 
         else:
             self.redirect('/api/job/{}/{}'.format(mode, pk))
@@ -60,9 +40,20 @@ class TerminalStopHandler(BaseHandler):
             raise tornado.web.HTTPError(404, "Terminal not found: %r" % name)
 
 
+class MyTermSocket(TermSocket):
+    def open(self, url_component=None):
+        super(MyTermSocket, self).open(url_component)
+        terminal = self.term_manager.get_terminal(url_component)
+        open_name = settings.TERMINAL_OPEN_NAME
+        if hasattr(terminal, open_name) and getattr(terminal, open_name):
+            setattr(terminal, open_name, False)
+            self.term_manager.start_reading(terminal)
+
+
+
 default_handlers = [
     (r'/api/terminal', TerminalHandler),
-    (r"/_websocket/(\w+)", TermSocket, {'term_manager': settings.TERMINAL_MANAGER}),
+    (r"/_websocket/(\w+)", MyTermSocket, {'term_manager': settings.TERMINAL_MANAGER}),
     (r'/api/terminal/stop/(?P<name>\d+)', TerminalStopHandler),
     (r'/api/transform/(\w+)/(\d+)', TerminalNewHandler),
 ]
