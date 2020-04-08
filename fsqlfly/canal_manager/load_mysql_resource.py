@@ -75,7 +75,7 @@ class LoadMySQLResource(CanalConsumer):
         self.JDBC_PASSWORD = options['password']
 
         host, port, database = options['host'], options['port'], options['database']
-        self.JDBC_URL = f"jdbc:mysql://{host}:{port}/{database}?useSSL=false"
+        self.JDBC_URL = f"jdbc:mysql://{host}:{port}/{database}?useSSL=false&useUnicode=yes&characterEncoding=utf8"
         self.NAMESPACE = database
 
         self.KAFKA_BOOTSTRAP_SERVERS = options['kafka']
@@ -107,6 +107,13 @@ class LoadMySQLResource(CanalConsumer):
             "driver": "com.mysql.jdbc.Driver",
             "username": self.JDBC_USER,
             "password": self.JDBC_PASSWORD,
+            "write": {
+                "flush": {
+                    "max-rows": 10,
+                    "interval": "2s"
+                },
+                "max-retries": 10
+            }
 
         }
 
