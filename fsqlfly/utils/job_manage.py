@@ -5,13 +5,14 @@ import math
 import traceback
 from io import StringIO
 from typing import List, Any, Set
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from datetime import datetime
 from requests import Session
 from logzero import logger
 from fsqlfly.settings import FSQLFLY_FINK_HOST
-from fsqlfly.models import Transform, auto_close
+from fsqlfly.models import Transform
 from fsqlfly.workflow import run_transform
+from fsqlfly.utils.strings import get_job_short_name
 from fsqlfly.utils.response import create_response
 
 JobStatus = namedtuple('JobStatus', ['name', 'job_id', 'status', 'full_name',
@@ -119,14 +120,6 @@ class JobControl:
                 data.add(job.name)
         return data
 
-    @classmethod
-    def get_job_header(cls, transform: Transform, **kwargs) -> str:
-        return "{}_{}{}".format(transform.id, transform.name, '.' + kwargs['pt'] if 'pt' in kwargs else '')
-
-    @classmethod
-    def get_job_short_name(cls, transform: Transform):
-        return "{}_{}".format(transform.id, transform.name)
-
     def handle_restart(self, transform: Transform, **kwargs) -> str:
         msgs = []
         msgs.append(self.handle_stop(transform))
@@ -135,7 +128,7 @@ class JobControl:
 
     def handle_stop(self, transform: Transform, **kwargs) -> str:
         msgs = []
-        header = self.get_job_short_name(transform)
+        header = get_job_short_name(transform)
         kill_jobs = []
         job_status = self.job_status
         pt = kwargs['pt'] if 'pt' in kwargs else None

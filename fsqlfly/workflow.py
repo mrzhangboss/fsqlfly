@@ -9,9 +9,8 @@ from jinja2 import Template
 from terminado.management import NamedTermManager
 from fsqlfly.settings import FSQLFLY_UPLOAD_DIR, FSQLFLY_FLINK_BIN, logger
 from fsqlfly.models import Transform, Namespace, Resource, Functions
-from fsqlfly.utils.job_manage import JobControl
 from fsqlfly import settings
-
+from fsqlfly.utils.strings import get_job_header
 
 def _create_config_from_resource(resource: Resource, **kwargs) -> dict:
     data = yaml.load(handle_template(resource.yaml, **kwargs), yaml.FullLoader)
@@ -93,7 +92,7 @@ def run_transform(transform: Transform, **kwargs) -> (bool, str):
     print(sql, file=open(sql_f, 'w'))
     print('q\nexit;', file=open(sql_f, 'a+'))
     run_commands = [FSQLFLY_FLINK_BIN, 'embedded',
-                    '-s', JobControl.get_job_header(transform, **kwargs),
+                    '-s', get_job_header(transform, **kwargs),
                     '--environment', yaml_f,
                     *_get_jar(),
                     '<', sql_f]

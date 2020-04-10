@@ -112,3 +112,11 @@ def parse_sql(sql: str) -> List[SqlProps]:
 
 def clean_sql(sql: str) -> str:
     return SQL_COMMENT_PATTERN_CLEAN.sub('', sql).strip()
+
+
+def get_job_header(transform, **kwargs) -> str:
+    return "{}_{}{}".format(transform.id, transform.name, '.' + kwargs['pt'] if 'pt' in kwargs else '')
+
+
+def get_job_short_name(transform) -> str:
+    return "{}_{}".format(transform.id, transform.name)
