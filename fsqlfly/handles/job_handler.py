@@ -1,41 +1,21 @@
 # -*- coding:utf-8 -*-
 import time
-import traceback
 from io import StringIO
-from typing import Dict
+from typing import Dict, Optional, Any
 from tornado.web import authenticated
 from collections import defaultdict
 from fsqlfly.settings import FSQLFLY_FINK_HOST, TEMP_TERMINAL_HEAD
+from fsqlfly.utils.response import create_response
 from fsqlfly.models import Transform, auto_close
 from fsqlfly.base_handle import BaseHandler
-from fsqlfly.utils.response import create_response
-from fsqlfly.utils.job_manage import JobControlHandle, FAIL_HEADER
+from fsqlfly.utils.job_manage import JobControlHandle, handle_job
 
 
 class JobHandler(BaseHandler):
     @authenticated
     @auto_close
     def get(self, mode: str, pk: str):
-        handle_name = 'handle_' + mode
-        if mode in JobControlHandle and handle_name in JobControlHandle:
-            if pk.isdigit():
-                transform = Transform.select().where(Transform.id == int(pk)).first()
-                if transform is None:
-                    return self.write_json(create_response(code=500, msg='job id {} not found!!!'.format(pk)))
-            else:
-                transform = pk
-
-            data = self.json_body
-            try:
-                run_res = getattr(JobControlHandle, handle_name)(transform, **data)
-            except Exception as e:
-                out = StringIO()
-                traceback.print_exc(file=out)
-                out.seek(0)
-                return create_response(msg=out.read(), code=500)
-            return self.write_json(create_response(msg=run_res, code=500 if run_res.startswith(FAIL_HEADER) else 0))
-        else:
-            return self.write_json(create_response(code=500, msg=' {} not support!!!'.format(mode)))
+        return self.write_json(handle_job(mode, pk, self.json_body))
 
     post = get
 

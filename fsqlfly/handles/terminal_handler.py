@@ -8,6 +8,7 @@ from fsqlfly.base_handle import BaseHandler, RespCode
 from fsqlfly.workflow import run_debug_transform
 from fsqlfly.utils.response import create_response
 from fsqlfly.models import Transform
+from fsqlfly.utils.job_manage import handle_job
 
 
 class TerminalHandler(BaseHandler):
@@ -27,8 +28,8 @@ class TerminalNewHandler(BaseHandler):
         else:
             if not pk.isdigit():
                 transform = Transform.select().filter(Transform.name == pk).get()
-                pk = transform.id
-            self.redirect('/api/job/{}/{}?{}'.format(mode, pk, self.request.query))
+                pk = str(transform.id)
+            return self.write_json(handle_job(mode, pk, self.json_body))
 
 
 class TerminalStopHandler(BaseHandler):
