@@ -125,7 +125,7 @@ if you want control all flink sql job start and stop by api, you can add token i
 
 - job control 
 
-      url: /api/job/<mode(start|stop|restart)>/<id>
+      url: /api/transform/<mode(start|stop|restart)>/<id or job name>
       method: post
 
 **Beta** you can set `pt` in request body(json format), then will create a unique job 

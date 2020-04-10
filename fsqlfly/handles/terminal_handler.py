@@ -20,13 +20,15 @@ class TerminalHandler(BaseHandler):
 
 class TerminalNewHandler(BaseHandler):
     @authenticated
-    def post(self, mode: str, pk: int):
+    def post(self, mode: str, pk: str):
         if mode == 'debug':
             term = run_debug_transform(self.json_body, self.terminal_manager)
             self.write_json(create_response({"url": '/terminal/{}'.format(term)}))
-
         else:
-            self.redirect('/api/job/{}/{}'.format(mode, pk))
+            if not pk.isdigit():
+                transform = Transform.select().filter(Transform.name == pk).get()
+                pk = transform.id
+            self.redirect('/api/job/{}/{}?{}'.format(mode, pk, self.request.query))
 
 
 class TerminalStopHandler(BaseHandler):
@@ -50,10 +52,9 @@ class MyTermSocket(TermSocket):
             self.term_manager.start_reading(terminal)
 
 
-
 default_handlers = [
     (r'/api/terminal', TerminalHandler),
     (r"/_websocket/(\w+)", MyTermSocket, {'term_manager': settings.TERMINAL_MANAGER}),
     (r'/api/terminal/stop/(?P<name>\d+)', TerminalStopHandler),
-    (r'/api/transform/(\w+)/(\d+)', TerminalNewHandler),
+    (r'/api/transform/(\w+)/([0-9a-zA-Z_]+)', TerminalNewHandler),
 ]
