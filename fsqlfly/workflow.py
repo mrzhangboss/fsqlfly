@@ -12,6 +12,7 @@ from fsqlfly.models import Transform, Namespace, Resource, Functions
 from fsqlfly import settings
 from fsqlfly.utils.strings import get_job_header
 
+
 def _create_config_from_resource(resource: Resource, **kwargs) -> dict:
     data = yaml.load(handle_template(resource.yaml, **kwargs), yaml.FullLoader)
     data['name'] = resource.name
