@@ -132,6 +132,7 @@ if you want control all flink sql job start and stop by api, you can add token i
 name for job, if you sql need other format value, we support `jinja2` format 
 eg: `insert into tablea select * from table where pt_field = {{ pt }};`
 you can send `pt` value in request body.I recommend you control daily job by `airflow`.
+If you want kill all `pt` job add `kill_all_pt` in request json body.
  
  
 

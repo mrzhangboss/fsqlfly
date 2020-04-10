@@ -15,7 +15,7 @@ from fsqlfly.workflow import run_transform
 from fsqlfly.utils.response import create_response
 
 JobStatus = namedtuple('JobStatus', ['name', 'job_id', 'status', 'full_name',
-                                     'start_time', 'end_time', 'duration'])
+                                     'start_time', 'end_time', 'duration', 'pt'])
 FAIL_HEADER = 'FAIL:'
 SUCCESS_HEADER = 'SUCCESS:'
 
@@ -85,10 +85,14 @@ class JobControl:
             return ''.join(out)
 
         status = self.session.get(self.host + '/jobs/' + job_id).json()
-        name = status['name'].split('.', maxsplit=1)[0]
+        name = status['name'].split(':', maxsplit=1)[0]
+        if '.' in name:
+            name, pt = name.split('.', maxsplit=1)
+        else:
+            pt = None
         job_status = JobStatus(name, job_id, status['state'], full_name=status['name'],
                                start_time=p_time(status["start-time"]), end_time=p_time(status["end-time"]),
-                               duration=p_duration(status['duration']))
+                               duration=p_duration(status['duration']), pt=pt)
         return job_status
 
     @property
@@ -117,7 +121,11 @@ class JobControl:
 
     @classmethod
     def get_job_header(cls, transform: Transform, **kwargs) -> str:
-        return "{}_{}.{}-".format(transform.id, transform.name, '_' + kwargs['pt'] if 'pt' in kwargs else '')
+        return "{}_{}{}".format(transform.id, transform.name, '.' + kwargs['pt'] if 'pt' in kwargs else '')
+
+    @classmethod
+    def get_job_short_name(cls, transform: Transform):
+        return "{}_{}".format(transform.id, transform.name)
 
     def handle_restart(self, transform: Transform, **kwargs) -> str:
         msgs = []
@@ -127,11 +135,13 @@ class JobControl:
 
     def handle_stop(self, transform: Transform, **kwargs) -> str:
         msgs = []
-        header = self.get_job_header(transform, **kwargs)
+        header = self.get_job_short_name(transform)
         kill_jobs = []
         job_status = self.job_status
+        pt = kwargs['pt'] if 'pt' in kwargs else None
+        kill_all_pt = True if 'kill_all_pt' in kwargs else False
         for job in job_status:
-            if job.status == self.RUN_STATUS and job.name == header:
+            if job.status == self.RUN_STATUS and job.name == header and (job.pt == pt or kill_all_pt):
                 logger.debug('add a {} to kill '.format(job.name))
                 kill_jobs.append(job.job_id)
 

@@ -9,6 +9,7 @@ from jinja2 import Template
 from terminado.management import NamedTermManager
 from fsqlfly.settings import FSQLFLY_UPLOAD_DIR, FSQLFLY_FLINK_BIN, logger
 from fsqlfly.models import Transform, Namespace, Resource, Functions
+from fsqlfly.utils.job_manage import JobControl
 from fsqlfly import settings
 
 
@@ -91,9 +92,8 @@ def run_transform(transform: Transform, **kwargs) -> (bool, str):
     print(yaml_conf, file=open(yaml_f, 'w'))
     print(sql, file=open(sql_f, 'w'))
     print('q\nexit;', file=open(sql_f, 'a+'))
-    pt = '_' + kwargs['pt'] if 'pt' in kwargs else ''
     run_commands = [FSQLFLY_FLINK_BIN, 'embedded',
-                    '-s', '{}_{}.{}-'.format(transform.id, transform.name, pt),
+                    '-s', JobControl.get_job_header(transform, **kwargs),
                     '--environment', yaml_f,
                     *_get_jar(),
                     '<', sql_f]
@@ -126,7 +126,7 @@ def run_debug_transform(data: dict, manager: NamedTermManager) -> (str, str):
     real_sql = handle_template(data.get('sql', ''))
     name = manager._next_available_name()
     run_commands = [FSQLFLY_FLINK_BIN, 'embedded',
-                    '-s', '{}{}.'.format(settings.TEMP_TERMINAL_HEAD, str(name)),
+                    '-s', '{}{}'.format(settings.TEMP_TERMINAL_HEAD, str(name)),
                     '--environment', yaml_f,
                     *_get_jar()]
     logger.debug('running commands is : {}'.format(' '.join(run_commands)))
