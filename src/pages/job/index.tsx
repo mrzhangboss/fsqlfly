@@ -315,6 +315,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               dataSource={this.getListContent()}
               renderItem={item => (
                 <List.Item
+                  key={item.id}
                   actions={[
                     <Tooltip title={item.fullName} placement="left">
                       <a href={item.detailUrl} target="_blank">
@@ -329,6 +330,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       <Tooltip title={item.name} placement="left">
                         <a href={item.detailUrl} target="_blank">
                           {cutStr(item.name)}
+                          {item.pt === null ? '' : <Tag>{item.pt}</Tag>}
                         </a>
                       </Tooltip>
                     }

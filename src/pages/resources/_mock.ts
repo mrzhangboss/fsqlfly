@@ -7,5 +7,6 @@ export default {
     'functionNum|1-100': 100,
     'fileNum|1-100': 100,
     'transformNum|1-100': 100,
+    success: true,
   }),
 };

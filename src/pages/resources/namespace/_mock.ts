@@ -23,7 +23,7 @@ export default {
         updateAt: '@datetime',
       },
     ],
-    'success|1': false,
+    success: true,
     msg: '@paragraph(1,1)',
     'code|1-1000': 2,
   }),

@@ -16,7 +16,7 @@ export default {
       },
     ],
     'names|5-10': ['@word'],
-    'success|1': false,
+    success: true,
     'total|50-100': 1,
     msg: '@paragraph(1,1)',
   }),

@@ -36,4 +36,5 @@ export interface JobInfo {
   isPublish?: boolean;
   isAvailable?: boolean;
   url?: string;
+  pt: string | null;
 }

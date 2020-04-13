@@ -8,6 +8,7 @@ export default {
         'name|+1': 1,
       },
     ],
+    success: true,
   }),
   'GET /api/terminal/:id': (
     req: { params: { id: string }; body: { createAt: string } },

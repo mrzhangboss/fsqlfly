@@ -44,6 +44,7 @@ export default {
           'columns|2-3': [{ name: '@word', 'id|+1': 1 }],
         },
       ],
+      success: true,
     },
   }),
   'GET /api/transform': mockjs.mock({
@@ -63,6 +64,7 @@ export default {
         config: '-name: jack\n-type:time',
       },
     ],
+    success: true,
   }),
   'GET /api/transform/:id': (
     req: { params: { id: string }; body: { createAt: string } },
