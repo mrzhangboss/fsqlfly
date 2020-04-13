@@ -305,7 +305,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               className={styles.namespaceButton}
               overlay={
                 // @ts-ignore
-                <Menu onClick={({ key }) => this.setState({ tag: key })}>
+                <Menu onClick={({ key }) => this.setState({ tag: parseInt(key) })}>
                   {namespaces.slice(8, namespaces.length + 1).map((x: Namespace) => {
                     return (
                       <Menu.Item key={x.id}>

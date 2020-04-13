@@ -275,6 +275,10 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     );
   };
 
+  setTagValue = (v: number) => {
+    this.setState({ tag: v });
+  };
+
   getNamespaceAvatar = (item: TransformInfo) => {
     const namespace = this.getNamespace(item.namespaceId);
     if (namespace === null) {
@@ -318,7 +322,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         <Button onClick={this.doRefresh}>
           <ReloadOutlined />
         </Button>
-        <RadioGroup defaultValue={null} onChange={x => this.setState({ tag: x.target.value })}>
+        <RadioGroup defaultValue={null} onChange={x => this.setTagValue(x.target.value)}>
           <RadioButton className={styles.namespaceButton} value={0}>
             全部
           </RadioButton>
@@ -337,7 +341,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               className={styles.namespaceButton}
               overlay={
                 // @ts-ignore
-                <Menu onClick={({ key }) => this.setState({ tag: key })}>
+                <Menu onClick={({ key }) => this.setTagValue(parseInt(key))}>
                   {namespaces.slice(8, namespaces.length + 1).map((x: Namespace) => {
                     return (
                       <Menu.Item key={x.id}>
