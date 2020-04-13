@@ -5,7 +5,7 @@ import math
 import traceback
 from io import StringIO
 from typing import List, Any, Set
-from collections import namedtuple
+from collections import namedtuple, Counter
 from datetime import datetime
 from requests import Session
 from logzero import logger
@@ -53,7 +53,10 @@ class JobControl:
     stop = 'stop'
     start = 'start'
     cancel = 'cancel'
+    status = 'status'
     RUN_STATUS = 'RUNNING'
+    FINISHED_STATUS = 'FINISHED'
+    DUPLICATE_RUN_STATUS = 'DUPLICATE_RUNNING'
 
     def __contains__(self, item):
         if hasattr(self, item):
@@ -149,6 +152,20 @@ class JobControl:
     def handle_cancel(self, jid: str, **kwargs):
         self.stop_flink_jobs([jid])
         return 'kill {} '.format(jid)
+
+    def handle_status(self, transform: Transform, **kwargs) -> str:
+        header = get_job_short_name(transform)
+        job_status = self.job_status
+        pt = kwargs['pt'] if 'pt' in kwargs else None
+        statuses = Counter()
+        for job in job_status:
+            if job.status == self.RUN_STATUS and job.name == header and job.pt == pt:
+                statuses[job.status] += 1
+        if statuses[self.RUN_STATUS] > 1:
+            return self.DUPLICATE_RUN_STATUS
+        if statuses[self.RUN_STATUS] == 1:
+            return self.RUN_STATUS
+        return self.FINISHED_STATUS
 
     def stop_flink_jobs(self, job_ids: List):
         for j_id in job_ids:

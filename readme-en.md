@@ -125,15 +125,18 @@ if you want control all flink sql job start and stop by api, you can add token i
 
 - job control 
 
-      url: /api/transform/<mode(start|stop|restart)>/<id or job name>
+      url: /api/transform/<mode(status|start|stop|restart)>/<id or job name>
       method: post
+
 
 **Beta** you can set `pt` in request body(json format), then will create a unique job 
 name for job, if you sql need other format value, we support `jinja2` format 
 eg: `insert into tablea select * from table where pt_field = {{ pt }};`
 you can send `pt` value in request body.I recommend you control daily job by `airflow`.
 If you want kill all `pt` job add `kill_all_pt` in request json body.
- 
+
+PS: `pt` only can contain '0-9a-zA-Z_' 
+PS: if two running job, api will return DUPLICATE_RUNNING  
  
 
 
