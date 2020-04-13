@@ -8,7 +8,7 @@ from setuptools import Command, setup, find_packages
 with open("readme-en.md", "r") as fh:
     long_description = fh.read()
 
-VERSION = "3.0.4"
+VERSION = "3.0.5"
 REQUIRED = [x for x in open("requirement.txt", "r").read().split('\n') if x]
 
 here = os.path.abspath(os.path.dirname(__file__))
