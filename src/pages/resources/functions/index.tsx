@@ -486,7 +486,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       // @ts-ignore
                       title={
                         <Tooltip title={item.className} placement="right">
-                          {' '}
                           <span>{cutStr(item.className)}</span>
                         </Tooltip>
                       }
