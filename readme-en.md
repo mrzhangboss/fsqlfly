@@ -135,7 +135,7 @@ eg: `insert into tablea select * from table where pt_field = {{ pt }};`
 you can send `pt` value in request body.I recommend you control daily job by `airflow`.
 If you want kill all `pt` job add `kill_all_pt` in request json body.
 
-PS: `pt` only can contain '0-9a-zA-Z_' 
+PS: `pt` only can contain '0-9a-zA-Z_-' 
 PS: if two running job, api will return DUPLICATE_RUNNING  
  
 
