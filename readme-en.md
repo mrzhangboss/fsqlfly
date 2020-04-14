@@ -141,12 +141,12 @@ PS: `status` api if no `last_run_job_id` or multi running job , api will return 
 
 ## Airflow Support
 
-> use dag operator in `fsqlfly.airflow_plugins.FSQLFlayOperator`
+> use dag operator in `fsqlfly.airflow_plugins.FSQLFlyOperator`
 
 example:
 
     from airflow.models import DAG
-    from fsqlfly.airflow_plugins import FSQLFlayOperator
+    from fsqlfly.airflow_plugins import FSQLFlyOperator
 
     dag = DAG(
         dag_id='flink_hive_process',
@@ -160,7 +160,7 @@ example:
     data = dict(pt="{{ ds_nodash }}")
     http_conn_id = "fsqlplatform"
     token = '{{ var.value.fsqlfly_token }}'
-    start_flink_job = FSQLFlayOperator(
+    start_flink_job = FSQLFlyOperator(
         task_id='fink_job',
         job_name='flik_run_in_fsql_fly',
         token=token,

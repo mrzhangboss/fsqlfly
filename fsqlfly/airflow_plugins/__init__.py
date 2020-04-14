@@ -6,7 +6,7 @@ from airflow.hooks.http_hook import HttpHook
 from airflow.utils.decorators import apply_defaults
 
 
-class FSQLFlayOperator(BaseSensorOperator):
+class FSQLFlyOperator(BaseSensorOperator):
     template_fields = ['data', 'headers']
     RUN_STATUS = 'RUNNING'
     FINISHED_STATUS = 'FINISHED'
@@ -34,7 +34,7 @@ class FSQLFlayOperator(BaseSensorOperator):
         self.mode = mode
         self.daemon = daemon
 
-        super(FSQLFlayOperator, self).__init__(*args, **kwargs)
+        super(FSQLFlyOperator, self).__init__(*args, **kwargs)
 
     @property
     def req_data(self):
@@ -64,7 +64,7 @@ class FSQLFlayOperator(BaseSensorOperator):
             raise Exception('Start Job Fail response: {}'.format(str(res)))
 
         if self.daemon:
-            super(FSQLFlayOperator, self).execute(context)
+            super(FSQLFlyOperator, self).execute(context)
 
     def get_job_status(self):
         res = self.http.run(self.status_endpoint, data=self.req_data, headers=self.headers).json()
