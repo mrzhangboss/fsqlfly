@@ -163,8 +163,10 @@ class JobControl:
             assert len(same_job) <= 1, 'flink job same job id must unique {}'.format(last_run_job_id)
             if len(same_job) == 0:
                 return self.FAIL_STATUS
-            run_job = same_job[0]
-            return run_job.status
+            job = same_job[0]
+            if job.status == self.RUN_STATUS:
+                return job.job_id + "_" + job.status
+            return job.status
 
         statuses = Counter()
         for job in job_status:
