@@ -201,7 +201,6 @@ def handle_job(mode: str, pk: str, json_body: dict) -> dict:
             transform = pk
 
         data = json_body
-        assert isinstance(data, dict), "data {} is not dict ".format(str(data))
         try:
             run_res = getattr(JobControlHandle, handle_name)(transform, **data)
         except Exception as e:
