@@ -54,6 +54,7 @@ class UploadCommand(Command):
 canal_require = ['canal-python <= 0.4', 'kafka-python >= 1.3.4, <= 1.4.7', 'protobuf <= 3.11.3', 'sqlalchemy <= 1.3.15']
 postgresql_require = ['psycopg2 <= 2.8.4']
 mysql_require = ['PyMySQL <= 0.9.3']
+airflow_require = ['apache-airflow']
 setup(
     name="fsqlfly",
     version=VERSION,
@@ -77,7 +78,8 @@ setup(
         'mysql': mysql_require,
         'postgresql': postgresql_require,
         'canal': canal_require,
-        'all': mysql_require + postgresql_require + canal_require
+        'airflow': airflow_require,
+        'all': mysql_require + postgresql_require + canal_require + airflow_require
     },
     python_requires=">=3.6.0",
     install_requires=REQUIRED,

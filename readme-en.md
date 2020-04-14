@@ -137,7 +137,45 @@ If you want kill all `pt` job add `kill_all_pt` in request json body.
 
 PS: `pt` only can contain '0-9a-zA-Z_-' 
 PS: if two running job, api will return DUPLICATE_RUNNING  
- 
+
+
+## Airflow Support
+
+> use dag operator in `fsqlfly.airflow_plugins.FSQLFlayOperator`
+
+example:
+
+    from airflow.models import DAG
+    from fsqlfly.airflow_plugins import FSQLFlayOperator
+
+    dag = DAG(
+        dag_id='flink_hive_process',
+        default_args=args,
+        schedule_interval="2 1 * * *",
+        dagrun_timeout=timedelta(minutes=60),
+        max_active_runs=8,
+        concurrency=8
+    )
+    
+    data = dict(pt="{{ ds_nodash }}")
+    http_conn_id = "fsqlplatform"
+    token = '{{ var.value.fsqlfly_token }}'
+    start_flink_job = FSQLFlayOperator(
+        task_id='fink_job',
+        job_name='flik_run_in_fsql_fly',
+        token=token,
+        http_conn_id=http_conn_id,
+        data=data,
+        dag=dag,
+        poke_interval=5,
+    )
+
+    
+`token`: fsqlfly token, you can real token, also you can save in `variable` in airflow
+`HOST`: airflow connection id , see more in [detail](https://airflow.apache.org/docs/stable/howto/connection/index.html)
+`data`: args in flink job
+
+
 
 
 
