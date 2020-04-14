@@ -16,7 +16,8 @@ class FSQLFlayOperator(BaseSensorOperator):
         return f'/api/transform/{method}/{job_name}'
 
     @apply_defaults
-    def __init__(self, http_conn_id, token, job_name, data=None, headers=None, *args, **kwargs):
+    def __init__(self, http_conn_id, token, job_name,
+                 data=None, headers=None, mode='start', daemon=True, *args, **kwargs):
         basic_headers = {'Content-Type': "application/json",
                          'Token': token}
         if headers:
@@ -30,6 +31,8 @@ class FSQLFlayOperator(BaseSensorOperator):
 
         self.data = data if data is not None else {}
         self.last_run_job_id = None
+        self.mode = mode
+        self.daemon = daemon
 
         super(FSQLFlayOperator, self).__init__(*args, **kwargs)
 
@@ -41,8 +44,18 @@ class FSQLFlayOperator(BaseSensorOperator):
 
         return json.dumps(self.data, ensure_ascii=True, default=_parse_date_time)
 
+    def run_other_mode(self):
+        res = self.http.run(self.gen_job_url(self.job_name, self.mode)
+                            , data=self.req_data, headers=self.headers).json()
+        if not res['success']:
+            raise Exception('{} Job Fail response: {}'.format(self.mode, str(res)))
+        else:
+            print('Job {} {} Finished'.format(self.job_name, self.mode))
+
     def execute(self, context):
         print('data is ' + self.req_data, ' data type ', isinstance(self.req_data, str), type(self.req_data))
+        if self.mode != 'start':
+            return self.run_other_mode()
         status = self.get_job_status()
         if status.endswith(self.RUN_STATUS):
             raise Exception("Job {} Already {}".format(self.job_name, status))
@@ -50,7 +63,8 @@ class FSQLFlayOperator(BaseSensorOperator):
         if not res['success']:
             raise Exception('Start Job Fail response: {}'.format(str(res)))
 
-        super(FSQLFlayOperator, self).execute(context)
+        if self.daemon:
+            super(FSQLFlayOperator, self).execute(context)
 
     def get_job_status(self):
         res = self.http.run(self.status_endpoint, data=self.req_data, headers=self.headers).json()
