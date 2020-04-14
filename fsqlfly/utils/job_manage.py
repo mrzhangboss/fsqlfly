@@ -208,6 +208,6 @@ def handle_job(mode: str, pk: str, json_body: dict) -> dict:
             traceback.print_exc(file=out)
             out.seek(0)
             return create_response(msg=out.read(), code=500)
-        return create_response(msg=run_res, code=500 if run_res.startswith(FAIL_HEADER) else 0)
+        return create_response(msg=run_res, code=500 if run_res.startswith(FAIL_HEADER) else 200)
     else:
         return create_response(code=500, msg=' {} not support!!!'.format(mode))
