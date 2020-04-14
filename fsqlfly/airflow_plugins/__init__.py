@@ -49,13 +49,8 @@ class FSQLFlayOperator(BaseSensorOperator):
         res = self.http.run(self.start_endpoint, data=self.req_data, headers=self.headers).json()
         if not res['success']:
             raise Exception('Start Job Fail response: {}'.format(str(res)))
-        status = self.get_job_status()
-        if status == self.FINISHED_STATUS:
-            print('job already complete')
-        else:
-            if not status.endswith(self.RUN_STATUS):
-                raise Exception('Job Status : {}'.format(str(res)))
-            super(FSQLFlayOperator, self).execute(context)
+
+        super(FSQLFlayOperator, self).execute(context)
 
     def get_job_status(self):
         res = self.http.run(self.status_endpoint, data=self.req_data, headers=self.headers).json()
