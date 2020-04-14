@@ -136,7 +136,7 @@ you can send `pt` value in request body.I recommend you control daily job by `ai
 If you want kill all `pt` job add `kill_all_pt` in request json body.
 
 PS: `pt` only can contain '0-9a-zA-Z_-' 
-PS: if two running job, api will return DUPLICATE_RUNNING  
+PS: `status` api if no `last_run_job_id` or multi running job , api will return `FAILED`  
 
 
 ## Airflow Support

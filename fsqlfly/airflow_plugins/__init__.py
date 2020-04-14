@@ -9,6 +9,7 @@ from airflow.utils.decorators import apply_defaults
 class FSQLFlayOperator(BaseSensorOperator):
     template_fields = ['data', 'headers']
     RUN_STATUS = 'RUNNING'
+    FINISHED_STATUS = 'FINISHED'
 
     @classmethod
     def gen_job_url(cls, job_name, method):
@@ -28,6 +29,7 @@ class FSQLFlayOperator(BaseSensorOperator):
         self.http = HttpHook('POST', http_conn_id=self.http_conn_id)
 
         self.data = data if data is not None else {}
+        self.last_run_job_id = None
 
         super(FSQLFlayOperator, self).__init__(*args, **kwargs)
 
@@ -47,20 +49,31 @@ class FSQLFlayOperator(BaseSensorOperator):
         res = self.http.run(self.start_endpoint, data=self.req_data, headers=self.headers).json()
         if not res['success']:
             raise Exception('Start Job Fail response: {}'.format(str(res)))
-        super(FSQLFlayOperator, self).execute(context)
+        status = self.get_job_status()
+        if status == self.FINISHED_STATUS:
+            print('job already complete')
+        else:
+            if not status.endswith(self.RUN_STATUS):
+                raise Exception('Job Status : {}'.format(str(res)))
+            super(FSQLFlayOperator, self).execute(context)
 
     def get_job_status(self):
         res = self.http.run(self.status_endpoint, data=self.req_data, headers=self.headers).json()
         full_msg = "req: {} code: {} msg: {}".format(self.status_endpoint, res['code'], res['msg'])
         if not res['success']:
             raise Exception(full_msg)
+        if full_msg.endswith(self.RUN_STATUS):
+            job_id, _ = full_msg.split('_', 1)
+            self.data['last_run_job_id'] = job_id
         return res['msg']
 
     def poke(self, context):
         msg = self.get_job_status()
-        if msg.endswith('RUNNING'):
-            if msg != 'RUNNING':
-                raise Exception(msg)
+        if msg == self.FINISHED_STATUS:
+            return True
+        elif msg.endswith(self.RUN_STATUS):
+            logging.debug("Wait For :" + msg)
             return False
-        logging.debug("Wait For :" + msg)
-        return True
+        else:
+            logging.error("Job Fail With Other Exception")
+            raise Exception(msg)

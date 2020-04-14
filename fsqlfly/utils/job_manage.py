@@ -56,7 +56,7 @@ class JobControl:
     status = 'status'
     RUN_STATUS = 'RUNNING'
     FINISHED_STATUS = 'FINISHED'
-    DUPLICATE_RUN_STATUS = 'DUPLICATE_RUNNING'
+    FAIL_STATUS = 'FAILED'
 
     def __contains__(self, item):
         if hasattr(self, item):
@@ -157,15 +157,25 @@ class JobControl:
         header = get_job_short_name(transform)
         job_status = self.job_status
         pt = kwargs['pt'] if 'pt' in kwargs else None
+        last_run_job_id = kwargs['last_run_job_id'] if 'last_run_job_id' in kwargs else None
+        if last_run_job_id:
+            same_job = list(filter(lambda x: x.job_id == last_run_job_id, job_status))
+            assert len(same_job) <= 1, 'flink job same job id must unique {}'.format(last_run_job_id)
+            if len(same_job) == 0:
+                return self.FAIL_STATUS
+            run_job = same_job[0]
+            return run_job.status
+
         statuses = Counter()
         for job in job_status:
             if job.status == self.RUN_STATUS and job.name == header and job.pt == pt:
                 statuses[job.status] += 1
-        if statuses[self.RUN_STATUS] > 1:
-            return self.DUPLICATE_RUN_STATUS
+                last_run_job_id = last_run_job_id
         if statuses[self.RUN_STATUS] == 1:
-            return self.RUN_STATUS
-        return self.FINISHED_STATUS
+            return last_run_job_id + "_" + self.RUN_STATUS
+        if statuses[self.FINISHED_STATUS] > 0:
+            return self.FINISHED_STATUS
+        return self.FAIL_STATUS
 
     def stop_flink_jobs(self, job_ids: List):
         for j_id in job_ids:
