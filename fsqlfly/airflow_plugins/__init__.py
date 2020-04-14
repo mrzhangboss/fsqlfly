@@ -62,10 +62,11 @@ class FSQLFlayOperator(BaseSensorOperator):
         full_msg = "req: {} code: {} msg: {}".format(self.status_endpoint, res['code'], res['msg'])
         if not res['success']:
             raise Exception(full_msg)
-        if full_msg.endswith(self.RUN_STATUS):
+        msg = res['msg']
+        if msg.endswith(self.RUN_STATUS):
             job_id, _ = full_msg.split('_', 1)
             self.data['last_run_job_id'] = job_id
-        return res['msg']
+        return msg
 
     def poke(self, context):
         msg = self.get_job_status()
