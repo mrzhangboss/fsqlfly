@@ -30,19 +30,26 @@ class BaseHandler(tornado.web.RequestHandler):
     def terminal_manager(self):
         return self.settings['terminal_manager']
 
+    def _login_by_header(self):
+        token = self.request.headers.get('Token')
+        if token is not None:
+            logging.debug("try login by request header {}".format(token))
+            if token == settings.FSQLFLY_TOKEN:
+                logging.debug("login success by request header {}".format(token))
+                return token
+        return None
+
     def get_current_user(self) -> Any:
         cookie = self.get_cookie('user')
         if cookie:
             return cookie
+        header_token = self._login_by_header()
+        if header_token:
+            return header_token
         token = self.request.arguments.get('token')
-        if token is None:
-            token = self.request.headers.get('Token')
-        logging.debug("Try Login By token {}".format(token))
-
         if token is not None and len(token) == 1 and token[0] == settings.FSQLFLY_TOKEN_BYTE:
-            logging.debug("Login By token {}".format(token))
+            logging.debug("login success By token {}".format(token))
             return token
-        return None
 
     def get_login_url(self) -> str:
         return '/login'
