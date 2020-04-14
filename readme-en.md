@@ -167,7 +167,7 @@ example:
         http_conn_id=http_conn_id,
         data=data,
         dag=dag,
-        mode='start',  # support restart | start | stop  
+        method='start',  # support restart | start | stop  
         daemon=True,
         poke_interval=5,
     )

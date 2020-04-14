@@ -17,7 +17,7 @@ class FSQLFlyOperator(BaseSensorOperator):
 
     @apply_defaults
     def __init__(self, http_conn_id, token, job_name,
-                 data=None, headers=None, mode='start', daemon=True, *args, **kwargs):
+                 data=None, headers=None, method='start', daemon=True, *args, **kwargs):
         basic_headers = {'Content-Type': "application/json",
                          'Token': token}
         if headers:
@@ -31,7 +31,7 @@ class FSQLFlyOperator(BaseSensorOperator):
 
         self.data = data if data is not None else {}
         self.last_run_job_id = None
-        self.mode = mode
+        self.method = method
         self.daemon = daemon
 
         super(FSQLFlyOperator, self).__init__(*args, **kwargs)
@@ -45,16 +45,16 @@ class FSQLFlyOperator(BaseSensorOperator):
         return json.dumps(self.data, ensure_ascii=True, default=_parse_date_time)
 
     def run_other_mode(self):
-        res = self.http.run(self.gen_job_url(self.job_name, self.mode)
+        res = self.http.run(self.gen_job_url(self.job_name, self.method)
                             , data=self.req_data, headers=self.headers).json()
         if not res['success']:
-            raise Exception('{} Job Fail response: {}'.format(self.mode, str(res)))
+            raise Exception('{} Job Fail response: {}'.format(self.method, str(res)))
         else:
-            print('Job {} {} Finished'.format(self.job_name, self.mode))
+            print('Job {} {} Finished'.format(self.job_name, self.method))
 
     def execute(self, context):
         print('data is ' + self.req_data, ' data type ', isinstance(self.req_data, str), type(self.req_data))
-        if self.mode != 'start':
+        if self.method != 'start':
             return self.run_other_mode()
         status = self.get_job_status()
         if status.endswith(self.RUN_STATUS):
