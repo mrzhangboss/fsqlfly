@@ -170,7 +170,8 @@ class JobControl:
         for job in job_status:
             if job.name == header and job.pt == pt:
                 statuses[job.status] += 1
-                last_run_job_id = job.job_id
+                if job.status == self.RUN_STATUS:
+                    last_run_job_id = job.job_id
 
         if statuses[self.RUN_STATUS] == 1:
             return last_run_job_id + "_" + self.RUN_STATUS
