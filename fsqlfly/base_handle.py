@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import json
 import logging
-from typing import Any
+from typing import Any, Optional, Awaitable
 from abc import ABC
 from datetime import datetime, date
 import tornado
@@ -25,6 +25,9 @@ def json_obj_hook(o):
 
 class BaseHandler(tornado.web.RequestHandler):
     """Request handler where requests and responses speak JSON."""
+
+    def data_received(self, chunk: bytes) -> Optional[Awaitable[None]]:
+        super(BaseHandler, self).data_received(chunk)
 
     @property
     def terminal_manager(self):

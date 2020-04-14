@@ -19,7 +19,7 @@ class TerminalHandler(BaseHandler):
         self.write_json(create_response(data=terms))
 
 
-class TerminalNewHandler(BaseHandler):
+class TransformControlHandler(BaseHandler):
     @authenticated
     def post(self, mode: str, pk: str):
         if mode == 'debug':
@@ -57,5 +57,5 @@ default_handlers = [
     (r'/api/terminal', TerminalHandler),
     (r"/_websocket/(\w+)", MyTermSocket, {'term_manager': settings.TERMINAL_MANAGER}),
     (r'/api/terminal/stop/(?P<name>\d+)', TerminalStopHandler),
-    (r'/api/transform/(\w+)/([0-9a-zA-Z_]+)', TerminalNewHandler),
+    (r'/api/transform/(\w+)/([0-9a-zA-Z_]+)', TransformControlHandler),
 ]
