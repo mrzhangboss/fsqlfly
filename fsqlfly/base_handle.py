@@ -36,7 +36,7 @@ class BaseHandler(tornado.web.RequestHandler):
             return cookie
         token = self.request.arguments.get('token')
         if token is None:
-            token = self.request.headers.get('token')
+            token = self.request.headers.get('Token')
         logging.debug("Try Login By token {}".format(token))
 
         if token is not None and len(token) == 1 and token[0] == settings.FSQLFLY_TOKEN_BYTE:
