@@ -12,8 +12,8 @@
 - [Elasticsearch	6	flink-connector-elasticsearch6	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-elasticsearch6_2.11/1.10.0/flink-sql-connector-elasticsearch6_2.11-1.10.0.jar)
 - [Apache Kafka	0.8	flink-connector-kafka-0.8	Not available](#)
 - [Apache Kafka	0.9	flink-connector-kafka-0.9	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka-0.9_2.11/1.10.0/flink-sql-connector-kafka-0.9_2.11-1.10.0.jar)
-- [Apache Kafka	0.10	flink-connector-kafka-0.10	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka-0.9_2.11/1.10.0/flink-sql-connector-kafka-0.10_2.11-1.10.0.jar)
-- [Apache Kafka	0.11	flink-connector-kafka-0.11	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka-0.10_2.11/1.10.0/flink-sql-connector-kafka-0.10_2.11-1.10.0.jar)
+- [Apache Kafka	0.10	flink-connector-kafka-0.10	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka-0.10_2.11/1.10.0/flink-sql-connector-kafka-0.10_2.11-1.10.0.jar)
+- [Apache Kafka	0.11	flink-connector-kafka-0.11	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka-0.11_2.11/1.10.0/flink-sql-connector-kafka-0.11_2.11-1.10.0.jar)
 - [Apache Kafka	0.11+ (universal)	flink-connector-kafka	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka_2.11/1.10.0/flink-sql-connector-kafka_2.11-1.10.0.jar)
 - [HBase	1.4.3	flink-hbase	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-hbase_2.11/1.10.0/flink-hbase_2.11-1.10.0.jar)
 - [JDBC	 	flink-jdbc	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-jdbc_2.11/1.10.0/flink-jdbc_2.11-1.10.0.jar)
@@ -27,10 +27,10 @@
 一键下载脚本
 
     cd /opt/flink-1.10.0/lib
-    for p in '/flink-sql-connector-elasticsearch6_2.11/1.10.0/flink-sql-connector-elasticsearch6_2.11-1.10.0.jar' '/flink-sql-connector-kafka-0.9_2.11/1.10.0/flink-sql-connector-kafka-0.10_2.11-1.10.0.jar' '/flink-sql-connector-kafka-0.9_2.11/1.10.0/flink-sql-connector-kafka-0.9_2.11-1.10.0.jar' '/flink-sql-connector-kafka-0.10_2.11/1.10.0/flink-sql-connector-kafka-0.10_2.11-1.10.0.jar' '/flink-sql-connector-kafka_2.11/1.10.0/flink-sql-connector-kafka_2.11-1.10.0.jar' '/flink-hbase_2.11/1.10.0/flink-hbase_2.11-1.10.0.jar' '/flink-jdbc_2.11/1.10.0/flink-jdbc_2.11-1.10.0.jar' '/flink-csv/1.10.0/flink-csv-1.10.0-sql-jar.jar' '/flink-json/1.10.0/flink-json-1.10.0-sql-jar.jar' '/flink-avro/1.10.0/flink-avro-1.10.0-sql-jar.jar'
+    for p in '/flink-sql-connector-elasticsearch6_2.11/1.10.0/flink-sql-connector-elasticsearch6_2.11-1.10.0.jar' '/flink-sql-connector-kafka-0.9_2.11/1.10.0/flink-sql-connector-kafka-0.9_2.11-1.10.0.jar' '/flink-sql-connector-kafka-0.10_2.11/1.10.0/flink-sql-connector-kafka-0.10_2.11-1.10.0.jar' '/flink-sql-connector-kafka-0.11_2.11/1.10.0/flink-sql-connector-kafka-0.11_2.11-1.10.0.jar' '/flink-sql-connector-kafka_2.11/1.10.0/flink-sql-connector-kafka_2.11-1.10.0.jar' '/flink-hbase_2.11/1.10.0/flink-hbase_2.11-1.10.0.jar' '/flink-jdbc_2.11/1.10.0/flink-jdbc_2.11-1.10.0.jar' '/flink-csv/1.10.0/flink-csv-1.10.0-sql-jar.jar' '/flink-json/1.10.0/flink-json-1.10.0-sql-jar.jar' '/flink-avro/1.10.0/flink-avro-1.10.0-sql-jar.jar'
     do
       echo "begin download https://repo1.maven.org/maven2/org/apache/flink$p"
-      wget "https://repo1.maven.org/maven2/org/apache/flink$p"
+      proxychains wget "https://repo1.maven.org/maven2/org/apache/flink$p"
     done
     
 
