@@ -16,9 +16,9 @@ def run_webserver(commands: list):
                                 settings.FSQLFLY_JOB_LOG_FILE)
         extend_command = daemon.get_periodic_callback(settings.FSQLFLY_JOB_DAEMON_FREQUENCY)
         logzero.logger.debug('add job daemon command {}: {}: {}: {}'.format(settings.FSQLFLY_FINK_HOST,
-                                                                        settings.FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY,
-                                                                        settings.FSQLFLY_JOB_LOG_FILE,
-                                                                        settings.FSQLFLY_JOB_DAEMON_FREQUENCY))
+                                                                            settings.FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY,
+                                                                            settings.FSQLFLY_JOB_LOG_FILE,
+                                                                            settings.FSQLFLY_JOB_DAEMON_FREQUENCY))
 
     from fsqlfly.app import run_web
     try:
@@ -61,6 +61,11 @@ def run_echo_env(commands: list):
     print(open(join(lib_path, 'env.template'), 'r').read(), file=out)
 
 
+def run_db2hive(comands: list):
+    from fsqlfly.helper import DBToHive
+    DBToHive.run(comands)
+
+
 def main():
     support_command = {
         "echoenv": run_echo_env,
@@ -69,6 +74,7 @@ def main():
         "resetdb": reset_db,
         "loadmysql": run_load_mysql_resource,
         "canal": run_canal,
+        "db2hive": run_db2hive,
     }
     args = sys.argv[1:]
     method = args[0] if len(args) > 0 else 'help'
