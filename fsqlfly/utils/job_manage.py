@@ -157,28 +157,47 @@ class JobControl:
         header = get_job_short_name(transform)
         job_status = self.job_status
         pt = kwargs['pt'] if 'pt' in kwargs else None
-        last_run_job_id = kwargs['last_run_job_id'] if 'last_run_job_id' in kwargs else None
+        last_run_job_id = kwargs['last_run_job_id'].split('_') if 'last_run_job_id' in kwargs else []
         if last_run_job_id:
-            same_job = list(filter(lambda x: x.job_id == last_run_job_id, job_status))
-            assert len(same_job) <= 1, 'flink job same job id must unique {}'.format(last_run_job_id)
-            if len(same_job) == 0:
+
+            all_job = list(filter(lambda x: x.job_id in last_run_job_id, job_status))
+            if len(all_job) == 0:
+                logger.error('{} last run job id not found in flink job {}'.format(header, str(last_run_job_id)))
                 return self.FAIL_STATUS
-            job = same_job[0]
-            if job.status == self.RUN_STATUS:
-                return job.job_id + "_" + job.status
-            return job.status
+            if any(map(lambda x: x.status not in (self.RUN_STATUS, self.FINISHED_STATUS), all_job)):
+                logger.debug('{} find  one of the job failed {}'.format(header, str(last_run_job_id)))
+                return self.FAIL_STATUS
+            if any(map(lambda x: x.status == self.RUN_STATUS, all_job)):
+                return '_'.join(last_run_job_id + [self.RUN_STATUS])
+            if all(map(lambda x: x.status == self.FINISHED_STATUS, all_job)):
+                return self.FINISHED_STATUS
+            logger.error('{} some thing wrong with last run job id {}'.format(header, str(last_run_job_id)))
+            return self.FAIL_STATUS
 
         statuses = Counter()
+        last_end_time = None
         for job in job_status:
             if job.name == header and job.pt == pt:
                 statuses[job.status] += 1
                 if job.status == self.RUN_STATUS:
-                    last_run_job_id = job.job_id
+                    last_run_job_id.append(job.job_id)
 
-        if statuses[self.RUN_STATUS] == 1:
-            return last_run_job_id + "_" + self.RUN_STATUS
+                if job.status == self.FINISHED_STATUS:
+                    end_time = datetime.strptime(job.end_time, '%Y-%m-%d %H:%M:%S')
+                    if last_end_time is None or end_time > last_end_time:
+                        last_end_time = end_time
+
+        if statuses[self.RUN_STATUS] > 0:
+            return '_'.join(last_run_job_id + [self.RUN_STATUS])
         if statuses[self.FINISHED_STATUS] > 0:
-            return self.FINISHED_STATUS
+            if (datetime.now() - last_end_time).seconds < 20:
+                logger.debug('{} job finished too fast'.format(header))
+                return self.FINISHED_STATUS
+            else:
+                logger.error('{} job not found latest finished job}'.format(header))
+                return self.FAIL_STATUS
+
+        logger.error('{} job create job success but not found any job info in flink'.format(header))
         return self.FAIL_STATUS
 
     def stop_flink_jobs(self, job_ids: List):

@@ -73,7 +73,7 @@ class FSQLFlyOperator(BaseSensorOperator):
             raise Exception(full_msg)
         msg = res['msg']
         if msg.endswith(self.RUN_STATUS):
-            job_id, _ = msg.split('_', 1)
+            job_id, _ = msg.split('_' + self.RUN_STATUS, 1)
             self.data['last_run_job_id'] = job_id
         return msg
 
