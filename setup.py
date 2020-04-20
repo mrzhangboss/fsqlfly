@@ -56,6 +56,7 @@ postgresql_require = ['psycopg2 <= 2.8.4']
 mysql_require = ['PyMySQL <= 0.9.3']
 airflow_require = ['apache-airflow']
 hive_require = ['PyHive<=0.6.2', 'thrift<=0.13.0', 'sasl<=0.2.1', 'thrift_sasl<0.4.2']
+elasticsearch_require = ['elasticsearch>=7.0.0,<8.0.0']
 setup(
     name="fsqlfly",
     version=VERSION,

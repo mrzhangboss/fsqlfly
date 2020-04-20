@@ -202,7 +202,6 @@ class HiveManager(DatabaseManager):
         types = BlinkHiveSQLType
         str_name = str(typ)
 
-
         if isinstance(typ, (VARCHAR, CHAR, String)):
             name = types.STRING
         elif isinstance(typ, BINARY):
@@ -213,3 +212,60 @@ class HiveManager(DatabaseManager):
             logzero.logger.error("Not Support Current Type in DB {}".format(str(typ)))
             return None
         return name
+
+
+class ElasticSearchManager(DatabaseManager):
+    def __init__(self, connection_url: str, table_name_filter: NameFilter):
+        super(ElasticSearchManager, self).__init__(connection_url, table_name_filter, 'hive')
+
+    def _es2flink(self, typ: str) -> Optional[str]:
+        types = BlinkSQLType
+        if typ in ("text", "keyword"):
+            return types.STRING
+        elif typ == 'long':
+            return types.BIGINT
+        elif typ == 'integer':
+            return types.INTEGER
+        elif typ == 'byte':
+            return types.TINYINT
+        elif typ == 'short':
+            return types.SMALLINT
+        elif typ == 'float':
+            return types.FLOAT
+        elif typ == 'binary':
+            return types.BYTES
+        elif typ == 'boolean':
+            return types.BOOLEAN
+        elif typ == 'date':
+            return types.DATE
+
+    def update(self):
+        from elasticsearch import Elasticsearch
+        es = Elasticsearch(hosts=self.connection_url)
+        schemas = []
+        for index in es.indices.get_alias('*'):
+            if index not in self.need_tables:
+                continue
+
+            schema = SchemaContent(name=index, type=self.db_type)
+            mappings = es.indices.get_mapping(index)
+
+            fields = []
+            for k, v in mappings[index]['mappings']['properties'].items():
+                field = SchemaField(name=k, type=self._es2flink(v['type']),
+                                    nullable=True)
+                if field.type is None:
+                    logzero.logger.error(
+                        "Not Add Column {} in {}.{} current not support : {}".format(field.name, schema.database,
+                                                                                     schema.name, str(v['type'])))
+                else:
+                    fields.append(field)
+
+            fields.sort(key=lambda x: x.name)
+
+            schema.fields.extend(fields)
+
+            print(schema)
+            schemas.append(schema)
+
+        return schemas
