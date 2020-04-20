@@ -10,6 +10,7 @@
 ### Connector
 
 - [Elasticsearch	6	flink-connector-elasticsearch6	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-elasticsearch6_2.11/1.10.0/flink-sql-connector-elasticsearch6_2.11-1.10.0.jar)
+- [Elasticsearch	7	flink-connector-elasticsearch7	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-elasticsearch7_2.11/1.10.0/flink-sql-connector-elasticsearch7_2.11-1.10.0.jar)
 - [Apache Kafka	0.8	flink-connector-kafka-0.8	Not available](#)
 - [Apache Kafka	0.9	flink-connector-kafka-0.9	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka-0.9_2.11/1.10.0/flink-sql-connector-kafka-0.9_2.11-1.10.0.jar)
 - [Apache Kafka	0.10	flink-connector-kafka-0.10	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka-0.10_2.11/1.10.0/flink-sql-connector-kafka-0.10_2.11-1.10.0.jar)
@@ -24,10 +25,10 @@
 - [JSON	flink-json	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-json/1.10.0/flink-json-1.10.0-sql-jar.jar)
 - [Apache Avro	flink-avro	Download](https://repo1.maven.org/maven2/org/apache/flink/flink-avro/1.10.0/flink-avro-1.10.0-sql-jar.jar)
 
-一键下载脚本（不包含kafka依赖，请单独下载具体使用的kafka版本，注意不要下载多个kafka版本，目前不支持一个集群使用多版本kafka）
+一键下载脚本（不包含kafka和Elasticsearch依赖，请单独下载具体使用的kafka版本，注意不要下载多个kafka版本，目前不支持一个集群使用多版本kafka）
 
     cd /opt/flink-1.10.0/lib
-    for p in '/flink-sql-connector-elasticsearch6_2.11/1.10.0/flink-sql-connector-elasticsearch6_2.11-1.10.0.jar' '/flink-hbase_2.11/1.10.0/flink-hbase_2.11-1.10.0.jar' '/flink-jdbc_2.11/1.10.0/flink-jdbc_2.11-1.10.0.jar' '/flink-csv/1.10.0/flink-csv-1.10.0-sql-jar.jar' '/flink-json/1.10.0/flink-json-1.10.0-sql-jar.jar' '/flink-avro/1.10.0/flink-avro-1.10.0-sql-jar.jar'
+    for p in '/flink-hbase_2.11/1.10.0/flink-hbase_2.11-1.10.0.jar' '/flink-jdbc_2.11/1.10.0/flink-jdbc_2.11-1.10.0.jar' '/flink-csv/1.10.0/flink-csv-1.10.0-sql-jar.jar' '/flink-json/1.10.0/flink-json-1.10.0-sql-jar.jar' '/flink-avro/1.10.0/flink-avro-1.10.0-sql-jar.jar'
     do
       echo "begin download https://repo1.maven.org/maven2/org/apache/flink$p"
       wget "https://repo1.maven.org/maven2/org/apache/flink$p"
