@@ -2,7 +2,7 @@
 from __future__ import absolute_import, unicode_literals, print_function
 import unittest
 from unittest.mock import patch, Mock
-from fsqlfly.connection_manager import NameFilter, DatabaseManager
+from fsqlfly.connection_manager import NameFilter, DatabaseManager, HiveManager
 
 
 class NameFilterTest(unittest.TestCase):
@@ -32,6 +32,12 @@ class ManagerTest(unittest.TestCase):
     def test_db_manager(self):
         name_filter = NameFilter('.*\.alltypes')
         mn = DatabaseManager('mysql+pymysql://root:password@localhost:3306/fsqlfly', name_filter)
+
+        mn.update()
+
+    def test_hive_manager(self):
+        name_filter = NameFilter('test\.alltypes')
+        mn = HiveManager('hive://localhost:10000/default', name_filter)
 
         mn.update()
 

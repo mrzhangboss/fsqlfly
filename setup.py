@@ -55,6 +55,7 @@ canal_require = ['canal-python <= 0.4', 'kafka-python >= 1.3.4, <= 1.4.7', 'prot
 postgresql_require = ['psycopg2 <= 2.8.4']
 mysql_require = ['PyMySQL <= 0.9.3']
 airflow_require = ['apache-airflow']
+hive_require = ['PyHive<=0.6.2', 'thrift<=0.13.0', 'sasl<=0.2.1', 'thrift_sasl<0.4.2']
 setup(
     name="fsqlfly",
     version=VERSION,
@@ -79,7 +80,8 @@ setup(
         'postgresql': postgresql_require,
         'canal': canal_require,
         'airflow': airflow_require,
-        'all': mysql_require + postgresql_require + canal_require + airflow_require
+        'hive': hive_require,
+        'all': mysql_require + postgresql_require + canal_require + airflow_require + hive_require
     },
     python_requires=">=3.6.0",
     install_requires=REQUIRED,

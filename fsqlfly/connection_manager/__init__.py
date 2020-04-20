@@ -8,10 +8,7 @@ import yaml
 import logzero
 from typing import List, Dict, Optional
 from sqlalchemy import create_engine, inspect
-from sqlalchemy.dialects.mysql.types import _StringType as M_STRING, BIT as M_BIT, TINYINT, DOUBLE as M_DOUBLE
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION as P_DOUBLE, BIT as P_BIT, VARCHAR, CHAR, TEXT, JSON
-from sqlalchemy.sql.sqltypes import (DATE, _Binary, TypeDecorator, INTEGER, SMALLINT, BIGINT, FLOAT, DECIMAL, DATETIME,
-                                     TIMESTAMP, TIME)
+from sqlalchemy.sql.sqltypes import TypeDecorator
 from typing import Optional, List, Type, Any
 from re import _pattern_type
 
@@ -75,15 +72,15 @@ class NameFilter:
 class SchemaField:
     name: str = attr.ib()
     type: str = attr.ib()
-    default: Optional[Any] = attr.ib(default=None)
     comment: Optional[str] = attr.ib(default=None)
-    nullable: bool = attr.ib(default=True)
-    autoincrement: bool = attr.ib(default=False)
+    nullable: Optional[bool] = attr.ib(default=True)
+    autoincrement: Optional[bool] = attr.ib(default=None)
 
 
 @attr.s
 class SchemaContent:
     name: str = attr.ib()
+    type: str = attr.ib()
     database: Optional[str] = attr.ib(default=None)
     comment: Optional[str] = attr.ib(default=None)
     primary_key: Optional[str] = attr.ib(default=None)
@@ -92,22 +89,31 @@ class SchemaContent:
 
 
 class DatabaseManager(object):
-    def __init__(self, connection_url: str, table_name_filter: NameFilter):
+    use_comment = True
+    use_primary = True
+
+    def __init__(self, connection_url: str, table_name_filter: NameFilter, db_type='mysql'):
         self.connection_url = connection_url
         self.need_tables = table_name_filter
+        self.db_type = db_type
 
-    @classmethod
-    def _get_flink_type(cls, typ: TypeDecorator) -> Optional[str]:
+    def _get_flink_type(self, typ: TypeDecorator) -> Optional[str]:
+        from sqlalchemy.dialects.mysql.types import _StringType as M_STRING, BIT as M_BIT, TINYINT, DOUBLE as M_DOUBLE
+        from sqlalchemy.dialects.postgresql import (DOUBLE_PRECISION as P_DOUBLE, BIT as P_BIT, VARCHAR, CHAR, TEXT,
+                                                    JSON, BOOLEAN)
+        from sqlalchemy.sql.sqltypes import (DATE, _Binary, INTEGER, SMALLINT, BIGINT, FLOAT, DECIMAL,
+                                             DATETIME,
+                                             TIMESTAMP, TIME)
         name = None
         types = BlinkSQLType
         if isinstance(typ, (M_STRING, VARCHAR, CHAR, TEXT, JSON)):
             name = types.STRING
         elif isinstance(typ, _Binary):
             name = types.BYTES
+        elif isinstance(typ, BOOLEAN):
+            name = types.BOOLEAN
         elif isinstance(typ, TINYINT):
             name = types.TINYINT
-            if typ.display_width == 1:
-                name = types.BOOLEAN
         elif isinstance(typ, SMALLINT):
             name = types.SMALLINT
         elif isinstance(typ, (P_BIT, M_BIT)):
@@ -135,6 +141,7 @@ class DatabaseManager(object):
         return name
 
     def update(self):
+        from sqlalchemy.sql.sqltypes import INTEGER, SMALLINT, BIGINT
         engine = create_engine(self.connection_url)
         insp = inspect(engine)
         db_list = insp.get_schema_names()
@@ -148,20 +155,20 @@ class DatabaseManager(object):
         schemas = []
 
         for db, tb in update_tables:
-            comment = insp.get_table_comment(table_name=tb, schema=db)['text']
-            schema = SchemaContent(name=tb, database=db, comment=comment)
+            comment = insp.get_table_comment(table_name=tb, schema=db)['text'] if self.use_comment else None
+            schema = SchemaContent(name=tb, database=db, comment=comment, type=self.db_type)
             columns = insp.get_columns(table_name=tb, schema=db)
-            primary = insp.get_primary_keys(tb, db)
+            primary = insp.get_primary_keys(tb, db) if self.use_primary else None
             if primary and len(primary) == 1:
                 schema.primary_key = primary[0]
                 column = list(filter(lambda x: x['name'] == primary[0], columns))[0]
-                if isinstance(column['type'], (BIGINT, INTEGER)):
+                if isinstance(column['type'], (INTEGER, SMALLINT, BIGINT)):
                     schema.partitionable = True
 
             fields = []
             for x in columns:
-                field = SchemaField(name=x['name'], type=self._get_flink_type(x['type']), default=x.get('default'),
-                                    nullable=x['nullable'], autoincrement=x.get('autoincrement', False))
+                field = SchemaField(name=x['name'], type=self._get_flink_type(x['type']),
+                                    nullable=x['nullable'], autoincrement=x.get('autoincrement'))
                 if field.type is None:
                     logzero.logger.error(
                         "Not Add Column {} in {}.{} current not support : {}".format(field.name, schema.database,
@@ -177,3 +184,32 @@ class DatabaseManager(object):
             schemas.append(schema)
 
         return schemas
+
+
+class HiveManager(DatabaseManager):
+    use_comment = False
+    use_primary = False
+
+    hive_types = set(list(x for x in dir(BlinkHiveSQLType) if not x.startswith('__')))
+
+    def __init__(self, connection_url: str, table_name_filter: NameFilter):
+        super(HiveManager, self).__init__(connection_url, table_name_filter, 'hive')
+
+    def _get_flink_type(self, typ: TypeDecorator) -> Optional[str]:
+        from sqlalchemy.sql.sqltypes import (DATE, _Binary, TIME, VARCHAR, String, CHAR, BINARY)
+
+        name = None
+        types = BlinkHiveSQLType
+        str_name = str(typ)
+
+
+        if isinstance(typ, (VARCHAR, CHAR, String)):
+            name = types.STRING
+        elif isinstance(typ, BINARY):
+            name = types.BYTES
+        elif str_name in self.hive_types:
+            name = str_name
+        if name is None:
+            logzero.logger.error("Not Support Current Type in DB {}".format(str(typ)))
+            return None
+        return name
