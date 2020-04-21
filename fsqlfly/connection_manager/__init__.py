@@ -216,7 +216,7 @@ class HiveManager(DatabaseManager):
 
 class ElasticSearchManager(DatabaseManager):
     def __init__(self, connection_url: str, table_name_filter: NameFilter):
-        super(ElasticSearchManager, self).__init__(connection_url, table_name_filter, 'hive')
+        super(ElasticSearchManager, self).__init__(connection_url, table_name_filter, 'elasticsearch')
 
     def _es2flink(self, typ: str) -> Optional[str]:
         types = BlinkSQLType
@@ -269,3 +269,26 @@ class ElasticSearchManager(DatabaseManager):
             schemas.append(schema)
 
         return schemas
+
+
+class HBaseManager(DatabaseManager):
+    def __init__(self, connection_url: str, table_name_filter: NameFilter):
+        super(HBaseManager, self).__init__(connection_url, table_name_filter, 'hbase')
+
+    def update(self):
+        import happybase
+        host, port = self.connection_url.split(':')
+        connection = happybase.Connection(host, int(port), autoconnect=True)
+        schemas = []
+        for x in connection.tables():
+            tab = x.decode()
+            table = connection.table(tab)
+            schema = SchemaContent(name=tab, type=self.db_type)
+            fields = []
+            for fm in table.families():
+                fields.append(SchemaField(name=fm.decode(), type=BlinkHiveSQLType.RAW, nullable=True))
+            schema.fields.extend(fields)
+            schemas.append(schema)
+        return schemas
+
+

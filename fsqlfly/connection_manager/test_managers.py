@@ -2,7 +2,7 @@
 from __future__ import absolute_import, unicode_literals, print_function
 import unittest
 from unittest.mock import patch, Mock
-from fsqlfly.connection_manager import NameFilter, DatabaseManager, HiveManager, ElasticSearchManager
+from fsqlfly.connection_manager import NameFilter, DatabaseManager, HiveManager, ElasticSearchManager, HBaseManager
 
 
 class NameFilterTest(unittest.TestCase):
@@ -44,6 +44,12 @@ class ManagerTest(unittest.TestCase):
     def test_elasticsearch_manager(self):
         name_filter = NameFilter()
         mn = ElasticSearchManager('http://localhost:9200', name_filter)
+
+        mn.update()
+
+    def test_hbase_manager(self):
+        name_filter = NameFilter()
+        mn = HBaseManager('127.0.0.1:9090', name_filter)
 
         mn.update()
 
