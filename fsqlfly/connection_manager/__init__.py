@@ -286,7 +286,7 @@ class HBaseManager(DatabaseManager):
             schema = SchemaContent(name=tab, type=self.db_type)
             fields = []
             for fm in table.families():
-                fields.append(SchemaField(name=fm.decode(), type=BlinkHiveSQLType.RAW, nullable=True))
+                fields.append(SchemaField(name=fm.decode(), type=BlinkHiveSQLType.BYTES, nullable=True))
             schema.fields.extend(fields)
             schemas.append(schema)
         return schemas

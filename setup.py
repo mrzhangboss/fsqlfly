@@ -52,11 +52,12 @@ class UploadCommand(Command):
 
 
 canal_require = ['canal-python <= 0.4', 'kafka-python >= 1.3.4, <= 1.4.7', 'protobuf <= 3.11.3', 'sqlalchemy <= 1.3.15']
-postgresql_require = ['psycopg2 <= 2.8.4']
+pg_require = ['psycopg2 <= 2.8.4']
 mysql_require = ['PyMySQL <= 0.9.3']
 airflow_require = ['apache-airflow']
 hive_require = ['PyHive<=0.6.2', 'thrift<=0.13.0', 'sasl<=0.2.1', 'thrift_sasl<0.4.2']
-elasticsearch_require = ['elasticsearch>=7.0.0,<8.0.0']
+es_require = ['elasticsearch>=7.0.0,<8.0.0']
+hbase_require = ['happybase<=1.2.0']
 setup(
     name="fsqlfly",
     version=VERSION,
@@ -78,11 +79,13 @@ setup(
     extras_require={
         'test': ['TorMySQL'],
         'mysql': mysql_require,
-        'postgresql': postgresql_require,
+        'postgresql': pg_require,
         'canal': canal_require,
         'airflow': airflow_require,
         'hive': hive_require,
-        'all': mysql_require + postgresql_require + canal_require + airflow_require + hive_require
+        'es': es_require,
+        'hbase': hbase_require,
+        'all': mysql_require + pg_require + canal_require + airflow_require + hive_require + es_require + hbase_require
     },
     python_requires=">=3.6.0",
     install_requires=REQUIRED,
