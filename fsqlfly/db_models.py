@@ -10,7 +10,10 @@ _Base = declarative_base()
 
 CONNECTION_TYPE = ChoiceType([(k, str(v)) for k, v in SUPPORT_MANAGER.items()], impl=String(16))
 FILE_TYPE = ChoiceType([(k, k) for k in ['savepoint', 'function', 'upload', 'resource']], impl=String(16))
-CASCADE = "delete, delete-orphan"
+
+
+def _b(x: str):
+    return backref(x, cascade="delete, delete-orphan")
 
 
 class Base(_Base):
@@ -19,6 +22,8 @@ class Base(_Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     created_at = Column(DateTime, server_default=sa.func.now())
     updated_at = Column(DateTime, server_default=sa.func.now(), server_onupdate=sa.func.now())
+    is_locked = Column(Boolean, default=False)
+    is_hidden = Column(Boolean, default=False)
 
     def as_dict(self):
         return {k: v for k, v in vars(self).items() if k != '_sa_instance_state'}
@@ -32,7 +37,6 @@ class Connection(Base):
     info = Column(Text)
     connector = Column(Text, nullable=False)
     catalog = Column(Text)
-    is_hidden = Column(Boolean, default=False)
     is_active = Column(Boolean, default=False)
 
 
@@ -45,17 +49,15 @@ class SchemaEvent(Base):
     info = Column(Text)
     database = Column(String(64), nullable=True)
     connection_id = Column(Integer, ForeignKey('connection.id'))
-    connection = relationship('Connection', backref=backref('schemas', cascade=CASCADE), cascade=CASCADE,
-                              single_parent=True)
+    connection = relationship('Connection', backref=_b('schemas'))
     father_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
-    father = relationship('SchemaEvent', backref='children', remote_side='SchemaEvent.id')
+    father = relationship('SchemaEvent', backref=_b('children'), remote_side='SchemaEvent.id')
     type = Column(CONNECTION_TYPE, nullable=False)
     version = Column(Integer, nullable=False)
     comment = Column(Text)
     primary_key = Column(String(64))
     fields = Column(Text)
     partitionable = Column(Boolean, default=False)
-    is_locked = Column(Boolean, default=False)
 
 
 class Connector(Base):
@@ -68,7 +70,6 @@ class Connector(Base):
     target = relationship(Connection, foreign_keys=target_id, passive_deletes=False)
     config = Column(Text)
     generate_sql = Column(Text)
-    is_hidden = Column(Boolean, default=False)
 
 
 class ResourceName(Base):
@@ -77,13 +78,10 @@ class ResourceName(Base):
     info = Column(Text)
     database = Column(String(64), nullable=True)
     connection_id = Column(Integer, ForeignKey('connection.id'), nullable=False)
-    connection = relationship(Connection, backref=backref('resource_names', cascade=CASCADE), cascade=CASCADE,
-                              single_parent=True)
-    schema_version = relationship(SchemaEvent, backref=backref('resource_names', cascade=CASCADE), cascade=CASCADE,
-                                  single_parent=True)
+    connection = relationship(Connection, backref=_b('resource_names'))
+    schema_version = relationship(SchemaEvent, backref=_b('resource_names'))
     schema_version_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
     full_name = Column(String(2048), nullable=False, unique=True)
-    is_hidden = Column(Boolean, default=False)
 
 
 class ResourceTemplate(Base):
@@ -94,16 +92,11 @@ class ResourceTemplate(Base):
     is_default = Column(Boolean, default=False)
     full_name = Column(String(2048), nullable=False, unique=True)
     connection_id = Column(Integer, ForeignKey('connection.id'), nullable=False)
-    connection = relationship('Connection', backref=backref('templates', cascade=CASCADE), cascade=CASCADE,
-                              single_parent=True)
+    connection = relationship('Connection', backref=_b('templates'))
     resource_name_id = Column(Integer, ForeignKey('resource_name.id'), nullable=False)
-    resource_name = relationship(ResourceName, backref=backref('templates', cascade=CASCADE), cascade=CASCADE,
-                                 single_parent=True)
-    schema_version = relationship(SchemaEvent, backref=backref('templates', cascade=CASCADE), cascade=CASCADE,
-                                  single_parent=True)
+    resource_name = relationship(ResourceName, backref=_b('templates'))
+    schema_version = relationship(SchemaEvent, backref=_b('templates'))
     schema_version_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
-    is_hidden = Column(Boolean, default=False)
-    is_locked = Column(Boolean, default=False)
     config = Column(Text)
 
 
@@ -117,21 +110,15 @@ class ResourceVersion(Base):
     full_name = Column(String(2048), nullable=False, unique=True)
     is_system = Column(Boolean, default=False)
     is_latest = Column(Boolean, default=False)
-    is_hidden = Column(Boolean, default=False)
     is_default = Column(Boolean, default=False)
-    is_locked = Column(Boolean, default=False)
     version = Column(Integer, nullable=False, default=0)
     connection_id = Column(Integer, ForeignKey('connection.id'), nullable=False)
-    connection = relationship(Connection, backref=backref('versions', cascade=CASCADE), cascade=CASCADE,
-                              single_parent=True)
+    connection = relationship(Connection, backref=_b('versions'))
     resource_name_id = Column(Integer, ForeignKey('resource_name.id'), nullable=False)
-    resource_name = relationship(ResourceName, backref=backref('versions', cascade=CASCADE), cascade=CASCADE,
-                                 single_parent=True)
+    resource_name = relationship(ResourceName, backref=_b('versions'))
     template_id = Column(Integer, ForeignKey('resource_template.id'), nullable=False)
-    template = relationship(ResourceTemplate, backref=backref('versions', cascade=CASCADE), cascade=CASCADE,
-                            single_parent=True)
-    schema_version = relationship(SchemaEvent, backref=backref('versions', cascade=CASCADE), cascade=CASCADE,
-                                  single_parent=True)
+    template = relationship(ResourceTemplate, backref=_b('versions'))
+    schema_version = relationship(SchemaEvent, backref=_b('versions'))
     schema_version_id = Column(Integer, ForeignKey('schema_event.id'))
     config = Column(Text)
 
@@ -141,7 +128,6 @@ class Namespace(Base):
     name = Column(String(256), unique=True)
     info = Column(Text)
     avatar = Column(Text)
-    is_hidden = Column(Boolean, default=True)
     is_daemon = Column(Boolean, default=False)
 
 
@@ -152,9 +138,7 @@ class FileResource(Base):
     info = Column(Text)
     real_path = Column(String(2048))
     transform_id = Column(Integer, ForeignKey('transform.id'))
-    transform = relationship('Transform', backref=backref('savepoint', cascade=CASCADE), cascade=CASCADE,
-                             single_parent=True)
-    is_hidden = Column(Boolean, default=True)
+    transform = relationship('Transform', backref=_b('savepoint'))
     is_system = Column(Boolean, default=False)
 
 
@@ -164,8 +148,7 @@ class Functions(Base):
     class_name = Column(String(512), nullable=False)
     constructor_config = Column(Text)
     resource_id = Column(Integer, ForeignKey('file_resource.id'), nullable=False)
-    resource = relationship(FileResource, backref=backref('functions', cascade=CASCADE), cascade=CASCADE,
-                            single_parent=True)
+    resource = relationship(FileResource, backref=_b('functions'))
     is_active = Column(Boolean, default=True)
 
     class Meta:
@@ -180,9 +163,7 @@ class Transform(Base):
     require = Column(Text)
     yaml = Column(Text)
     namespace_id = Column(Integer, ForeignKey('namespace.id'), nullable=True)
-    namespace = relationship(Namespace, backref=backref('transforms'), cascade="delete, delete-orphan",
-                             single_parent=True)
-    is_hidden = Column(Boolean, default=True)
+    namespace = relationship(Namespace, backref=_b('transforms'))
     is_daemon = Column(Boolean, default=False)
 
     class Meta:
