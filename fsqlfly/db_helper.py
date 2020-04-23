@@ -1,5 +1,5 @@
 from fsqlfly.db_models import *
-from fsqlfly.utils import DBRes
+from fsqlfly.common import DBRes
 
 
 class DBDao(object):
