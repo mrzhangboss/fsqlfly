@@ -8,3 +8,4 @@ Jinja2<=2.11.1
 python-magic<=0.4.15
 requests<=2.23.0
 attrs<=19.3.0
+sqlalchemy-utils<=0.36.3

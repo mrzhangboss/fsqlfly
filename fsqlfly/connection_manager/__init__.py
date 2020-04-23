@@ -88,7 +88,21 @@ class SchemaContent:
     partitionable: bool = attr.ib(default=False)
 
 
-class DatabaseManager(object):
+class BaseManager:
+    use_comment = False
+    use_primary = False
+    renewable = True
+
+    def run(self) -> Optional[List[SchemaContent]]:
+        if self.renewable:
+            return self.update()
+        return None
+
+    def update(self) -> List[SchemaContent]:
+        return list()
+
+
+class DatabaseManager(BaseManager):
     use_comment = True
     use_primary = True
 
@@ -292,3 +306,24 @@ class HBaseManager(DatabaseManager):
         return schemas
 
 
+class CanalManager(BaseManager):
+    renewable = False
+
+
+class FileManger(BaseManager):
+    renewable = False
+
+
+class KafkaManger(BaseManager):
+    renewable = False
+
+
+SUPPORT_MANAGER = {
+    'hive': HiveManager,
+    'db': DatabaseManager,
+    'kafka': KafkaManger,
+    'hbase': HBaseManager,
+    'elasticsearch': ElasticSearchManager,
+    'canal': CanalManager,
+    'file': FileManger
+}
