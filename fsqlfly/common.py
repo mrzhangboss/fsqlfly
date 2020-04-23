@@ -20,7 +20,11 @@ class RespCode:
 
 @attr.s
 class DBRes:
-    data: Any = attr.ib()
+    data: Any = attr.ib(default=None)
     code: int = attr.ib(default=200)
     msg: Optional[str] = attr.ib(default=None)
-    success: bool = attr.ib(default=True)
+    success: bool = attr.ib()
+
+    @success.default
+    def get_success(self):
+        return self.code == 200
