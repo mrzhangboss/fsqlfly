@@ -52,6 +52,21 @@ class MyTestCase(unittest.TestCase):
         session.commit()
         self.assertEqual(DBDao.update(model=c, pk=obj.id, obj=obj.as_dict()).success, True)
 
+    def test_crud(self):
+        obj = dict(name='example', type='hive', url='xx', is_locked=False, connector='')
+        c = 'connection'
+        self.assertEqual(DBDao.create(model=c, obj=obj).success, True)
+        data = DBDao.get(model=c).data
+        pk = data[0]['id']
+        self.assertEqual(len(data), 1)
+        obj['is_locked'] = True
+        self.assertEqual(DBDao.update(model=c, pk=pk, obj=obj).success, True)
+        self.assertEqual(DBDao.get(model=c).data[0]['is_locked'], True)
+        d_res = DBDao.delete(model=c, pk=data[0]['id'])
+        self.assertEqual(d_res.success, True)
+        self.assertEqual(d_res.data, pk)
+
+
 
 
 if __name__ == '__main__':

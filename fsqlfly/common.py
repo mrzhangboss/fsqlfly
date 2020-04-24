@@ -30,9 +30,17 @@ class DBRes:
         return self.code == 200
 
     @classmethod
+    def api_error(cls, msg: str = RespCode.APIFail.msg):
+        return DBRes(code=RespCode.APIFail.code, msg=msg)
+
+    @classmethod
     def not_found(cls, msg: str = "Can't found Object"):
         return DBRes(code=RespCode.APIFail.code, msg=msg)
 
     @classmethod
     def resource_locked(cls, msg: str = "Resource Locked"):
         return DBRes(code=RespCode.APIFail.code, msg=msg)
+
+    @classmethod
+    def sever_error(cls, msg: str = RespCode.ServerError.msg):
+        return DBRes(code=RespCode.ServerError.code, msg=msg)

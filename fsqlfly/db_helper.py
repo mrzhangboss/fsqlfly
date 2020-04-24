@@ -42,7 +42,7 @@ def filter_not_support(func: Callable) -> Callable:
     def _call_(*args, **kwargs):
         model = kwargs['model'] if 'model' in kwargs else args[1]
         if model not in SUPPORT_MODELS:
-            return DBRes(code=RespCode.APIFail.code, msg=f'{model} not support')
+            return DBRes.api_error(msg=f'{model} not support')
         base = SUPPORT_MODELS[model]
         session = kwargs['session'] if 'session' in kwargs else DBSession.get_session()
         try:
@@ -52,7 +52,7 @@ def filter_not_support(func: Callable) -> Callable:
         except Exception:
             session.rollback()
             err = traceback.format_exc()
-            return DBRes(code=RespCode.APIFail.code, msg=f'{model} meet {err}')
+            return DBRes.sever_error(msg=f'{model} meet {err}')
         finally:
             session.close()
 
@@ -79,14 +79,18 @@ class DBDao:
     @classmethod
     @filter_not_support
     def create(cls, model: str, obj: dict, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
-        pass
+        db_obj = base(**obj)
+        session.add(db_obj)
+        session.commit()
+        return DBRes(data=db_obj.as_dict())
 
     @classmethod
     @filter_not_support
     def get(cls, model: str, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
-        pass
+        return DBRes(data=[x.as_dict() for x in session.query(base).all()])
 
     @classmethod
     @filter_not_support
     def delete(cls, model: str, pk: int, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
-        pass
+        session.query(base).filter(base.id == pk).delete()
+        return DBRes(data=pk)
