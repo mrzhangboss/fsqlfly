@@ -66,7 +66,13 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(d_res.success, True)
         self.assertEqual(d_res.data, pk)
 
-
+    def test_bulk_insert(self):
+        data = []
+        c = 'connection'
+        num = 100
+        for i in range(num):
+            data.append(Connection(**dict(name=f'example{i}', type='hive', url='xx', is_locked=False, connector='')))
+        self.assertEqual(DBDao.bulk_insert(data).data, num)
 
 
 if __name__ == '__main__':

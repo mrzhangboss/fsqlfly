@@ -37,6 +37,24 @@ class DBSession:
         return cls._Session()
 
 
+def session_add(func: Callable) -> Callable:
+    @wraps(func)
+    def _add_session(*args, **kwargs):
+        session = kwargs['session'] if 'session' in kwargs else DBSession.get_session()
+        try:
+            res = func(*args, session=session, **kwargs)
+            session.commit()
+            return res
+        except Exception:
+            session.rollback()
+            err = traceback.format_exc()
+            return DBRes.sever_error(msg=f'meet {err}')
+        finally:
+            session.close()
+
+    return _add_session
+
+
 def filter_not_support(func: Callable) -> Callable:
     @wraps(func)
     def _call_(*args, **kwargs):
@@ -44,23 +62,14 @@ def filter_not_support(func: Callable) -> Callable:
         if model not in SUPPORT_MODELS:
             return DBRes.api_error(msg=f'{model} not support')
         base = SUPPORT_MODELS[model]
-        session = kwargs['session'] if 'session' in kwargs else DBSession.get_session()
-        try:
-            res = func(*args, session=session, base=base, **kwargs)
-            session.commit()
-            return res
-        except Exception:
-            session.rollback()
-            err = traceback.format_exc()
-            return DBRes.sever_error(msg=f'{model} meet {err}')
-        finally:
-            session.close()
+        return func(*args, base=base, **kwargs)
 
     return _call_
 
 
 class DBDao:
     @classmethod
+    @session_add
     @filter_not_support
     def update(cls, model: str, pk: int, obj: dict, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
         assert session is not None
@@ -77,6 +86,7 @@ class DBDao:
         return DBRes(data=first.as_dict())
 
     @classmethod
+    @session_add
     @filter_not_support
     def create(cls, model: str, obj: dict, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
         db_obj = base(**obj)
@@ -85,12 +95,20 @@ class DBDao:
         return DBRes(data=db_obj.as_dict())
 
     @classmethod
+    @session_add
     @filter_not_support
     def get(cls, model: str, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
         return DBRes(data=[x.as_dict() for x in session.query(base).all()])
 
     @classmethod
+    @session_add
     @filter_not_support
     def delete(cls, model: str, pk: int, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
         session.query(base).filter(base.id == pk).delete()
         return DBRes(data=pk)
+
+    @classmethod
+    @session_add
+    def bulk_insert(cls, data: list, *args, session: Session, **kwargs):
+        session.add_all(data)
+        return DBRes(data=len(data))
