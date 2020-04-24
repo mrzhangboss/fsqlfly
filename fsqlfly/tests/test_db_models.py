@@ -1,5 +1,6 @@
 import unittest
 import random
+import sqlalchemy as sa
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import event
 from fsqlfly.db_models import *
@@ -10,9 +11,8 @@ class MyTestCase(unittest.TestCase):
         dbapi_con.execute('pragma foreign_keys=ON')
 
     def setUp(self) -> None:
-        # engine = sa.create_engine('sqlite://', echo=True)
-        engine = sa.create_engine('mysql+pymysql://root:password@localhost:3306/test', echo=True)
-        # event.listen(engine, 'connect', self._fk_pragma_on_connect)
+        engine = sa.create_engine('sqlite://', echo=True)
+        event.listen(engine, 'connect', self._fk_pragma_on_connect)
         DBSession = sessionmaker(bind=engine)
 
         delete_all_tables(engine, force=True)

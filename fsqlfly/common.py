@@ -28,3 +28,11 @@ class DBRes:
     @success.default
     def get_success(self):
         return self.code == 200
+
+    @classmethod
+    def not_found(cls, msg: str = "Can't found Object"):
+        return DBRes(code=RespCode.APIFail.code, msg=msg)
+
+    @classmethod
+    def resource_locked(cls, msg: str = "Resource Locked"):
+        return DBRes(code=RespCode.APIFail.code, msg=msg)

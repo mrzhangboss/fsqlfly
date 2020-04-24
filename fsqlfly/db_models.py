@@ -9,7 +9,6 @@ from logzero import logger
 _Base = declarative_base()
 
 CONNECTION_TYPE = ChoiceType([(k, str(v)) for k, v in SUPPORT_MANAGER.items()], impl=String(16))
-FILE_TYPE = ChoiceType([(k, k) for k in ['savepoint', 'function', 'upload', 'resource']], impl=String(16))
 
 
 def _b(x: str):
@@ -134,11 +133,8 @@ class Namespace(Base):
 class FileResource(Base):
     __tablename__ = 'file_resource'
     name = Column(String(1024), unique=True, nullable=False)
-    type = Column(FILE_TYPE, nullable=False)
     info = Column(Text)
     real_path = Column(String(2048))
-    transform_id = Column(Integer, ForeignKey('transform.id'))
-    transform = relationship('Transform', backref=_b('savepoint'))
     is_system = Column(Boolean, default=False)
 
 
@@ -170,6 +166,16 @@ class Transform(Base):
         table_name = "transform"
 
 
+class TransformSavepoint(Base):
+    __tablename__ = 'transform_savepoint'
+    name = Column(String(2048), nullable=False)
+    path = Column(Text, nullable=False)
+    info = Column(Text)
+    snapshot = Column(Text)
+    transform_id = Column(Integer, ForeignKey('transform.id'))
+    transform = relationship('Transform', backref=_b('savepoint'))
+
+
 def delete_all_tables(engine, force: bool = False):
     if not force:
         word = input('Are you delete all tables (Y/n)')
@@ -181,3 +187,8 @@ def delete_all_tables(engine, force: bool = False):
 
 def create_all_tables(engine):
     Base.metadata.create_all(engine)
+
+
+__all__ = ['create_all_tables', 'delete_all_tables', 'Base', 'Connection',
+           'SchemaEvent', 'Connector', 'ResourceName', 'ResourceVersion', 'ResourceTemplate',
+           'Namespace', 'FileResource', 'Transform', 'Functions', 'TransformSavepoint']
