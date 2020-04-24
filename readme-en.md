@@ -45,31 +45,7 @@ ps: if you want daemon all flink sql job(need set publish and available), add `-
 **require install [canal v1.1.4+](https://github.com/alibaba/canal)** 
 
     pip install fsqlfly[canal]
-    fsqlfly canal --bootstrap_servers=localhost:9092 --canal_host=localhost --canal_port=11111 --canal_destination=demo \
-    --canal_username=example --canal_password=pp --canal_client_id=1232
-    
-ps: you can use   `fsqlfly canal -h` get more information, you can set all varies in `.fsqlfly` file 
-eg: 
 
-    canal_username=root
-    canal_destination=example
-    canal_password=password
-    canal_client_id=123
-    bootstrap_servers=hadoop-1:9092,hadoop-2:9092
-    canal_table_filter="database\\..*"
-    canal_host=localhost
-    
-
- 
-if you want to use canal data in flink , support load mysql database as mysql(both) |kafka(update and create)|elasticsearch(save) resource
-
-
-    pip install fsqlfly[canal]
-    fsqlfly loadmysql --host=localhost --database=fsqlfly --category=kafka --tables=* --password=password --username=root
-    
-you can set category as (kafka,mysql,es), it will create resource automatic by database  
-
-    
 
 
 # settings

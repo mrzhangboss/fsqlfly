@@ -22,7 +22,6 @@ class Base(_Base):
     created_at = Column(DateTime, server_default=sa.func.now())
     updated_at = Column(DateTime, server_default=sa.func.now(), server_onupdate=sa.func.now())
     is_locked = Column(Boolean, default=False)
-    is_hidden = Column(Boolean, default=False)
 
     def as_dict(self):
         return {k: v for k, v in vars(self).items() if k != '_sa_instance_state'}
@@ -31,11 +30,13 @@ class Base(_Base):
 class Connection(Base):
     __tablename__ = 'connection'
     name = Column(String(32), nullable=False, unique=True)
+    update_interval = Column(Integer, default=0)
     url = Column(Text, nullable=False)
     type = Column(CONNECTION_TYPE, nullable=False)
     info = Column(Text)
     connector = Column(Text, nullable=False)
-    catalog = Column(Text)
+    include = Column(String(2048))
+    exclude = Column(String(2048))
     is_active = Column(Boolean, default=False)
 
 
