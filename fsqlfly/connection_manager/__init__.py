@@ -1,15 +1,10 @@
 # -*- coding:utf-8 -*-
 import attr
 import re
-import warnings
-from fsqlfly.models import Resource, Namespace
-from copy import deepcopy
-import yaml
 import logzero
-from typing import List, Dict, Optional
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.sql.sqltypes import TypeDecorator
-from typing import Optional, List, Type, Any
+from typing import Optional, List, Type
 from re import _pattern_type
 
 

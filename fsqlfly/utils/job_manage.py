@@ -2,19 +2,16 @@
 import time
 import re
 import math
-import traceback
-from io import StringIO
 from typing import List, Any, Set
 from collections import namedtuple, Counter
 from datetime import datetime
 from requests import Session
 from logzero import logger
 from fsqlfly.settings import FSQLFLY_FINK_HOST
-from fsqlfly.models import Transform
 from fsqlfly.workflow import run_transform
 from fsqlfly.utils.strings import get_job_short_name
 from fsqlfly.common import DBRes
-from fsqlfly.db_helper import DBDao
+from fsqlfly.db_helper import DBDao, Transform
 
 JobStatus = namedtuple('JobStatus', ['name', 'job_id', 'status', 'full_name',
                                      'start_time', 'end_time', 'duration', 'pt'])
@@ -228,7 +225,7 @@ def handle_job(mode: str, pk: str, json_body: dict) -> DBRes:
     handle_name = 'handle_' + mode
     if mode in JobControlHandle and handle_name in JobControlHandle:
         if pk.isdigit():
-            transform = Transform.select().where(Transform.id == int(pk)).first()
+            transform = DBDao.get_transform(pk)
             if transform is None:
                 return DBRes.api_error(msg='job id {} not found!!!'.format(pk))
         else:

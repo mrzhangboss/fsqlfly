@@ -1,5 +1,4 @@
 # -*- coding:utf-8 -*-
-import os
 import sys
 import argparse
 import logzero
@@ -38,17 +37,17 @@ def run_load_mysql_resource(commands: list):
 
 
 def init_db(commands: list):
-    from fsqlfly.models import create_all_tables
+    from fsqlfly.db_helper import DBDao
 
-    create_all_tables()
+    DBDao.create_all_tables()
 
 
 def reset_db(commands: list):
-    from fsqlfly.models import delete_all_tables
+    from fsqlfly.db_helper import DBDao
     conformed_parser = argparse.ArgumentParser("Conformed")
     conformed_parser.add_argument('-f', '--force', type=bool, default=False, help='force running')
     args = conformed_parser.parse_args(commands)
-    delete_all_tables(force=args.force)
+    DBDao.delete_all_tables(force=args.force)
 
 
 def run_echo_env(commands: list):
@@ -72,9 +71,6 @@ def main():
         "webserver": run_webserver,
         "initdb": init_db,
         "resetdb": reset_db,
-        "loadmysql": run_load_mysql_resource,
-        "canal": run_canal,
-        "db2hive": run_db2hive,
     }
     args = sys.argv[1:]
     method = args[0] if len(args) > 0 else 'help'

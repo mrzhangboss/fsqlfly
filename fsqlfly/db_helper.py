@@ -125,3 +125,16 @@ class DBDao:
         if pk:
             return query.filter(Transform.id == pk).first()
         return query.all()
+
+    @classmethod
+    def create_all_tables(cls):
+        create_all_tables(DBSession.engine)
+
+    @classmethod
+    def delete_all_tables(cls, force: bool = False):
+        delete_all_tables(DBSession.engine, force)
+
+
+from fsqlfly.settings import ENGINE
+
+DBSession.init_engine(ENGINE)

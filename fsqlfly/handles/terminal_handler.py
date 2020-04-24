@@ -5,8 +5,8 @@ from fsqlfly import settings
 from fsqlfly.base_handle import BaseHandler
 from fsqlfly.workflow import run_debug_transform
 from fsqlfly.common import DBRes
-from fsqlfly.models import Transform
 from fsqlfly.utils.job_manage import handle_job
+from fsqlfly.db_helper import DBDao
 
 
 class TerminalHandler(BaseHandler):
@@ -25,7 +25,7 @@ class TransformControlHandler(BaseHandler):
             self.write_res(DBRes({"url": '/terminal/{}'.format(term)}))
         else:
             if not pk.isdigit():
-                transform = Transform.select().filter(Transform.name == pk).get()
+                transform = DBDao.get_transform(pk=pk)
                 pk = str(transform.id)
             return self.write_res(handle_job(mode, pk, self.json_body))
 

@@ -1,17 +1,13 @@
 import os
-import sys
 import hashlib
-import logging
 import logging
 import logzero
 from logzero import logger
 from os.path import join
 from dotenv import load_dotenv
 from pathlib import Path
-from peewee import MySQLDatabase, SqliteDatabase, PostgresqlDatabase
-from playhouse.cockroachdb import CockroachDatabase
-from playhouse.db_url import connect
 from terminado.management import NamedTermManager
+from sqlalchemy import create_engine
 
 
 def generate_cookie_secret(s: str, typ: str = '___cookie_secret') -> str:
@@ -46,36 +42,9 @@ logger.debug('FSQLFLY_TOKEN_BYTE is {}'.format(FSQLFLY_TOKEN_BYTE))
 FSQLFLY_COOKIE_SECRET = generate_cookie_secret(FSQLFLY_PASSWORD)
 
 FSQLFLY_DB_URL = ENV('FSQLFLY_DB_URL')
-FSQLFLY_DB_TYPE = ENV('FSQLFLY_DB_TYPE', 'sqlite')
-FSQLFLY_DB_FILE = ENV('FSQLFLY_DB_FILE', 'db.sqlite3')
-FSQLFLY_DATABASE = ENV('FSQLFLY_DATABASE', 'test')
-FSQLFLY_DB_PASSWORD = ENV('FSQLFLY_DB_PASSWORD', 'xxx')
-FSQLFLY_DB_USER = ENV('FSQLFLY_DB_USER', 'root')
-FSQLFLY_DB_HOST = ENV('FSQLFLY_DB_HOST', 'localhost')
-FSQLFLY_DB_PORT = int(ENV('FSQLFLY_DB_PORT', '3306'))
 
-if FSQLFLY_DB_URL is not None:
-    DATABASE = connect(FSQLFLY_DB_URL)
-    logger.debug('DATABASE is connect by url : {}'.format(FSQLFLY_DB_URL))
-elif FSQLFLY_DB_TYPE == 'sqlite':
-    DATABASE = SqliteDatabase(FSQLFLY_DB_FILE)
-    logger.debug('DATABASE is connect by sqlite: {}'.format(FSQLFLY_DB_URL))
-else:
-    assert FSQLFLY_DB_TYPE in (
-        'mysql', 'postgresql', 'cockroach'), 'env FSQLFLY_DB_TYPE must in (sqlite|mysql|postgresql|cockroach)'
-    db_classes = {
-        'mysql': MySQLDatabase,
-        'postgresql': PostgresqlDatabase,
-        'cockroach': CockroachDatabase
-    }
-    db_class = db_classes[FSQLFLY_DB_TYPE]
-    logger.debug('DATABASE is connect by {}: {}:{}@{}:{}/{}'.format(FSQLFLY_DB_TYPE,
-                                                                    FSQLFLY_DB_USER, FSQLFLY_DB_PASSWORD,
-                                                                    FSQLFLY_DB_HOST, FSQLFLY_DB_PORT,
-                                                                    FSQLFLY_DATABASE))
-
-    DATABASE = db_class(database=FSQLFLY_DATABASE,
-                        password=FSQLFLY_DB_PASSWORD, user=FSQLFLY_DB_USER, host=FSQLFLY_DB_HOST, port=FSQLFLY_DB_PORT)
+assert FSQLFLY_DB_URL, 'FSQLFLY_DB_URL must not be null'
+ENGINE = create_engine(FSQLFLY_DB_URL, echo=FSQLFLY_DEBUG)
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 FSQLFLY_UPLOAD_DIR = ENV('FSQLFLY_UPLOAD_DIR', join(os.path.expanduser('~'), '.fsqlfly_upload'))
@@ -112,4 +81,3 @@ FSQLFLY_JOB_LOG_FILE = join(FSQLFLY_JOB_LOG_DIR, 'job_damon.log')
 os.makedirs(FSQLFLY_JOB_LOG_DIR, exist_ok=True)
 
 TEMP_TERMINAL_HEAD = '0__TEMPORARY__'
-
