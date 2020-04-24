@@ -72,17 +72,15 @@ export interface IStateType<T> {
 export interface Connection {
   id: number;
   name: string;
+  type: string;
   url: string;
-  typ: string;
-  suffix: string;
-  username: string;
-  password: string;
   info: string;
-  tableRegex: string;
-  tableExcludeRegex: string;
+  include: string;
+  exclude: string;
+  connector: string;
   updateInterval: number;
-  isPublish: boolean;
-  isAvailable: boolean;
+  isActive: boolean;
+  isLocked: boolean;
   createAt?: string;
   updateAt?: string;
 }

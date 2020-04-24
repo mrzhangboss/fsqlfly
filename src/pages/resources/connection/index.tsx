@@ -20,12 +20,17 @@ import {
   Select,
   Tag,
   Radio,
+  Tooltip,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { Connection } from '../data';
 import { Dispatch } from 'redux';
 import Result from '../components/Result';
 import { PageHeaderWrapper } from '@ant-design/pro-layout';
+import { cutStr, CONNECTION_TEMPLATE } from '@/utils/utils';
+import AceEditor from 'react-ace';
+import 'brace/mode/yaml';
+
 const SelectOption = Select.Option;
 const FormItem = Form.Item;
 const { Search } = Input;
@@ -49,6 +54,8 @@ interface BasicListState {
   current?: Partial<Connection>;
   search: string;
   tag: string;
+  connector: string;
+  type: string;
   msg: string;
   success: boolean;
   submitted: boolean;
@@ -89,6 +96,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     pageSize: 5,
     currentPage: 1,
     tag: '',
+    connector: '',
+    type: '',
   };
 
   formLayout = {
@@ -215,7 +224,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const { listBasicList } = this.props;
     const res = listBasicList.filter(
       x =>
-        (search.length === 0 || x.name.indexOf(search) >= 0) && (tag.length === 0 || tag === x.typ),
+        (search.length === 0 || x.name.indexOf(search) >= 0) &&
+        (tag.length === 0 || tag === x.type),
     );
     console.log(res.length);
     console.log(res);
@@ -237,8 +247,23 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     this.setState({ tag: event.target.value });
   };
 
+  onSelectTypeChange = (value: any) => {
+    console.log('value is ');
+    console.log(value);
+    const template = CONNECTION_TEMPLATE[value];
+    if (template !== undefined) this.setState({ connector: template });
+  };
+
   render() {
-    const supportConnectionType = ['mysql', 'hive', 'kafka'];
+    const supportConnectionType = [
+      'hive',
+      'db',
+      'kafka',
+      'hbase',
+      'elasticsearch',
+      'canal',
+      'file',
+    ];
     const { loading } = this.props;
     const {
       form: { getFieldDecorator },
@@ -309,14 +334,14 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       </div>
     );
     const ListContent = ({
-      data: { name, typ, isAvailable, isPublish, createAt, updateAt },
+      data: { name, type, isActive, isLocked, createAt, updateAt },
     }: {
       data: Connection;
     }) => (
       <div className={styles.listContent}>
         <div className={styles.listContentItem}>
           <p>
-            <Tag>{typ}</Tag>
+            <Tag>{type}</Tag>
           </p>
         </div>
         <div className={styles.listContentItem}>
@@ -331,7 +356,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Progress
             type="circle"
             percent={100}
-            status={isAvailable ? (isPublish ? 'success' : 'normal') : 'exception'}
+            status={isActive ? (isLocked ? 'success' : 'normal') : 'exception'}
             strokeWidth={1}
             width={50}
             style={{ width: 180 }}
@@ -379,19 +404,35 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             {getFieldDecorator('name', {
               rules: UNIQUE_NAME_RULES,
               initialValue: current.name,
-            })(<Input placeholder="请输入" />)}
+            })(<Input disabled={!isCreate} placeholder="请输入" />)}
+          </FormItem>
+
+          <FormItem label="介绍" {...this.formLayout}>
+            {getFieldDecorator('info', {
+              initialValue: current.info,
+              rules: [
+                {
+                  required: false,
+                },
+              ],
+            })(<Input.TextArea placeholder="简介" />)}
           </FormItem>
 
           <FormItem label="类型" {...this.formLayout}>
-            {getFieldDecorator('typ', {
-              initialValue: current.typ,
+            {getFieldDecorator('type', {
+              initialValue: current.type,
               rules: [
                 {
                   required: true,
                 },
               ],
             })(
-              <Select size="large" style={{ width: 120 }}>
+              <Select
+                disabled={!isCreate}
+                size="middle"
+                style={{ width: 140 }}
+                onChange={this.onSelectTypeChange}
+              >
                 {supportConnectionType.map((x: string) => {
                   return (
                     <SelectOption key={x} value={x}>
@@ -403,7 +444,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             )}
           </FormItem>
 
-          <FormItem label="connectionUrl" {...this.formLayout}>
+          <FormItem label="url" {...this.formLayout}>
             {getFieldDecorator('url', {
               initialValue: current.url,
               rules: [
@@ -411,34 +452,23 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                   required: true,
                 },
               ],
-            })(<Input placeholder="请输入" />)}
+            })(<Input placeholder="数据库连接url" />)}
           </FormItem>
 
-          <FormItem label="后缀" {...this.formLayout}>
+          <FormItem label="资源过滤正则" {...this.formLayout}>
             {getFieldDecorator('suffix', {
-              initialValue: current.suffix,
+              initialValue: current.include,
               rules: [
                 {
                   required: true,
                 },
               ],
-            })(<Input placeholder="请输入" />)}
-          </FormItem>
-
-          <FormItem label="表过滤正则" {...this.formLayout}>
-            {getFieldDecorator('tableRegex', {
-              initialValue: current.tableRegex,
-              rules: [
-                {
-                  required: false,
-                },
-              ],
             })(<Input placeholder="使用逗号分割多个正则表达" />)}
           </FormItem>
 
-          <FormItem label="表排除正则" {...this.formLayout}>
+          <FormItem label="资源排除" {...this.formLayout}>
             {getFieldDecorator('tableExcludeRegex', {
-              initialValue: current.tableExcludeRegex,
+              initialValue: current.exclude,
               rules: [
                 {
                   required: false,
@@ -447,26 +477,21 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             })(<Input placeholder="使用逗号分割多个正则表达" />)}
           </FormItem>
 
-          <FormItem label="username" {...this.formLayout}>
-            {getFieldDecorator('username', {
-              initialValue: current.username,
-              rules: [
-                {
-                  required: false,
-                },
-              ],
-            })(<Input placeholder="请输入" />)}
-          </FormItem>
-
-          <FormItem label="password" {...this.formLayout}>
-            {getFieldDecorator('password', {
-              initialValue: current.password,
-              rules: [
-                {
-                  required: false,
-                },
-              ],
-            })(<Input type="password" placeholder="请输入" />)}
+          <FormItem label="connector" {...this.formLayout}>
+            <AceEditor
+              mode="yaml"
+              onChange={x => this.setState({ connector: x })}
+              name="functionConstructorConfig"
+              editorProps={{ $blockScrolling: true }}
+              readOnly={false}
+              placeholder={'请输入Yaml配置'}
+              defaultValue={current.connector}
+              value={this.state.connector}
+              //@ts-ignore
+              width={765}
+              //@ts-ignore
+              height={230}
+            />
           </FormItem>
 
           <FormItem label="自动更新周期（s）" {...this.formLayout}>
@@ -477,22 +502,22 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                   required: true,
                 },
               ],
-            })(<Input type="number" placeholder="请输入" />)}
+            })(<Input type="number" placeholder="秒" width={20} />)}
           </FormItem>
 
           <FormItem label="其他" {...this.formLayout}>
             <Row gutter={16}>
               <Col span={3}>
-                {getFieldDecorator('isAvailable', {
-                  initialValue: current.isAvailable,
+                {getFieldDecorator('isActive', {
+                  initialValue: current.isActive,
                   valuePropName: 'checked',
                 })(<Switch checkedChildren="启用" unCheckedChildren="禁止" />)}
               </Col>
               <Col span={3}>
-                {getFieldDecorator('isPublish', {
-                  initialValue: current.isPublish,
+                {getFieldDecorator('isLocked', {
+                  initialValue: current.isLocked,
                   valuePropName: 'checked',
-                })(<Switch checkedChildren="发布" unCheckedChildren="开发" />)}
+                })(<Switch checkedChildren="Locked" unCheckedChildren="Unlock" />)}
               </Col>
             </Row>
           </FormItem>
@@ -544,7 +569,18 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       <MoreBtn key="more" item={item} />,
                     ]}
                   >
-                    <List.Item.Meta title={<a href="#">{item.name}</a>} description={item.info} />
+                    <List.Item.Meta
+                      title={
+                        <Tooltip title={item.name} placement="left">
+                          <a href="#">{cutStr(item.name)}</a>
+                        </Tooltip>
+                      }
+                      description={
+                        <Tooltip title={item.info} placement="left">
+                          <a href="#">{cutStr(item.info)}</a>
+                        </Tooltip>
+                      }
+                    />
                     <ListContent data={item} />
                   </List.Item>
                 )}
@@ -590,7 +626,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           visible={visible}
           {...modalFooter}
         >
-          {getModalContent(current.name === undefined)}
+          {getModalContent(current.id === undefined)}
         </Modal>
       </>
     );
