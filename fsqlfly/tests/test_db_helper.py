@@ -65,6 +65,8 @@ class MyTestCase(unittest.TestCase):
         d_res = DBDao.delete(model=c, pk=data[0]['id'])
         self.assertEqual(d_res.success, True)
         self.assertEqual(d_res.data, pk)
+        self.assertEqual(len(DBDao.get(model=c).data), 0)
+
 
     def test_bulk_insert(self):
         data = []
