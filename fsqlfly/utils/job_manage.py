@@ -13,7 +13,8 @@ from fsqlfly.settings import FSQLFLY_FINK_HOST
 from fsqlfly.models import Transform
 from fsqlfly.workflow import run_transform
 from fsqlfly.utils.strings import get_job_short_name
-from fsqlfly.utils.response import create_response
+from fsqlfly.common import DBRes
+from fsqlfly.db_helper import DBDao
 
 JobStatus = namedtuple('JobStatus', ['name', 'job_id', 'status', 'full_name',
                                      'start_time', 'end_time', 'duration', 'pt'])
@@ -223,24 +224,17 @@ class JobControl:
 JobControlHandle = JobControl(FSQLFLY_FINK_HOST)
 
 
-def handle_job(mode: str, pk: str, json_body: dict) -> dict:
+def handle_job(mode: str, pk: str, json_body: dict) -> DBRes:
     handle_name = 'handle_' + mode
     if mode in JobControlHandle and handle_name in JobControlHandle:
         if pk.isdigit():
             transform = Transform.select().where(Transform.id == int(pk)).first()
             if transform is None:
-                return create_response(code=500, msg='job id {} not found!!!'.format(pk))
+                return DBRes.api_error(msg='job id {} not found!!!'.format(pk))
         else:
             transform = pk
-
         data = json_body
-        try:
-            run_res = getattr(JobControlHandle, handle_name)(transform, **data)
-        except Exception as e:
-            out = StringIO()
-            traceback.print_exc(file=out)
-            out.seek(0)
-            return create_response(msg=out.read(), code=500)
-        return create_response(msg=run_res, code=500 if run_res.startswith(FAIL_HEADER) else 200)
+        run_res = getattr(JobControlHandle, handle_name)(transform, **data)
+        return DBRes(code=500 if run_res.startswith(FAIL_HEADER) else 200, msg=run_res)
     else:
-        return create_response(code=500, msg=' {} not support!!!'.format(mode))
+        return DBRes.api_error(msg=' {} not support!!!'.format(mode))

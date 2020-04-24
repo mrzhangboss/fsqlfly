@@ -2,8 +2,8 @@ from fsqlfly.db_models import *
 import traceback
 from sqlalchemy.engine import Engine
 from functools import wraps
-from typing import Callable, Type
-from fsqlfly.common import DBRes, RespCode
+from typing import Callable, Type, Optional, List, Union
+from fsqlfly.common import DBRes
 from sqlalchemy.orm.session import Session, sessionmaker
 
 SUPPORT_MODELS = {
@@ -112,3 +112,16 @@ class DBDao:
     def bulk_insert(cls, data: list, *args, session: Session, **kwargs):
         session.add_all(data)
         return DBRes(data=len(data))
+
+    @classmethod
+    @session_add
+    def count(cls, base: Type[Base], *args, session: Session, **kwargs) -> int:
+        return session.query(base).count()
+
+    @classmethod
+    @session_add
+    def get_transform(cls, pk: Optional[int] = None, *args, session: Session, **kwargs) -> Union[List[Base], Base]:
+        query = session.query(Transform)
+        if pk:
+            return query.filter(Transform.id == pk).first()
+        return query.all()

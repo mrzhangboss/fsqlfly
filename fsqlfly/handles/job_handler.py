@@ -2,20 +2,19 @@
 import time
 from io import StringIO
 from typing import Dict, Optional, Any
-from tornado.web import authenticated
+from fsqlfly.common import safe_authenticated
 from collections import defaultdict
 from fsqlfly.settings import FSQLFLY_FINK_HOST, TEMP_TERMINAL_HEAD
-from fsqlfly.utils.response import create_response
-from fsqlfly.models import Transform, auto_close
 from fsqlfly.base_handle import BaseHandler
 from fsqlfly.utils.job_manage import JobControlHandle, handle_job
+from fsqlfly.db_helper import DBDao
+from fsqlfly.common import DBRes
 
 
 class JobHandler(BaseHandler):
-    @authenticated
-    @auto_close
+    @safe_authenticated
     def get(self, mode: str, pk: str):
-        return self.write_json(handle_job(mode, pk, self.json_body))
+        return self.write_res(handle_job(mode, pk, self.json_body))
 
     post = get
 
@@ -23,7 +22,7 @@ class JobHandler(BaseHandler):
 def get_latest_transform(refresh_seconds: int = 5) -> Dict[str, dict]:
     def _get():
         job_infos = defaultdict(dict)
-        for x in Transform.select().order_by(Transform.id.desc()).objects():
+        for x in DBDao.get_transform():
             name = "{}_{}".format(x.id, x.name)
             job_infos[name] = x.to_dict()
         return job_infos
@@ -39,7 +38,7 @@ def get_latest_transform(refresh_seconds: int = 5) -> Dict[str, dict]:
 
 
 class JobList(BaseHandler):
-    @authenticated
+    @safe_authenticated
     def get(self):
         job_infos = get_latest_transform()
         all_jobs = list()
@@ -59,7 +58,7 @@ class JobList(BaseHandler):
 
             all_jobs.append(base)
 
-        return self.write_json(create_response(data=all_jobs))
+        return self.write_res(DBRes(data=all_jobs))
 
 
 default_handlers = [

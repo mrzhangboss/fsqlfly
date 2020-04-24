@@ -1,44 +1,42 @@
-import asyncio
-import time
 import tornado.web
 from terminado import TermSocket
-from tornado.web import authenticated
+from fsqlfly.common import safe_authenticated
 from fsqlfly import settings
-from fsqlfly.base_handle import BaseHandler, RespCode
+from fsqlfly.base_handle import BaseHandler
 from fsqlfly.workflow import run_debug_transform
-from fsqlfly.utils.response import create_response
+from fsqlfly.common import DBRes
 from fsqlfly.models import Transform
 from fsqlfly.utils.job_manage import handle_job
 
 
 class TerminalHandler(BaseHandler):
-    @authenticated
+    @safe_authenticated
     def get(self):
         tm = self.terminal_manager
         terms = [{'name': name, 'id': name} for name in tm.terminals]
-        self.write_json(create_response(data=terms))
+        self.write_res(DBRes(data=terms))
 
 
 class TransformControlHandler(BaseHandler):
-    @authenticated
+    @safe_authenticated
     def post(self, mode: str, pk: str):
         if mode == 'debug':
             term = run_debug_transform(self.json_body, self.terminal_manager)
-            self.write_json(create_response({"url": '/terminal/{}'.format(term)}))
+            self.write_res(DBRes({"url": '/terminal/{}'.format(term)}))
         else:
             if not pk.isdigit():
                 transform = Transform.select().filter(Transform.name == pk).get()
                 pk = str(transform.id)
-            return self.write_json(handle_job(mode, pk, self.json_body))
+            return self.write_res(handle_job(mode, pk, self.json_body))
 
 
 class TerminalStopHandler(BaseHandler):
-    @authenticated
+    @safe_authenticated
     async def post(self, name: str):
         tm = self.terminal_manager
         if name in tm.terminals:
             await tm.terminate(name, force=True)
-            self.write_json(create_response())
+            self.write_res(DBRes())
         else:
             raise tornado.web.HTTPError(404, "Terminal not found: %r" % name)
 

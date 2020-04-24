@@ -1,7 +1,8 @@
 # -*- coding:utf-8 -*-
 
-from fsqlfly.base_handle import BaseHandler, RespCode
+from fsqlfly.base_handle import BaseHandler
 from fsqlfly import settings
+from fsqlfly.common import DBRes
 
 is_login = False
 user = dict(code=200, name='admin', status='ok', currentAuthority='admin', type='password',
@@ -24,7 +25,7 @@ class LoginHandler(BaseHandler):
             self.set_login_status()
             self.write_json(user)
         else:
-            self.write_error(RespCode.LoginFail)
+            self.write_res(DBRes.login_error())
 
 
 class LoginOutHandler(BaseHandler):

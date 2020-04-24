@@ -1,21 +1,13 @@
 # -*- coding:utf-8 -*-
 import json
-import logging
+import attr
+from logzero import logger
 from typing import Any, Optional, Awaitable
-from abc import ABC
 from datetime import datetime, date
-import tornado
-import tornado.web
+from tornado.web import RequestHandler
 from fsqlfly import settings
-
-
-class RespCode:
-    Success = 200
-    ServerError = 500
-    NeedLogin = 503
-    LoginFail = 501
-    APIFail = 502
-    InvalidHttpMethod = 405
+from fsqlfly.common import DBRes
+from fsqlfly.utils.strings import dict2camel, dict2underline
 
 
 def json_obj_hook(o):
@@ -23,11 +15,11 @@ def json_obj_hook(o):
         return str(o)
 
 
-class BaseHandler(tornado.web.RequestHandler):
+class BaseHandler(RequestHandler):
     """Request handler where requests and responses speak JSON."""
 
     def data_received(self, chunk: bytes) -> Optional[Awaitable[None]]:
-        super(BaseHandler, self).data_received(chunk)
+        return super(BaseHandler, self).data_received(chunk)
 
     @property
     def terminal_manager(self):
@@ -36,9 +28,9 @@ class BaseHandler(tornado.web.RequestHandler):
     def _login_by_header(self):
         token = self.request.headers.get('Token')
         if token is not None:
-            logging.debug("try login by request header {}".format(token))
+            logger.debug("try login by request header {}".format(token))
             if token == settings.FSQLFLY_TOKEN:
-                logging.debug("login success by request header {}".format(token))
+                logger.debug("login success by request header {}".format(token))
                 return token
         return None
 
@@ -51,7 +43,7 @@ class BaseHandler(tornado.web.RequestHandler):
             return header_token
         token = self.request.arguments.get('token')
         if token is not None and len(token) == 1 and token[0] == settings.FSQLFLY_TOKEN_BYTE:
-            logging.debug("login success By token {}".format(token))
+            logger.debug("login success By token {}".format(token))
             return token
 
     def get_login_url(self) -> str:
@@ -69,6 +61,8 @@ class BaseHandler(tornado.web.RequestHandler):
         if not hasattr(self, _name):
             try:
                 json_data = json.loads(self.request.body)
+                if isinstance(json_data, dict):
+                    json_data = dict2underline(json_data)
                 setattr(self, _name, json_data)
             except ValueError:
                 setattr(self, _name, {})
@@ -78,23 +72,13 @@ class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header('Content-Type', 'application/json; charset=utf-8')
 
-    code_msg = {
-        RespCode.NeedLogin: 'Need Login',
-        RespCode.ServerError: 'Web Server Error',
-        RespCode.LoginFail: 'Wrong Password or Token',
-        RespCode.InvalidHttpMethod: 'Invalid HTTP method.',
-        RespCode.APIFail: 'Invalid API Request',
-    }
-
-    def write_error(self, status_code, **kwargs):
-        kwargs['code'] = status_code
-        kwargs['success'] = status_code == 200
-        if 'msg' not in kwargs:
-            kwargs['msg'] = self.code_msg.get(status_code, 'Unknown error.')
-        self.set_status(200)
-        self.write_json(kwargs)
-
     def write_json(self, res: dict):
         output = json.dumps(res, ensure_ascii=False, default=json_obj_hook)
         self.write(output)
+        self.finish()
+
+    def write_res(self, res: DBRes):
+        data = attr.asdict(res)
+        j_data = json.dumps(dict2camel(data), ensure_ascii=False, default=json_obj_hook)
+        self.write(j_data)
         self.finish()
