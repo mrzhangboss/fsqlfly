@@ -84,8 +84,6 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(DBDao.get(model=c, filter_=dict(name=name1, type='hbase')).data), 0)
         self.assertEqual(len(DBDao.get(model=c, filter_=dict(id='1')).data), 1)
 
-
-
     def test_bulk_insert(self):
         data = []
         c = 'connection'
@@ -93,6 +91,35 @@ class MyTestCase(unittest.TestCase):
         for i in range(num):
             data.append(Connection(**dict(name=f'example{i}', type='hive', url='xx', is_locked=False, connector='')))
         self.assertEqual(DBDao.bulk_insert(data).data, num)
+
+    def test_update_reset_default(self):
+        connection = Connection(name='example', type='hive', url='xx', is_locked=True, connector='')
+        r_name = ResourceName(name='r_name', connection=connection, full_name='example.r_name')
+        t1_name = ResourceTemplate(name='t1', type='sink', connection=connection, full_name='example.r1_name.t1',
+                                   resource_name=r_name, is_default=True)
+        t2_name = ResourceTemplate(name='t2', type='sink', connection=connection, full_name='example.r2_name.t2',
+                                   resource_name=r_name, is_default=True)
+        session = DBSession.get_session()
+        session.add(connection)
+        session.add(r_name)
+        session.add(t1_name)
+        session.commit()
+
+        session.add(t2_name)
+        session.commit()
+        self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.is_default == True).count(), 1)
+        t1_name.is_default = True
+        session.commit()
+        self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t1_name.id).first().is_default,
+                         True)
+        self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t2_name.id).first().is_default,
+                         False)
+        t2_name.is_default = True
+        session.commit()
+        self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t1_name.id).first().is_default,
+                         False)
+        self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t2_name.id).first().is_default,
+                         True)
 
 
 if __name__ == '__main__':

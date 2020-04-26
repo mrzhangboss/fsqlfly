@@ -322,3 +322,5 @@ SUPPORT_MANAGER = {
     'canal': CanalManager,
     'file': FileManger
 }
+
+SUPPORT_TABLE_TYPE = {'sink', 'source', 'both'}

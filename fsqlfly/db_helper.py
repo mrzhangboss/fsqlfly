@@ -1,6 +1,6 @@
 from fsqlfly.db_models import *
 import traceback
-from sqlalchemy import and_
+from sqlalchemy import and_, event
 from sqlalchemy.engine import Engine
 from functools import wraps
 from typing import Callable, Type, Optional, List, Union
@@ -151,3 +151,15 @@ class DBDao:
 from fsqlfly.settings import ENGINE
 
 DBSession.init_engine(ENGINE)
+
+
+def reset_other_table(base: Base):
+    pass
+
+
+def update_default_value(mapper, connection, target):
+    if target.is_default:
+        connection.execute('update resource_template set is_default = 0 where id <> %d' % target.id)
+
+
+event.listens_for(ResourceTemplate, 'after_insert,after_update', update_default_value)

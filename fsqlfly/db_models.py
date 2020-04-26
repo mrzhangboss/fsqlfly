@@ -1,14 +1,15 @@
 import sqlalchemy as sa
-from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint
+from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint, event
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
-from fsqlfly.connection_manager import SUPPORT_MANAGER
+from fsqlfly.connection_manager import SUPPORT_MANAGER, SUPPORT_TABLE_TYPE
 from sqlalchemy_utils import ChoiceType
 from logzero import logger
 
 _Base = declarative_base()
 
 CONNECTION_TYPE = ChoiceType([(k, str(v)) for k, v in SUPPORT_MANAGER.items()], impl=String(16))
+TABLE_TYPE = ChoiceType([(k, k) for k in SUPPORT_TABLE_TYPE], impl=String(8))
 
 
 def _b(x: str):
@@ -82,14 +83,14 @@ class ResourceName(Base):
     schema_version_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
     schema_version = relationship(SchemaEvent, backref=_b('resource_names'), foreign_keys=schema_version_id)
     latest_schema_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
-    is_system = Column(Boolean, default=False)
-    is_default = Column(Boolean, default=False)
+    is_latest = Column(Boolean, default=True)
     full_name = Column(String(2048), nullable=False, unique=True)
 
 
 class ResourceTemplate(Base):
     __tablename__ = 'resource_template'
     name = Column(String(128), nullable=False)
+    type = Column(TABLE_TYPE, nullable=False)
     info = Column(Text)
     is_system = Column(Boolean, default=False)
     is_default = Column(Boolean, default=False)
