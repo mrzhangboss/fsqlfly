@@ -62,8 +62,13 @@ class MyTestCase(unittest.TestCase):
         obj['is_locked'] = True
         self.assertEqual(DBDao.update(model=c, pk=pk, obj=obj).success, True)
         self.assertEqual(DBDao.get(model=c).data[0]['is_locked'], True)
-        d_res = DBDao.delete(model=c, pk=data[0]['id'])
-        self.assertEqual(d_res.success, True)
+        from fsqlfly import settings
+        with patch.object(settings, 'FSQLFLY_SAVE_MODE_DISABLE', False):
+            d_res = DBDao.delete(model=c, pk=data[0]['id'])
+            self.assertEqual(d_res.success, False)
+        with patch.object(settings, 'FSQLFLY_SAVE_MODE_DISABLE', True):
+            d_res = DBDao.delete(model=c, pk=data[0]['id'])
+            self.assertEqual(d_res.success, True)
         self.assertEqual(d_res.data, pk)
         self.assertEqual(len(DBDao.get(model=c).data), 0)
 

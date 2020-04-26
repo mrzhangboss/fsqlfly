@@ -79,8 +79,11 @@ class ResourceName(Base):
     database = Column(String(64), nullable=True)
     connection_id = Column(Integer, ForeignKey('connection.id'), nullable=False)
     connection = relationship(Connection, backref=_b('resource_names'))
-    schema_version = relationship(SchemaEvent, backref=_b('resource_names'))
     schema_version_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
+    schema_version = relationship(SchemaEvent, backref=_b('resource_names'), foreign_keys=schema_version_id)
+    latest_schema_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
+    is_system = Column(Boolean, default=False)
+    is_default = Column(Boolean, default=False)
     full_name = Column(String(2048), nullable=False, unique=True)
 
 
