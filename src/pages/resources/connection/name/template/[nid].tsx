@@ -14,41 +14,36 @@ import {
   Dropdown,
   Menu,
   Modal,
-  Row,
-  Col,
-  Switch,
-  Select,
   Tag,
-  Radio,
-  Tooltip,
+  Tooltip, Select, Row, Col, Switch,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
-import { Connection } from '../data';
+import { Connection, ResourceName, ResourceTemplate } from '@/pages/resources/data';
 import { Dispatch } from 'redux';
-import Result from '../components/Result';
+import Result from '@/pages/resources/components/Result';
 import { PageHeaderWrapper } from '@ant-design/pro-layout';
-import { cutStr, CONNECTION_TEMPLATE, getStatus } from '@/utils/utils';
-import AceEditor from 'react-ace';
-import 'brace/mode/yaml';
+import { TABLE_TYPE_TEMPLATE, cutStr, getStatus } from '@/utils/utils';
 
-const SelectOption = Select.Option;
 const FormItem = Form.Item;
 const { Search } = Input;
 import { AnyAction } from 'redux';
 import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
 // @ts-ignore
-import styles from '../style.less';
-import { RadioChangeEvent } from 'antd/lib/radio/interface';
+import styles from '@/pages/resources/style.less';
 import { UserModelState } from '@/models/user';
 import { Link } from 'umi';
+import AceEditor from 'react-ace';
 
 interface BasicListProps extends FormComponentProps {
-  listBasicList: Connection[];
+  listBasicList: ResourceTemplate[];
+  connections: Connection[];
+  names: ResourceName[];
   dispatch: Dispatch<AnyAction>;
   total: number;
   loading: boolean;
   fetchLoading: boolean;
   deletable: boolean;
+  match: { params: { id: number, nid: number } }
 }
 
 interface BasicListState {
@@ -56,40 +51,37 @@ interface BasicListState {
   runVisible: boolean;
   runDone: boolean;
   done: boolean;
-  current?: Partial<Connection>;
+  current?: Partial<ResourceTemplate>;
   search: string;
-  tag: string;
-  connector: string;
+  config: string;
   type: string;
   msg: string;
   success: boolean;
   submitted: boolean;
-  pageSize: number;
-  currentPage: number;
 }
 
-const RadioGroup = Radio.Group;
-const RadioButton = Radio.Button;
-const NAMESPACE = 'connection';
+const NAMESPACE = 'template';
 
 @connect(
   ({
-    connection,
-    loading,
-    total,
-    user,
-  }: {
-    connection: { list: Connection[] };
+     template,
+     loading,
+     total,
+     user,
+   }: {
+    template: { list: ResourceTemplate[], dependence: Connection, dependence1: ResourceName };
     loading: {
       models: { [key: string]: boolean };
       effects: { [key: string]: boolean };
     };
     total: number;
-    user: UserModelState;
+    user: UserModelState
   }) => ({
-    listBasicList: connection.list,
-    loading: loading.models.connection,
-    fetchLoading: loading.effects['connection/fetch'],
+    listBasicList: template.list,
+    connections: template.dependence,
+    names: template.dependence1,
+    loading: loading.models.name,
+    fetchLoading: loading.effects['template/fetch'],
     deletable: user.currentUser?.deletable,
   }),
 )
@@ -104,10 +96,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     msg: '',
     success: false,
     submitted: false,
-    pageSize: 5,
-    currentPage: 1,
-    tag: '',
-    connector: '',
+    config: '',
     type: '',
   };
 
@@ -116,23 +105,32 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     wrapperCol: { span: 17 },
   };
   addBtn: HTMLButtonElement | undefined | null;
-  normFile = (e: Event & { fileList: Array<string> }) => {
-    console.log('Upload event:', e);
-    if (Array.isArray(e)) {
-      return e;
-    }
-    return e && e.fileList;
-  };
 
   componentDidMount() {
     // @ts-ignore
     this.doRefresh();
   }
 
+  getCurrentConnectionId = () => {
+    const { match } = this.props;
+    const { id } = match.params;
+    return id;
+  };
+
+  getCurrentNameId = () => {
+    const { match } = this.props;
+    const { nid } = match.params;
+    return nid;
+  };
+
   doRefresh = () => {
     const { dispatch } = this.props;
     dispatch({
       type: `${NAMESPACE}/fetch`,
+      payload: {
+        connection_id: this.getCurrentConnectionId(),
+        resource_name_id: this.getCurrentNameId(),
+      },
     });
   };
 
@@ -144,7 +142,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     });
   };
 
-  showEditModal = (item: Connection) => {
+  showEditModal = (item: ResourceTemplate) => {
     this.setState({
       visible: true,
       current: item,
@@ -152,7 +150,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     });
   };
 
-  showManageModal = (item: Connection, mode: string) => {
+  showManageModal = (item: ResourceTemplate, mode: string) => {
     this.setState({
       runVisible: true,
       runDone: false,
@@ -188,10 +186,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     });
   };
 
-  handleUpdate = (e: React.FormEvent) => {
-    this.handleSubmit(e, true);
-  };
-
   handleSubmit = (e: React.FormEvent, isUpdate?: boolean) => {
     e.preventDefault();
     // @ts-ignore
@@ -199,7 +193,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const { current } = this.state;
 
     setTimeout(() => this.addBtn && this.addBtn.blur(), 0);
-    form.validateFields((err: string | undefined, fieldsValue: Connection) => {
+    form.validateFields((err: string | undefined, fieldsValue: ResourceName) => {
       if (err) return;
       this.setState({ submitted: true });
 
@@ -237,63 +231,37 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   onSearch = (value: string, event?: any) => {
-    this.setState({ search: value, currentPage: 1 });
+    this.setState({ search: value });
   };
 
   getFilterPageData = () => {
-    const { search, tag } = this.state;
+    const { search } = this.state;
     const { listBasicList } = this.props;
+    console.log(listBasicList.length);
     const res = listBasicList.filter(
-      x =>
-        (search.length === 0 || x.name.indexOf(search) >= 0) &&
-        (tag.length === 0 || tag === x.type),
+      x => (search.length === 0 || x.name.indexOf(search) >= 0 || x.fullName.indexOf(search) >= 0),
     );
     console.log(res.length);
     console.log(res);
     return res;
   };
-
-  getCurrentPageData = () => {
-    const { pageSize, currentPage } = this.state;
-    const data = this.getFilterPageData();
-    return data.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  };
-
-  onPageChange = (current: number, newPageSize: any) => {
-    this.setState({ pageSize: newPageSize, currentPage: current });
-  };
-
-  onTagChage = (event: RadioChangeEvent) => {
-    event.preventDefault();
-    this.setState({ tag: event.target.value });
-  };
-
   onSelectTypeChange = (value: any) => {
     console.log('value is ');
     console.log(value);
-    const template = CONNECTION_TEMPLATE[value];
-    if (template !== undefined)
-      this.setState({
-        connector: template,
-        current: { ...this.state.current, connector: template },
-      });
+    const template = TABLE_TYPE_TEMPLATE[value];
+    if (template !== undefined) this.setState({
+      config: template,
+      current: { ...this.state.current, config: template },
+    });
   };
 
   render() {
-    const supportConnectionType = [
-      'hive',
-      'db',
-      'kafka',
-      'hbase',
-      'elasticsearch',
-      'canal',
-      'file',
-    ];
     const { loading } = this.props;
     const {
       form: { getFieldDecorator },
-      fetchLoading,
+      fetchLoading, match,
     } = this.props;
+    const { id } = match.params;
 
     const {
       visible,
@@ -303,10 +271,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       success,
       msg,
       submitted,
-      currentPage,
     } = this.state;
 
-    const editAndDelete = (key: string, currentItem: Connection) => {
+    const editAndDelete = (key: string, currentItem: ResourceTemplate) => {
       if (key === 'edit') this.showEditModal(currentItem);
       else if (key == 'update') this.showManageModal(currentItem, 'update');
       else if (key == 'upgrade') this.showManageModal(currentItem, 'upgrade');
@@ -323,34 +290,24 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const modalFooter = done
       ? { footer: null, onCancel: this.handleDone }
       : {
-          okText: '保存',
-          onOk: this.handleSubmit,
-          onCancel: this.handleCancel,
-          footer: [
-            <Button key="back" onClick={this.handleCancel}>
-              取消
-            </Button>,
-            <Button key="submit" type="primary" loading={submitted} onClick={this.handleSubmit}>
-              保存
-            </Button>,
-          ],
-        };
+        okText: '保存',
+        onOk: this.handleSubmit,
+        onCancel: this.handleCancel,
+        footer: [
+          <Button key="back" onClick={this.handleCancel}>
+            取消
+          </Button>,
+          <Button key="submit" type="primary" loading={submitted} onClick={this.handleSubmit}>
+            保存
+          </Button>,
+        ],
+      };
 
     const extraContent = (
       <div className={styles.extraContent}>
         <Button onClick={this.doRefresh} disabled={fetchLoading}>
-          <ReloadOutlined />
+          <ReloadOutlined/>
         </Button>
-        <RadioGroup defaultValue={null} onChange={this.onTagChage}>
-          <RadioButton value={''}>全部</RadioButton>
-          {supportConnectionType.map(x => {
-            return (
-              <RadioButton key={x} value={x}>
-                {x}
-              </RadioButton>
-            );
-          })}
-        </RadioGroup>
         <Search
           defaultValue={search}
           className={styles.extraContentSearch}
@@ -360,9 +317,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       </div>
     );
     const ListContent = ({
-      data: { name, type, isActive, isLocked, createAt, updateAt },
-    }: {
-      data: Connection;
+                           data: { name, type, isDefault, isSystem, isLocked, createAt, updateAt },
+                         }: {
+      data: ResourceTemplate;
     }) => (
       <div className={styles.listContent}>
         <div className={styles.listContentItem}>
@@ -382,7 +339,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Progress
             type="circle"
             percent={100}
-            status={getStatus(isActive, isLocked)}
+            status={getStatus(isDefault, isLocked)}
             strokeWidth={1}
             width={50}
             style={{ width: 180 }}
@@ -393,7 +350,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
     const { deletable } = this.props;
     const MoreBtn: React.SFC<{
-      item: Connection;
+      item: ResourceTemplate;
     }> = ({ item }) => (
       <Dropdown
         overlay={
@@ -404,7 +361,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         }
       >
         <a>
-          更多 <DownOutlined />
+          更多 <DownOutlined/>
         </a>
       </Dropdown>
     );
@@ -425,13 +382,14 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         );
       }
       // @ts-ignore
+      const supportTableType = ['sink', 'source', 'both'];
       return (
         <Form onSubmit={this.handleSubmit}>
           <FormItem label="名称" {...this.formLayout}>
             {getFieldDecorator('name', {
               rules: UNIQUE_NAME_RULES,
               initialValue: current.name,
-            })(<Input disabled={!isCreate} placeholder="请输入" />)}
+            })(<Input disabled={!isCreate} placeholder="请输入"/>)}
           </FormItem>
 
           <FormItem label="介绍" {...this.formLayout}>
@@ -442,8 +400,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                   required: false,
                 },
               ],
-            })(<Input.TextArea placeholder="简介" />)}
+            })(<Input.TextArea placeholder="简介"/>)}
           </FormItem>
+
 
           <FormItem label="类型" {...this.formLayout}>
             {getFieldDecorator('type', {
@@ -460,60 +419,27 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 style={{ width: 140 }}
                 onChange={this.onSelectTypeChange}
               >
-                {supportConnectionType.map((x: string) => {
+                {supportTableType.map((x: string) => {
                   return (
-                    <SelectOption key={x} value={x}>
+                    <Select.Option key={x} value={x}>
                       {x}
-                    </SelectOption>
+                    </Select.Option>
                   );
                 })}
               </Select>,
             )}
           </FormItem>
 
-          <FormItem label="url" {...this.formLayout}>
-            {getFieldDecorator('url', {
-              initialValue: current.url,
-              rules: [
-                {
-                  required: true,
-                },
-              ],
-            })(<Input placeholder="数据库连接url" />)}
-          </FormItem>
-
-          <FormItem label="资源过滤正则" {...this.formLayout}>
-            {getFieldDecorator('include', {
-              initialValue: current.include,
-              rules: [
-                {
-                  required: false,
-                },
-              ],
-            })(<Input placeholder="使用逗号分割多个正则表达" />)}
-          </FormItem>
-
-          <FormItem label="资源排除" {...this.formLayout}>
-            {getFieldDecorator('exclude', {
-              initialValue: current.exclude,
-              rules: [
-                {
-                  required: false,
-                },
-              ],
-            })(<Input placeholder="使用逗号分割多个正则表达" />)}
-          </FormItem>
-
-          <FormItem label="connector" {...this.formLayout}>
+          <FormItem label="config" {...this.formLayout}>
             <AceEditor
               mode="yaml"
-              onChange={x => this.setState({ connector: x })}
+              onChange={x => this.setState({ config: x })}
               name="functionConstructorConfig"
               editorProps={{ $blockScrolling: true }}
               readOnly={false}
               placeholder={'请输入Yaml配置'}
-              defaultValue={current.connector}
-              value={this.state.connector}
+              defaultValue={current.config}
+              value={this.state.config}
               //@ts-ignore
               width={765}
               //@ts-ignore
@@ -521,33 +447,25 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             />
           </FormItem>
 
-          <FormItem label="自动更新周期（s）" {...this.formLayout}>
-            {getFieldDecorator('updateInterval', {
-              initialValue: current.updateInterval,
-              rules: [
-                {
-                  required: false,
-                },
-              ],
-            })(<Input type="number" placeholder="秒" width={20} />)}
-          </FormItem>
-
           <FormItem label="其他" {...this.formLayout}>
             <Row gutter={16}>
               <Col span={3}>
                 {getFieldDecorator('isActive', {
-                  initialValue: current.isActive,
+                  initialValue: current.isDefault,
                   valuePropName: 'checked',
-                })(<Switch checkedChildren="启用" unCheckedChildren="禁止" />)}
+                })(<Switch checkedChildren="默认" unCheckedChildren="取消"/>)}
               </Col>
               <Col span={3}>
                 {getFieldDecorator('isLocked', {
                   initialValue: current.isLocked,
                   valuePropName: 'checked',
-                })(<Switch checkedChildren="锁" unCheckedChildren="开" />)}
+                })(<Switch checkedChildren="锁" unCheckedChildren="开"/>)}
               </Col>
             </Row>
           </FormItem>
+
+
+
         </Form>
       );
     };
@@ -563,19 +481,17 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               bodyStyle={{ padding: '0 32px 40px 32px' }}
               extra={extraContent}
             >
-              {currentPage === 1 && (
-                <Button
-                  type="dashed"
-                  style={{ width: '100%', marginBottom: 8 }}
-                  icon={<PlusOutlined />}
-                  onClick={this.showModal}
-                  ref={component => {
-                    this.addBtn = findDOMNode(component) as HTMLButtonElement;
-                  }}
-                >
-                  添加
-                </Button>
-              )}
+              <Button
+                type="dashed"
+                style={{ width: '100%', marginBottom: 8 }}
+                icon={<PlusOutlined/>}
+                onClick={this.showModal}
+                ref={component => {
+                  this.addBtn = findDOMNode(component) as HTMLButtonElement;
+                }}
+              >
+                添加
+              </Button>
               <List
                 size="large"
                 rowKey="id"
@@ -593,13 +509,13 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       >
                         编辑
                       </a>,
-                      <Link to={`/resources/connection/name/${item.id}`}>资源</Link>,
-                      <MoreBtn key="more" item={item} />,
+                      <Link to={`/resources/connection/name/${id}/template/${item.id}`}>版本</Link>,
+                      <MoreBtn key="more" item={item}/>,
                     ]}
                   >
                     <List.Item.Meta
                       title={
-                        <Tooltip title={item.name} placement="left">
+                        <Tooltip title={item.fullName} placement="left">
                           <a href="#">{cutStr(item.name)}</a>
                         </Tooltip>
                       }
@@ -609,7 +525,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                         </Tooltip>
                       }
                     />
-                    <ListContent data={item} />
+                    <ListContent data={item}/>
                   </List.Item>
                 )}
               />
@@ -629,9 +545,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           >
             <Result
               type={this.state.runDone ? (this.state.success ? 'success' : 'error') : 'line'}
-              title={
-                this.state.runDone ? (this.state.success ? '运行成功' : '运行失败') : `提交中...`
-              }
+              title={this.state.runDone ? (this.state.success ? '运行成功' : '运行失败') : `提交中...`}
               description={this.state.msg}
               actions={
                 <Button

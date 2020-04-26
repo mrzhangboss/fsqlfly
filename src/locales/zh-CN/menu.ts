@@ -62,9 +62,12 @@ export default {
   'menu.display': 'display',
   'menu.analysis': 'analysis',
   'menu.resources.relationship': '关系图',
-  'menu.resources.connection': '展示数据源',
+  'menu.resources.connection': '数据源',
+  'menu.resources.resources': '资源',
+  'menu.resources.template': '模板',
   'menu.log': '日志',
   'menu.job': '任务',
   'menu.terminal': '进程',
   'menu.terminal_detail': '进程详情',
+  'menu.resources.name': '资源名',
 };

@@ -47,7 +47,6 @@ interface BasicListProps extends FormComponentProps {
   dispatch: Dispatch<AnyAction>;
   total: number;
   loading: boolean;
-  fetchLoading: boolean;
   deletable: boolean;
 }
 
@@ -82,14 +81,12 @@ const NAMESPACE = 'connection';
     connection: { list: Connection[] };
     loading: {
       models: { [key: string]: boolean };
-      effects: { [key: string]: boolean };
     };
     total: number;
     user: UserModelState;
   }) => ({
     listBasicList: connection.list,
-    loading: loading.models.connection,
-    fetchLoading: loading.effects['connection/fetch'],
+    loading: loading.models.file,
     deletable: user.currentUser?.deletable,
   }),
 )
@@ -292,7 +289,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const { loading } = this.props;
     const {
       form: { getFieldDecorator },
-      fetchLoading,
     } = this.props;
 
     const {
@@ -338,7 +334,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
     const extraContent = (
       <div className={styles.extraContent}>
-        <Button onClick={this.doRefresh} disabled={fetchLoading}>
+        <Button onClick={this.doRefresh}>
           <ReloadOutlined />
         </Button>
         <RadioGroup defaultValue={null} onChange={this.onTagChage}>
@@ -593,7 +589,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       >
                         编辑
                       </a>,
-                      <Link to={`/resources/connection/name/${item.id}`}>资源</Link>,
+                      <Link to={`/resources/connection/name/${item.id}`}>详细</Link>,
                       <MoreBtn key="more" item={item} />,
                     ]}
                   >

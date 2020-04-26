@@ -11,7 +11,7 @@ import HeaderDropdown from '../HeaderDropdown';
 import styles from './index.less';
 
 export interface GlobalHeaderRightProps extends ConnectProps {
-  currentUser?: CurrentUser;
+  currentUser: CurrentUser;
   menu?: boolean;
 }
 
@@ -33,7 +33,7 @@ class AvatarDropdown extends React.Component<GlobalHeaderRightProps> {
   };
 
   render() {
-    const { currentUser = {}, menu } = this.props;
+    const { currentUser, menu } = this.props;
     if (!menu) {
       return (
         <span className={`${styles.action} ${styles.account}`}>

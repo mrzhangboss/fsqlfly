@@ -6,6 +6,10 @@ const isUrl = (path: string): boolean => {
   return reg.test(path);
 };
 
+const getStatus = (isActive: boolean, isLocked: boolean) => {
+  return isActive ? (isLocked ? 'normal' : 'success') : 'exception';
+};
+
 const cutStr = (str?: string | null, len?: number): string => {
   return str === undefined || str === null
     ? ''
@@ -120,7 +124,17 @@ write: # sink options, optional, used when writing into table
 
   file: `type: filesystem
 path: "file:///path/to/whatever"`,
+  canal: `type: canal
+host: localhost
+port: 11111
+username: root
+password: password
+client-id: 11021
+destination: example
+filter: .*\\..*`,
 };
+
+const TABLE_TYPE_TEMPLATE = {};
 
 export {
   isAntDesignProOrDev,
@@ -130,4 +144,6 @@ export {
   cutStr,
   nullif,
   CONNECTION_TEMPLATE,
+  TABLE_TYPE_TEMPLATE,
+  getStatus,
 };

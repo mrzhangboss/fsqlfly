@@ -108,7 +108,7 @@ export default {
       routes: [
         {
           path: '/',
-          redirect: '/resouces/count',
+          redirect: '/resources/count',
           locale: 'menu',
         },
         {
@@ -126,19 +126,25 @@ export default {
           component: './transform',
         },
         {
-          path: '/resouces',
+          path: '/resources',
           name: 'resources',
           icon: 'dashboard',
           routes: [
             {
-              path: '/resouces/count',
+              path: '/resources',
+              name: 'resources',
+              hideInMenu: true,
+              component: './resources',
+            },
+            {
+              path: '/resources/count',
               name: 'count',
               exact: true,
               icon: 'area-chart',
               component: './resources',
             },
             {
-              path: '/resouces/connection',
+              path: '/resources/connection',
               name: 'connection',
               hideInMenu: false,
               exact: true,
@@ -146,7 +152,23 @@ export default {
               component: './resources/connection',
             },
             {
-              path: '/resouces/relationship',
+              path: '/resources/connection/name/:id',
+              name: 'name',
+              hideInMenu: true,
+              exact: true,
+              icon: 'database',
+              component: './resources/connection/name/[id]',
+            },
+            {
+              path: '/resources/connection/name/:id/template/:nid',
+              name: 'template',
+              hideInMenu: true,
+              exact: true,
+              icon: 'database',
+              component: './resources/connection/name/template/[nid]',
+            },
+            {
+              path: '/resources/relationship',
               name: 'relationship',
               hideInMenu: true,
               exact: true,
@@ -154,28 +176,29 @@ export default {
               component: './resources/relationship',
             },
             {
-              path: '/resouces/namespace',
+              path: '/resources/namespace',
               name: 'namespace',
               exact: true,
               icon: 'bars',
               component: './resources/namespace',
             },
             {
-              path: '/resouces/file',
+              path: '/resources/file',
               name: 'file',
               exact: true,
               icon: 'file',
               component: './resources/file',
             },
             {
-              path: '/resouces/resouce',
+              path: '/resources/resource',
               name: 'resource',
               exact: true,
+              hideInMenu: true,
               icon: 'table',
               component: './resources/resource',
             },
             {
-              path: '/resouces/function',
+              path: '/resources/function',
               name: 'function',
               exact: true,
               icon: 'tool',

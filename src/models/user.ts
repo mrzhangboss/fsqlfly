@@ -20,6 +20,7 @@ export interface CurrentUser {
   }[];
   unreadCount?: number;
   token?: string;
+  deletable: boolean;
 }
 
 export interface UserModelState {
@@ -46,7 +47,7 @@ const UserModel: UserModelType = {
   namespace: 'user',
 
   state: {
-    currentUser: {},
+    currentUser: { deletable: false },
   },
 
   effects: {
@@ -81,19 +82,15 @@ const UserModel: UserModelType = {
     saveCurrentUser(state, action) {
       return {
         ...state,
-        currentUser: action.payload || {},
+        currentUser: action.payload || { deletable: false },
       };
     },
-    changeNotifyCount(
-      state = {
-        currentUser: {},
-      },
-      action,
-    ) {
+    // @ts-ignore
+    changeNotifyCount(state, action) {
       return {
         ...state,
         currentUser: {
-          ...state.currentUser,
+          ...(state === undefined ? {} : state.currentUser),
           notifyCount: action.payload.totalCount,
           unreadCount: action.payload.unreadCount,
         },

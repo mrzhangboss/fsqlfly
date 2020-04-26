@@ -81,8 +81,40 @@ export interface Connection {
   updateInterval: number;
   isActive: boolean;
   isLocked: boolean;
-  createAt?: string;
-  updateAt?: string;
+  createAt: string;
+  updateAt: string;
+}
+
+export interface ResourceName {
+  id: number;
+  name: string;
+  info: string;
+  database: string;
+  connectionId: number;
+  schemaVersionId?: number;
+  latestSchemaId?: number;
+  fullName: string;
+  isLocked: boolean;
+  isLatest: boolean;
+  createAt: string;
+  updateAt: string;
+}
+
+export interface ResourceTemplate {
+  id: number;
+  name: string;
+  type: 'sink' | 'source' | 'both';
+  info?: string;
+  config?: string;
+  connectionId: number;
+  resourceNameId: number;
+  isSystem: boolean;
+  isDefault: boolean;
+  isLocked: boolean;
+  fullName: string;
+  schemaVersionId?: number;
+  createAt: string;
+  updateAt: string;
 }
 
 export interface Relationship {

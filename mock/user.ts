@@ -4,6 +4,7 @@ import { Request, Response } from 'express';
 const user = {
   code: 200,
   name: 'Serati Ma',
+  deletable: true,
   avatar: 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',
   userid: '00000001',
   email: 'antdesign@alipay.com',
