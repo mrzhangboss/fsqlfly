@@ -3,6 +3,7 @@ import traceback
 from sqlalchemy.engine import Engine
 from functools import wraps
 from typing import Callable, Type, Optional, List, Union
+from fsqlfly.settings import FSQLFLY_SAVE_MODE_DISABLE
 from fsqlfly.common import DBRes
 from sqlalchemy.orm.session import Session, sessionmaker
 
@@ -104,8 +105,12 @@ class DBDao:
     @session_add
     @filter_not_support
     def delete(cls, model: str, pk: int, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
-        session.query(base).filter(base.id == pk).delete()
-        return DBRes(data=pk)
+        if FSQLFLY_SAVE_MODE_DISABLE:
+            session.query(base).filter(base.id == pk).delete()
+            return DBRes(data=pk)
+        else:
+            return DBRes.sever_error('Not Support Delete when FSQLFLY_SAVE_MODE_DISABLE not set')
+
 
     @classmethod
     @session_add

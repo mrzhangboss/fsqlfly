@@ -6,7 +6,7 @@ from fsqlfly.common import DBRes
 
 is_login = False
 user = dict(code=200, name='admin', status='ok', currentAuthority='admin', type='password',
-            token=settings.FSQLFLY_TOKEN, success=True)
+            token=settings.FSQLFLY_TOKEN, success=True, deletable=settings.FSQLFLY_SAVE_MODE_DISABLE)
 
 
 class LoginHandler(BaseHandler):

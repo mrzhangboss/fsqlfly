@@ -66,6 +66,7 @@ you can change by write in `env file` (~/.fsqlfly) or just in environment variab
     FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY              each job maxium try times in one day                                    3
     FSQLFLY_JOB_LOG_DIR              flink job damon log file                                     /tmp/fsqlfly_job_log
     FSQLFLY_UPLOAD_DIR                upload dir                                                    ~/.fsqlfly_upload
+    FSQLFLY_SAVE_MODE_DISABLE                  if set then support delete or otherwise                  False 
 
     
                                                   

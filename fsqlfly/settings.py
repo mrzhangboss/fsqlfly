@@ -30,6 +30,7 @@ else:
 
 ENV = os.environ.get
 FSQLFLY_DEBUG = ENV('FSQLFLY_DEBUG') is not None
+FSQLFLY_SAVE_MODE_DISABLE = ENV('FSQLFLY_SAVE_MODE_DISABLE') is not None
 if FSQLFLY_DEBUG:
     logzero.loglevel(logging.DEBUG)
 
