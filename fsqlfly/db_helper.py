@@ -153,13 +153,11 @@ from fsqlfly.settings import ENGINE
 DBSession.init_engine(ENGINE)
 
 
-def reset_other_table(base: Base):
-    pass
-
-
 def update_default_value(mapper, connection, target):
     if target.is_default:
-        connection.execute('update resource_template set is_default = 0 where id <> %d' % target.id)
+        connection.execute('update %s set is_default = 0 where id <> %d and is_default = 1' % (mapper.local_table.fullname, target.id))
 
 
-event.listens_for(ResourceTemplate, 'after_insert,after_update', update_default_value)
+for mode in ['after_insert', 'after_update']:
+    for model in [ResourceTemplate, ResourceVersion]:
+        event.listen(model, mode, update_default_value)
