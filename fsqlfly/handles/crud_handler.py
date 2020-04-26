@@ -16,7 +16,14 @@ class APICounter(BaseHandler):
 class CRHandler(BaseHandler):
     @safe_authenticated
     def get(self, model: str):
-        self.write_res(DBDao.get(model))
+        def b2v(x):
+            v = x[0].decode()
+            if v.isdigit():
+                return int(v)
+            return v
+
+        filter_ = dict({k: b2v(v) for k, v in self.request.arguments.items() if not k.startswith('_')})
+        self.write_res(DBDao.get(model, filter_=filter_))
 
     @safe_authenticated
     def post(self, model: str):

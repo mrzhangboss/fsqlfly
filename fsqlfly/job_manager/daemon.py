@@ -5,7 +5,7 @@ from tornado import ioloop
 from logzero import setup_logger
 from collections import defaultdict
 from typing import Callable, Optional
-from fsqlfly.models import Transform, auto_close
+# from fsqlfly.models import Transform, auto_close
 from requests import Session
 from datetime import datetime, date
 from fsqlfly.workflow import run_transform
@@ -44,7 +44,6 @@ class FlinkJobDaemon:
             else:
                 return self.request(func, try_times + 1)
 
-    @auto_close
     def run(self):
         self.logger.debug('Start Running Flink Job Damon {}'.format(str(datetime.now())[:19]))
 

@@ -8,7 +8,7 @@ from typing import Optional, List
 from jinja2 import Template
 from terminado.management import NamedTermManager
 from fsqlfly.settings import FSQLFLY_UPLOAD_DIR, FSQLFLY_FLINK_BIN, logger
-from fsqlfly.models import Transform, Namespace, Resource, Functions
+from fsqlfly.db_helper import Transform, Namespace, ResourceName as Resource, Functions
 from fsqlfly import settings
 from fsqlfly.utils.strings import get_job_header
 

@@ -1,5 +1,6 @@
 from fsqlfly.db_models import *
 import traceback
+from sqlalchemy import and_
 from sqlalchemy.engine import Engine
 from functools import wraps
 from typing import Callable, Type, Optional, List, Union
@@ -98,8 +99,16 @@ class DBDao:
     @classmethod
     @session_add
     @filter_not_support
-    def get(cls, model: str, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
-        return DBRes(data=[x.as_dict() for x in session.query(base).all()])
+    def get(cls, model: str, *args, session: Session, base: Type[Base], filter_: Optional[dict] = None,
+            **kwargs) -> DBRes:
+        query = session.query(base)
+        if filter_:
+            kvs = [getattr(base, k) == v for k, v in filter_.items()]
+            if len(kvs) > 1:
+                query = query.filter(and_(*kvs))
+            else:
+                query = query.filter(kvs[0])
+        return DBRes(data=[x.as_dict() for x in query.all()])
 
     @classmethod
     @session_add
@@ -110,7 +119,6 @@ class DBDao:
             return DBRes(data=pk)
         else:
             return DBRes.sever_error('Not Support Delete when FSQLFLY_SAVE_MODE_DISABLE not set')
-
 
     @classmethod
     @session_add

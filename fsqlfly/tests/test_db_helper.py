@@ -72,6 +72,19 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(d_res.data, pk)
         self.assertEqual(len(DBDao.get(model=c).data), 0)
 
+    def test_get_with_other_filter(self):
+        name1, name2 = 'example1', 'example2'
+        obj1 = dict(name=name1, type='hive', url='xx1', is_locked=False, connector='')
+        obj2 = dict(name=name2, type='hbase', url='xx1', is_locked=False, connector='')
+        c = 'connection'
+        self.assertEqual(DBDao.create(model=c, obj=obj1).success, True)
+        self.assertEqual(DBDao.create(model=c, obj=obj2).success, True)
+        self.assertEqual(len(DBDao.get(model=c).data), 2)
+        self.assertEqual(len(DBDao.get(model=c, filter_=dict(name=name1)).data), 1)
+        self.assertEqual(len(DBDao.get(model=c, filter_=dict(name=name1, type='hbase')).data), 0)
+        self.assertEqual(len(DBDao.get(model=c, filter_=dict(id='1')).data), 1)
+
+
 
     def test_bulk_insert(self):
         data = []
