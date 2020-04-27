@@ -84,6 +84,7 @@ class ResourceName(Base):
     schema_version = relationship(SchemaEvent, backref=_b('resource_names'), foreign_keys=schema_version_id)
     latest_schema_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
     is_latest = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
     full_name = Column(String(2048), nullable=False, unique=True)
 
 
@@ -113,7 +114,6 @@ class ResourceVersion(Base):
     info = Column(Text)
     full_name = Column(String(2048), nullable=False, unique=True)
     is_system = Column(Boolean, default=False)
-    is_latest = Column(Boolean, default=False)
     is_default = Column(Boolean, default=False)
     version = Column(Integer, nullable=False, default=0)
     connection_id = Column(Integer, ForeignKey('connection.id'), nullable=False)
