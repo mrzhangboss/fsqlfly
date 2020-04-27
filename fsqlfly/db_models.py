@@ -121,6 +121,7 @@ class ResourceVersion(Base):
     full_name = Column(String(512), nullable=False, unique=True)
     is_system = Column(Boolean, default=False)
     is_default = Column(Boolean, default=False)
+    is_latest = Column(Boolean, default=False)
     version = Column(Integer, nullable=False, default=0)
     connection_id = Column(Integer, ForeignKey('connection.id'), nullable=False)
     connection = relationship(Connection, backref=_b('versions'))
@@ -132,6 +133,12 @@ class ResourceVersion(Base):
     schema_version_id = Column(Integer, ForeignKey('schema_event.id'))
     config = Column(Text)
     cache = Column(Text)
+
+    def get_full_name(self):
+        if self.is_latest:
+            return self.template.full_name + '.latest'
+        assert self.name, 'name must exists'
+        return self.template.full_name + '.' + self.name
 
 
 class Namespace(Base):

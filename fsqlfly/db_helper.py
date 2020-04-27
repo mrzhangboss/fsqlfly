@@ -7,6 +7,7 @@ from typing import Callable, Type, Optional, List, Union
 from fsqlfly import settings
 from fsqlfly.common import DBRes
 from sqlalchemy.orm.session import Session, sessionmaker
+from sqlalchemy.orm.session.query import Query
 
 SUPPORT_MODELS = {
     'connection': Connection,
@@ -97,17 +98,22 @@ class DBDao:
         return DBRes(data=db_obj.as_dict())
 
     @classmethod
+    def build_and(cls, data: dict, base: Type, query: Query) -> Query:
+        kvs = [getattr(base, k) == v for k, v in data.items()]
+        if len(kvs) > 1:
+            query = query.filter(and_(*kvs))
+        else:
+            query = query.filter(kvs[0])
+        return query
+
+    @classmethod
     @session_add
     @filter_not_support
     def get(cls, model: str, *args, session: Session, base: Type[Base], filter_: Optional[dict] = None,
             **kwargs) -> DBRes:
         query = session.query(base)
         if filter_:
-            kvs = [getattr(base, k) == v for k, v in filter_.items()]
-            if len(kvs) > 1:
-                query = query.filter(and_(*kvs))
-            else:
-                query = query.filter(kvs[0])
+            query = cls.build_and(filter_, base, query)
         return DBRes(data=[x.as_dict() for x in query.all()])
 
     @classmethod
@@ -141,6 +147,83 @@ class DBDao:
         return query.all()
 
     @classmethod
+    @session_add
+    def save(cls, obj: Type[Base], *args, session: Session, **kwargs) -> Type[Base]:
+        session.add(obj)
+        session.commit()
+        return obj
+
+    @classmethod
+    @session_add
+    def upsert_schema_event(cls, obj: SchemaEvent, *args, session: Session, **kwargs) -> SchemaEvent:
+        query = session.query(SchemaEvent).filter(and_(SchemaEvent.database == obj.database,
+                                                       SchemaEvent.name == obj.name,
+                                                       SchemaEvent.connection == obj.connection,
+                                                       SchemaEvent.fields == obj.fields))
+        first = query.order_by(SchemaEvent.version.desc()).first()
+        if first:
+            obj.version = first.version + 1
+            obj.father = first
+        session.add(obj)
+        session.commit()
+        return obj
+
+    @classmethod
+    @session_add
+    def upsert_resource_name(cls, obj: ResourceName, *args, session: Session, **kwargs) -> ResourceName:
+        query = session.query(ResourceName).filter(and_(ResourceName.full_name == obj.full_name,
+                                                        ResourceName.connection == obj.connection))
+        res = first = query.first()
+        if first:
+            res.latest_schema_id = obj.latest_schema_id
+            res.info = obj.info
+            res.is_latest = first.latest_schema_id == obj.schema_version_id
+        else:
+            res = obj
+        session.add(res)
+        session.commit()
+        return res
+
+    @classmethod
+    @session_add
+    def upsert_resource_template(cls, obj: ResourceTemplate, *args, session: Session, **kwargs) -> ResourceTemplate:
+        query = session.query(ResourceTemplate).filter(and_(ResourceTemplate.name == obj.name,
+                                                            ResourceTemplate.connection == obj.connection,
+                                                            ResourceTemplate.resource_name == obj.resource_name))
+        res = first = query.order_by(SchemaEvent.version.desc()).first()
+        if first:
+            res.config = obj.config
+            res.info = obj.info
+            res.is_system = obj.is_system
+            res.is_default = obj.is_default
+            res.full_name = obj.full_name
+            res.is_latest = first.latest_schema_id == obj.schema_version_id
+        else:
+            res = obj
+        session.add(res)
+        session.commit()
+        return obj
+
+    @classmethod
+    @session_add
+    def upsert_resource_version(cls, obj: ResourceVersion, *args, session: Session, **kwargs) -> ResourceVersion:
+        query = session.query(ResourceVersion).filter(and_(ResourceVersion.name == obj.name,
+                                                           ResourceVersion.connection == obj.connection,
+                                                           ResourceVersion.resource_name == obj.resource_name,
+                                                           ResourceVersion.template == obj.template))
+        first = query.order_by(ResourceVersion.version.desc()).first()
+        if first:
+            first.version += 1
+            first.config = obj.config
+            first.cache = obj.cache
+        else:
+            first = obj
+
+        session.add(first)
+        session.commit()
+        return first
+
+    @classmethod
     def create_all_tables(cls):
         create_all_tables(DBSession.engine)
 
@@ -160,6 +243,6 @@ def update_default_value(mapper, connection, target):
             'update %s set is_default = 0 where id <> %d and is_default = 1' % (mapper.local_table.fullname, target.id))
 
 
-for mode in ['after_insert', 'after_update']:
-    for model in [ResourceTemplate, ResourceVersion]:
-        event.listen(model, mode, update_default_value)
+for _mode in ['after_insert', 'after_update']:
+    for _model in [ResourceTemplate, ResourceVersion]:
+        event.listen(_model, _mode, update_default_value)
