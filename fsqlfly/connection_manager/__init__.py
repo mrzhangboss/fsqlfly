@@ -6,6 +6,8 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.sql.sqltypes import TypeDecorator
 from typing import Optional, List, Type
 from re import _pattern_type
+from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent
+from fsqlfly.common import DBRes
 
 
 class BlinkSQLType:
@@ -88,13 +90,26 @@ class BaseManager:
     use_primary = False
     renewable = True
 
-    def run(self) -> Optional[List[SchemaContent]]:
-        if self.renewable:
-            return self.update()
-        return None
+    def run(self, connection: Connection) -> DBRes:
+        if not self.renewable:
+            return DBRes.api_error("Connection {} is Not renewable".format(connection.name))
+
+    def get_schema_event(self, schema: SchemaContent) -> SchemaEvent:
+        pass
 
     def update(self) -> List[SchemaContent]:
         return list()
+
+    def get_resource_name(self, schema: SchemaContent, connection: Connection) -> ResourceName:
+        raise NotImplementedError
+
+    def get_template(self, schema: SchemaContent, connection: Connection,
+                     resource_name: ResourceName) -> List[ResourceTemplate]:
+        raise NotImplementedError
+
+    def get_default_version(self, schema: SchemaContent, connection: Connection, name: ResourceName,
+                            template: ResourceTemplate) -> ResourceVersion:
+        raise NotImplementedError
 
 
 class DatabaseManager(BaseManager):
