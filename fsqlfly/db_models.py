@@ -131,6 +131,7 @@ class ResourceVersion(Base):
     schema_version = relationship(SchemaEvent, backref=_b('versions'))
     schema_version_id = Column(Integer, ForeignKey('schema_event.id'))
     config = Column(Text)
+    cache = Column(Text)
 
 
 class Namespace(Base):

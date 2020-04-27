@@ -14,7 +14,9 @@ class MyTestCase(unittest.TestCase):
         engine = sa.create_engine('sqlite://', echo=True)
         event.listen(engine, 'connect', lambda con, _: con.execute('pragma foreign_keys=ON'))
         DBSession.init_engine(engine)
+        delete_all_tables(engine, True)
         create_all_tables(engine)
+
         self.engine = engine
 
     def tearDown(self) -> None:

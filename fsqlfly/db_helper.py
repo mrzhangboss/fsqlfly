@@ -115,8 +115,9 @@ class DBDao:
     @filter_not_support
     def delete(cls, model: str, pk: int, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
         if settings.FSQLFLY_SAVE_MODE_DISABLE:
-            session.query(base).filter(base.id == pk).delete()
-            return DBRes(data=pk)
+            obj = session.query(base).get(pk)
+            session.delete(obj)
+            return DBRes(data=obj.id)
         else:
             return DBRes.sever_error('Not Support Delete when FSQLFLY_SAVE_MODE_DISABLE not set')
 
@@ -155,7 +156,8 @@ DBSession.init_engine(ENGINE)
 
 def update_default_value(mapper, connection, target):
     if target.is_default:
-        connection.execute('update %s set is_default = 0 where id <> %d and is_default = 1' % (mapper.local_table.fullname, target.id))
+        connection.execute(
+            'update %s set is_default = 0 where id <> %d and is_default = 1' % (mapper.local_table.fullname, target.id))
 
 
 for mode in ['after_insert', 'after_update']:
