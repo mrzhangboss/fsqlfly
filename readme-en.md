@@ -52,22 +52,26 @@ ps: if you want daemon all flink sql job(need set publish and available), add `-
 
 you can change by write in `env file` (~/.fsqlfly) or just in environment variables (`eg: export name=value`)
 
-    
-        name               express                     default
-    FSQLFLY_PASSWORD       admin password(if not set use a radom password)               password
-    FSQLFLY_DB_URL          database connection url(if you set then other is ignore)                            None
-    FSQLFLY_STATIC_ROOT     the dir of static file(if not set then it will be fsqlfly/static)  None
-    FSQLFLY_FLINK_BIN_DIR     the dir of flink bin dir                                     /opt/flink/bin
-    FSQLFLY_FLINK_MAX_TERMINAL   the max value of living terminal                             1000
-    FSQLFLY_DEBUG                   set web debug(if set then set True else False)                None
-    FSQLFLY_WEB_PORT              set http port                                             8082
-    FSQLFLY_FINK_HOST              flink resetful api host                                   http://localhost:8081
-    FSQLFLY_JOB_DAEMON_FREQUENCY              each job check damon time second                                    30
-    FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY              each job maxium try times in one day                                    3
-    FSQLFLY_JOB_LOG_DIR              flink job damon log file                                     /tmp/fsqlfly_job_log
-    FSQLFLY_UPLOAD_DIR                upload dir                                                    ~/.fsqlfly_upload
-    FSQLFLY_SAVE_MODE_DISABLE                  if set then support delete or otherwise                  False 
 
+Name | Description|Default
+---- | --- | ---
+FSQLFLY_PASSWORD|admin password(if not set use a random password)|password
+FSQLFLY_DB_URL|database connection url(if you set then other is ignore) |None
+FSQLFLY_STATIC_ROOT|the dir of static file(if not set then it will be fsqlfly/static) |None
+FSQLFLY_FLINK_BIN_DIR|the dir of flink bin dir |/opt/flink/bin
+FSQLFLY_FLINK_MAX_TERMINAL|the max value of living terminal  |1000
+FSQLFLY_DEBUG| set web debug(if set then set True else False)   |None
+FSQLFLY_DEBUG| set web debug(if set then set True else False)   |None
+FSQLFLY_WEB_PORT|set http port   |8082
+FSQLFLY_FINK_HOST|  flink REST api host  | http://localhost:8081
+FSQLFLY_JOB_DAEMON_FREQUENCY| each job check damon time second           | 30
+FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY| each job maximum try times in one day            | 3
+FSQLFLY_JOB_LOG_DIR| flink job damon log file            | /tmp/fsqlfly_job_log
+FSQLFLY_UPLOAD_DIR| upload dir            | ~/.fsqlfly_upload
+FSQLFLY_SAVE_MODE_DISABLE| if set then support delete or otherwise            | False 
+   
+
+    
     
                                                   
 
