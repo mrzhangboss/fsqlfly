@@ -84,6 +84,18 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(DBDao.get(model=c, filter_=dict(name=name1, type='hbase')).data), 0)
         self.assertEqual(len(DBDao.get(model=c, filter_=dict(id='1')).data), 1)
 
+    def test_get_response_contain_id(self):
+        name1, name2 = 'example1', 'example2'
+        obj1 = dict(name=name1, type='hive', url='xx1', is_locked=False, connector='')
+        c = 'connection'
+        res = DBDao.create(model=c, obj=obj1)
+        self.assertEqual('id' in res.data, True)
+        obj2 = dict(name=name1, database='aa', is_locked=False, connection_id=res.data['id'], full_name='xxxxxx')
+        res = DBDao.create(model='name', obj=obj2)
+        self.assertEqual('id' in res.data, True)
+
+
+
     def test_bulk_insert(self):
         data = []
         c = 'connection'

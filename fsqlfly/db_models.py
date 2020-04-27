@@ -1,9 +1,10 @@
 import sqlalchemy as sa
+from typing import Any
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint, event
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 from fsqlfly.connection_manager import SUPPORT_MANAGER, SUPPORT_TABLE_TYPE
-from sqlalchemy_utils import ChoiceType
+from sqlalchemy_utils import ChoiceType, Choice
 from logzero import logger
 
 _Base = declarative_base()
@@ -25,7 +26,12 @@ class Base(_Base):
     is_locked = Column(Boolean, default=False)
 
     def as_dict(self):
-        return {k: v for k, v in vars(self).items() if k != '_sa_instance_state'}
+        def _convert(v: Any) -> Any:
+            if isinstance(v, Choice):
+                return v.code
+            return v
+
+        return {column.name: _convert(getattr(self, column.name)) for column in self.__table__.columns}
 
 
 class Connection(Base):
@@ -85,7 +91,7 @@ class ResourceName(Base):
     latest_schema_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
     is_latest = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
-    full_name = Column(String(2048), nullable=False, unique=True)
+    full_name = Column(String(512), nullable=False, unique=True)
 
 
 class ResourceTemplate(Base):
@@ -95,7 +101,7 @@ class ResourceTemplate(Base):
     info = Column(Text)
     is_system = Column(Boolean, default=False)
     is_default = Column(Boolean, default=False)
-    full_name = Column(String(2048), nullable=False, unique=True)
+    full_name = Column(String(512), nullable=False, unique=True)
     connection_id = Column(Integer, ForeignKey('connection.id'), nullable=False)
     connection = relationship('Connection', backref=_b('templates'))
     resource_name_id = Column(Integer, ForeignKey('resource_name.id'), nullable=False)
@@ -112,7 +118,7 @@ class ResourceVersion(Base):
     )
     name = Column(String(128), nullable=True)
     info = Column(Text)
-    full_name = Column(String(2048), nullable=False, unique=True)
+    full_name = Column(String(512), nullable=False, unique=True)
     is_system = Column(Boolean, default=False)
     is_default = Column(Boolean, default=False)
     version = Column(Integer, nullable=False, default=0)
@@ -137,9 +143,9 @@ class Namespace(Base):
 
 class FileResource(Base):
     __tablename__ = 'file_resource'
-    name = Column(String(1024), unique=True, nullable=False)
+    name = Column(String(512), unique=True, nullable=False)
     info = Column(Text)
-    real_path = Column(String(2048))
+    real_path = Column(Text)
     is_system = Column(Boolean, default=False)
 
 
@@ -173,7 +179,7 @@ class Transform(Base):
 
 class TransformSavepoint(Base):
     __tablename__ = 'transform_savepoint'
-    name = Column(String(2048), nullable=False)
+    name = Column(String(1024), nullable=False)
     path = Column(Text, nullable=False)
     info = Column(Text)
     snapshot = Column(Text)
