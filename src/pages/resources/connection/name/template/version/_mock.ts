@@ -1,11 +1,11 @@
 import mockjs from 'mockjs';
 
 export default {
-  'GET /api/template': mockjs.mock({
+  'GET /api/version': mockjs.mock({
     'data|15': [
       {
         'id|+1': 1,
-        name: '@word',
+        'name|1': ['@word', null],
         fullName: '@paragraph(100,1000)',
         'type|1': ['sink', 'source', 'both'],
         info: '@cparagraph(1000,2000)',
@@ -13,6 +13,7 @@ export default {
         'isSystem|1': [false, true],
         'isLocked|1': [false, true],
         config: '',
+        'version|+1': 1,
         createAt: '@datetime',
         updateAt: '@datetime',
       },
@@ -20,19 +21,19 @@ export default {
     success: true,
     msg: '@paragraph(1,1)',
   }),
-  'POST /api/template/update/:id': mockjs.mock({
+  'POST /api/version/update/:id': mockjs.mock({
     data: null,
     msg: '@cparagraph(1, 20)\n@cparagraph(1, 20)',
     'success|1': [false, true],
     'code|1': [200, 400, 500],
   }),
-  'POST /api/template/:id': mockjs.mock({
+  'POST /api/version/:id': mockjs.mock({
     data: null,
     msg: '@cparagraph(1, 20)\n@cparagraph(1, 20)',
-    'success|1': [false, true],
+    'success|1': [true],
     'code|1': [200, 400, 500],
   }),
-  'POST /api/template': mockjs.mock({
+  'POST /api/version': mockjs.mock({
     data: null,
     msg: '@cparagraph(1, 20)\n@cparagraph(1, 20)',
     'success|1': [true],

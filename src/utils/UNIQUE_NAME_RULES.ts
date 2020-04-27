@@ -6,8 +6,8 @@ export const UNIQUE_NAME_RULES = [
     pattern: /^[a-zA-Z][a-zA-Z0-9_]+/,
   },
   {
-    message: '至少4位数',
-    min: 4,
+    message: '至少2位数',
+    min: 2,
   },
   {
     message: '最长128位数',

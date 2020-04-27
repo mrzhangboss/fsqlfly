@@ -95,6 +95,7 @@ export interface ResourceName {
   latestSchemaId?: number;
   fullName: string;
   isLocked: boolean;
+  isActive: boolean;
   isLatest: boolean;
   createAt: string;
   updateAt: string;
@@ -108,6 +109,24 @@ export interface ResourceTemplate {
   config?: string;
   connectionId: number;
   resourceNameId: number;
+  isSystem: boolean;
+  isDefault: boolean;
+  isLocked: boolean;
+  fullName: string;
+  schemaVersionId?: number;
+  createAt: string;
+  updateAt: string;
+}
+
+export interface ResourceVersion {
+  id: number;
+  name?: string;
+  version: number;
+  info?: string;
+  config?: string;
+  connectionId: number;
+  resourceNameId: number;
+  templateId: number;
   isSystem: boolean;
   isDefault: boolean;
   isLocked: boolean;

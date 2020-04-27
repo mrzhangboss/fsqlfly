@@ -65,6 +65,7 @@ export default {
   'menu.resources.connection': '数据源',
   'menu.resources.resources': '资源',
   'menu.resources.template': '模板',
+  'menu.resources.version': '版本',
   'menu.log': '日志',
   'menu.job': '任务',
   'menu.terminal': '进程',

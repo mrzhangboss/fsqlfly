@@ -141,6 +141,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       visible: true,
       submitted: false,
       current: {},
+      connector: '',
     });
   };
 
@@ -149,6 +150,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       visible: true,
       current: item,
       submitted: false,
+      connector: item.connector,
     });
   };
 
@@ -429,7 +431,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         <Form onSubmit={this.handleSubmit}>
           <FormItem label="名称" {...this.formLayout}>
             {getFieldDecorator('name', {
-              rules: UNIQUE_NAME_RULES,
+              rules: isCreate ? UNIQUE_NAME_RULES : [],
               initialValue: current.name,
             })(<Input disabled={!isCreate} placeholder="请输入" />)}
           </FormItem>
@@ -507,7 +509,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <FormItem label="connector" {...this.formLayout}>
             <AceEditor
               mode="yaml"
-              onChange={x => this.setState({ connector: x })}
+              onChange={x => this.setState({ connector: x, current: { ...current, connector: x } })}
               name="functionConstructorConfig"
               editorProps={{ $blockScrolling: true }}
               readOnly={false}

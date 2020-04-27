@@ -33,6 +33,7 @@ import styles from '@/pages/resources/style.less';
 import { UserModelState } from '@/models/user';
 import { Link } from 'umi';
 import AceEditor from 'react-ace';
+import 'brace/mode/yaml';
 
 interface BasicListProps extends FormComponentProps {
   listBasicList: ResourceTemplate[];
@@ -80,7 +81,7 @@ const NAMESPACE = 'template';
     listBasicList: template.list,
     connections: template.dependence,
     names: template.dependence1,
-    loading: loading.models.name,
+    loading: loading.models.template,
     fetchLoading: loading.effects['template/fetch'],
     deletable: user.currentUser?.deletable,
   }),
@@ -117,11 +118,29 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     return id;
   };
 
+
+  getCurrentConnectionType = () => {
+    const { connections } = this.props;
+    const id = this.getCurrentConnectionId();
+    const connection = connections.filter(x => x.id === id);
+    return connection.length >= 1 ? connection[0].type : 'unknown';
+  };
+
   getCurrentNameId = () => {
     const { match } = this.props;
     const { nid } = match.params;
     return nid;
   };
+
+  getFullName = (s: string) => {
+    const { connections, names } = this.props;
+    const id = this.getCurrentConnectionId();
+    const nid = this.getCurrentNameId();
+    const [connection = { name: 'test' }] = connections.filter(x => x.id === id);
+    const [name = { name: 'n', database: null }] = names.filter(x => x.id === nid);
+    return connection.name + '.' + (name.database === undefined || name.database === null ? name.name : `${name.database}.${name.name}`) + '.' + s;
+  };
+
 
   doRefresh = () => {
     const { dispatch } = this.props;
@@ -139,6 +158,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       visible: true,
       submitted: false,
       current: {},
+      config: '',
     });
   };
 
@@ -147,6 +167,22 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       visible: true,
       current: item,
       submitted: false,
+      config: item.config === undefined ? '' : item.config,
+    });
+  };
+
+  showCopyCreateModal = (item: ResourceTemplate) => {
+    const newItem = { ...item };
+    delete newItem.id;
+    delete newItem.createAt;
+    delete newItem.updateAt;
+    newItem.isSystem = false;
+
+    this.setState({
+      visible: true,
+      current: newItem,
+      submitted: false,
+      config: item.config === undefined || item.config === null ? '' : item.config,
     });
   };
 
@@ -196,10 +232,15 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     form.validateFields((err: string | undefined, fieldsValue: ResourceName) => {
       if (err) return;
       this.setState({ submitted: true });
-
+      const fullName = this.getFullName(fieldsValue['name']);
       dispatch({
         type: `${NAMESPACE}/submit`,
-        payload: { ...current, ...fieldsValue },
+        payload: {
+          ...current, ...fieldsValue,
+          fullName,
+          connectionId: this.getCurrentConnectionId(),
+          resourceNameId: this.getCurrentNameId(),
+        },
         callback: (res: { success: boolean; msg: string }) => {
           if (res.success) {
             this.setState({
@@ -248,7 +289,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   onSelectTypeChange = (value: any) => {
     console.log('value is ');
     console.log(value);
-    const template = TABLE_TYPE_TEMPLATE[value];
+    const type = this.getCurrentConnectionType() === 'kafka' ? 'kafka_' + value : value;
+    const template = TABLE_TYPE_TEMPLATE[type];
     if (template !== undefined) this.setState({
       config: template,
       current: { ...this.state.current, config: template },
@@ -261,7 +303,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       form: { getFieldDecorator },
       fetchLoading, match,
     } = this.props;
-    const { id } = match.params;
+    const { id, nid } = match.params;
 
     const {
       visible,
@@ -276,6 +318,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const editAndDelete = (key: string, currentItem: ResourceTemplate) => {
       if (key === 'edit') this.showEditModal(currentItem);
       else if (key == 'update') this.showManageModal(currentItem, 'update');
+      else if (key == 'copy') this.showCopyCreateModal(currentItem);
       else if (key == 'upgrade') this.showManageModal(currentItem, 'upgrade');
       else if (key === 'delete') {
         Modal.confirm({
@@ -356,7 +399,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         overlay={
           <Menu onClick={({ key }) => editAndDelete(key, item)}>
             {deletable && <Menu.Item key="delete">删除</Menu.Item>}
-            <Menu.Item key="update">更新</Menu.Item>
+            <Menu.Item key="copy">复制</Menu.Item>
           </Menu>
         }
       >
@@ -382,12 +425,12 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         );
       }
       // @ts-ignore
-      const supportTableType = ['sink', 'source', 'both'];
+      const supportTableType = ['sink', 'source', 'both', 'view', 'temporal-table'];
       return (
         <Form onSubmit={this.handleSubmit}>
           <FormItem label="名称" {...this.formLayout}>
             {getFieldDecorator('name', {
-              rules: UNIQUE_NAME_RULES,
+              rules: isCreate ? UNIQUE_NAME_RULES : [],
               initialValue: current.name,
             })(<Input disabled={!isCreate} placeholder="请输入"/>)}
           </FormItem>
@@ -433,13 +476,13 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <FormItem label="config" {...this.formLayout}>
             <AceEditor
               mode="yaml"
-              onChange={x => this.setState({ config: x })}
+              onChange={x => this.setState({ config: x, current: {...current, config: x} })}
               name="functionConstructorConfig"
               editorProps={{ $blockScrolling: true }}
               readOnly={false}
               placeholder={'请输入Yaml配置'}
-              defaultValue={current.config}
-              value={this.state.config}
+              defaultValue={current.config === null ? '' : current.config}
+              value={this.state.config === null ? '' : this.state.config}
               //@ts-ignore
               width={765}
               //@ts-ignore
@@ -450,7 +493,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <FormItem label="其他" {...this.formLayout}>
             <Row gutter={16}>
               <Col span={3}>
-                {getFieldDecorator('isActive', {
+                {getFieldDecorator('isDefault', {
                   initialValue: current.isDefault,
                   valuePropName: 'checked',
                 })(<Switch checkedChildren="默认" unCheckedChildren="取消"/>)}
@@ -463,7 +506,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               </Col>
             </Row>
           </FormItem>
-
 
 
         </Form>
@@ -509,7 +551,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       >
                         编辑
                       </a>,
-                      <Link to={`/resources/connection/name/${id}/template/${item.id}`}>版本</Link>,
+                      <Link to={`/resources/connection/name/${id}/template/${nid}/version/${item.id}`}>版本</Link>,
                       <MoreBtn key="more" item={item}/>,
                     ]}
                   >

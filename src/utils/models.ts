@@ -76,7 +76,7 @@ function getListModel<T extends IDObject>(
         if (dependNamespces.length > 0) {
           for (var i = 0; i < dependNamespces.length; i++) {
             let name = dependNamespces[i];
-            const dependence: JsonResult = yield call(getAllService(name), payload);
+            const dependence: JsonResult = yield call(getAllService(name), {});
             let saveName = i === 0 ? 'dependence' : 'dependence' + i;
             if (dependence !== undefined && dependence.success) {
               yield put({
@@ -109,6 +109,8 @@ function getListModel<T extends IDObject>(
             type: actionType,
             payload: res.data ? { ...payload, ...res.data } : payload,
           });
+        } else {
+          message.error(res.msg);
         }
         setTimeout(callback, 100, res);
       },

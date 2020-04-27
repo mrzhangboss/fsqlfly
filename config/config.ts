@@ -168,6 +168,14 @@ export default {
               component: './resources/connection/name/template/[nid]',
             },
             {
+              path: '/resources/connection/name/:id/template/:nid/version/:vid',
+              name: 'version',
+              hideInMenu: true,
+              exact: true,
+              icon: 'database',
+              component: './resources/connection/name/template/version/[vid]',
+            },
+            {
               path: '/resources/relationship',
               name: 'relationship',
               hideInMenu: true,

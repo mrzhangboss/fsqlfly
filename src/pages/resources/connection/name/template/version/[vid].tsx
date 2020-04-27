@@ -18,7 +18,7 @@ import {
   Tooltip, Row, Col, Switch,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
-import { ResourceName, Connection } from '@/pages/resources/data';
+import { Connection, ResourceName, ResourceTemplate, ResourceVersion } from '@/pages/resources/data';
 import { Dispatch } from 'redux';
 import Result from '@/pages/resources/components/Result';
 import { PageHeaderWrapper } from '@ant-design/pro-layout';
@@ -31,17 +31,20 @@ import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
 // @ts-ignore
 import styles from '@/pages/resources/style.less';
 import { UserModelState } from '@/models/user';
-import { Link } from 'umi';
+import AceEditor from 'react-ace';
+import 'brace/mode/yaml';
 
 interface BasicListProps extends FormComponentProps {
-  listBasicList: ResourceName[];
+  listBasicList: ResourceVersion[];
   connections: Connection[];
+  names: ResourceName[];
+  templates: ResourceTemplate[];
   dispatch: Dispatch<AnyAction>;
   total: number;
   loading: boolean;
   fetchLoading: boolean;
   deletable: boolean;
-  match: { params: { id: number } }
+  match: { params: { id: number, nid: number, vid: number } }
 }
 
 interface BasicListState {
@@ -49,7 +52,7 @@ interface BasicListState {
   runVisible: boolean;
   runDone: boolean;
   done: boolean;
-  current?: Partial<ResourceName>;
+  current?: Partial<ResourceVersion>;
   search: string;
   config: string;
   type: string;
@@ -58,16 +61,16 @@ interface BasicListState {
   submitted: boolean;
 }
 
-const NAMESPACE = 'name';
+const NAMESPACE = 'version';
 
 @connect(
   ({
-     name,
+     version,
      loading,
      total,
      user,
    }: {
-    name: { list: ResourceName[], dependence: Connection };
+    version: { list: ResourceVersion[], dependence: Connection, dependence1: ResourceName, dependence2: ResourceTemplate };
     loading: {
       models: { [key: string]: boolean };
       effects: { [key: string]: boolean };
@@ -75,10 +78,12 @@ const NAMESPACE = 'name';
     total: number;
     user: UserModelState
   }) => ({
-    listBasicList: name.list,
-    connections: name.dependence,
-    loading: loading.models.name,
-    fetchLoading: loading.effects['name/fetch'],
+    listBasicList: version.list,
+    connections: version.dependence,
+    names: version.dependence1,
+    templates: version.dependence2,
+    loading: loading.models.version,
+    fetchLoading: loading.effects['version/fetch'],
     deletable: user.currentUser?.deletable,
   }),
 )
@@ -114,16 +119,61 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     return id;
   };
 
+
+  getCurrentConnectionType = () => {
+    const { connections } = this.props;
+    const id = this.getCurrentConnectionId();
+    const connection = connections.filter(x => x.id === id);
+    return connection.length >= 1 ? connection[0].type : 'unknown';
+  };
+
+  getCurrentNameId = () => {
+    const { match } = this.props;
+    const { nid } = match.params;
+    return nid;
+  };
+
+  getTemplateId = () => {
+    const { match } = this.props;
+    const { vid } = match.params;
+    return vid;
+  };
+
+  getFullName = (s: string) => {
+    const { connections, names, templates } = this.props;
+    const id = this.getCurrentConnectionId();
+    const [connection = { name: 'test' }] = connections.filter(x => x.id === id);
+    const nid = this.getCurrentNameId();
+    const [name = { name: 'n', database: null }] = names.filter(x => x.id === nid);
+    const tid = this.getTemplateId();
+
+    const [template = { name: 'n' }] = templates.filter(x => x.id === tid);
+    return connection.name + '.' + (name.database === undefined || name.database === null ? name.name : `${name.database}.${name.name}`) + '.' + template.name + '.' + s;
+  };
+
+  getMaxVersion = () => {
+    const { listBasicList } = this.props;
+    let maxVersion = 0;
+    listBasicList.forEach(
+      x => {
+        maxVersion = Math.max(x.version, maxVersion);
+      },
+    );
+    return maxVersion;
+  };
+
+
   doRefresh = () => {
     const { dispatch } = this.props;
     dispatch({
       type: `${NAMESPACE}/fetch`,
       payload: {
-        connection_id: this.getCurrentConnectionId,
+        connection_id: this.getCurrentConnectionId(),
+        resource_name_id: this.getCurrentNameId(),
+        template_id: this.getTemplateId(),
       },
     });
   };
-
 
   showModal = () => {
     this.setState({
@@ -134,15 +184,31 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     });
   };
 
-  showEditModal = (item: ResourceName) => {
+  showEditModal = (item: ResourceVersion) => {
     this.setState({
       visible: true,
       current: item,
       submitted: false,
+      config: item.config === undefined ? '' : item.config,
     });
   };
 
-  showManageModal = (item: ResourceName, mode: string) => {
+  showCopyCreateModal = (item: ResourceVersion) => {
+    const newItem = { ...item };
+    delete newItem.id;
+    delete newItem.createAt;
+    delete newItem.updateAt;
+    newItem.isSystem = false;
+
+    this.setState({
+      visible: true,
+      current: newItem,
+      submitted: false,
+      config: item.config === undefined || item.config === null ? '' : item.config,
+    });
+  };
+
+  showManageModal = (item: ResourceVersion, mode: string) => {
     this.setState({
       runVisible: true,
       runDone: false,
@@ -181,25 +247,26 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   handleSubmit = (e: React.FormEvent, isUpdate?: boolean) => {
     e.preventDefault();
     // @ts-ignore
-    const { dispatch, form, connections } = this.props;
+    const { dispatch, form } = this.props;
     const { current } = this.state;
-    const connectionId = this.getCurrentConnectionId();
-    const connction = connections.filter(x => x.id === connectionId);
-    let connctionName: string;
-    if (connction.length !== 1) {
-      connctionName = 'test';
-    } else {
-      connctionName = connction[0].name;
-    }
 
     setTimeout(() => this.addBtn && this.addBtn.blur(), 0);
     form.validateFields((err: string | undefined, fieldsValue: ResourceName) => {
       if (err) return;
       this.setState({ submitted: true });
-      const fullName = fieldsValue.database === undefined ? `${connctionName}.${fieldsValue.name}` : `${connctionName}.${fieldsValue.database}.${fieldsValue.name}`;
+      const fullName = this.getFullName(fieldsValue['name']);
+      if (current?.version === undefined || current?.version === null) {
+        fieldsValue['version'] = this.getMaxVersion() + 1;
+      }
       dispatch({
         type: `${NAMESPACE}/submit`,
-        payload: { ...current, ...fieldsValue, fullName, connectionId: this.getCurrentConnectionId() },
+        payload: {
+          ...current, ...fieldsValue,
+          fullName,
+          connectionId: this.getCurrentConnectionId(),
+          resourceNameId: this.getCurrentNameId(),
+          templateId: this.getTemplateId(),
+        },
         callback: (res: { success: boolean; msg: string }) => {
           if (res.success) {
             this.setState({
@@ -239,7 +306,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const { listBasicList } = this.props;
     console.log(listBasicList.length);
     const res = listBasicList.filter(
-      x => (search.length === 0 || x.name.indexOf(search) >= 0 || x.fullName.indexOf(search) >= 0),
+      x => (search.length === 0 || x.fullName.indexOf(search) >= 0 || (x.name !== undefined && x.name !== null ? x.name.indexOf(search) > 0 : x.version.toString().indexOf(search) > 0)),
     );
     console.log(res.length);
     console.log(res);
@@ -251,9 +318,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const { loading } = this.props;
     const {
       form: { getFieldDecorator },
-      fetchLoading, match,
+      fetchLoading,
     } = this.props;
-    const { id } = match.params;
 
     const {
       visible,
@@ -265,9 +331,10 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       submitted,
     } = this.state;
 
-    const editAndDelete = (key: string, currentItem: ResourceName) => {
+    const editAndDelete = (key: string, currentItem: ResourceVersion) => {
       if (key === 'edit') this.showEditModal(currentItem);
       else if (key == 'update') this.showManageModal(currentItem, 'update');
+      else if (key == 'copy') this.showCopyCreateModal(currentItem);
       else if (key == 'upgrade') this.showManageModal(currentItem, 'upgrade');
       else if (key === 'delete') {
         Modal.confirm({
@@ -309,14 +376,14 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       </div>
     );
     const ListContent = ({
-                           data: { name, database, isLatest, isLocked, createAt, updateAt },
+                           data: { version, isDefault, isSystem, isLocked, createAt, updateAt },
                          }: {
-      data: ResourceName;
+      data: ResourceVersion;
     }) => (
       <div className={styles.listContent}>
         <div className={styles.listContentItem}>
           <p>
-            <Tag>{database}</Tag>
+            <Tag>V{version}</Tag>
           </p>
         </div>
         <div className={styles.listContentItem}>
@@ -331,7 +398,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Progress
             type="circle"
             percent={100}
-            status={getStatus(isLatest, isLocked)}
+            status={getStatus(isDefault, isLocked)}
             strokeWidth={1}
             width={50}
             style={{ width: 180 }}
@@ -342,13 +409,13 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
     const { deletable } = this.props;
     const MoreBtn: React.SFC<{
-      item: ResourceName;
+      item: ResourceVersion;
     }> = ({ item }) => (
       <Dropdown
         overlay={
           <Menu onClick={({ key }) => editAndDelete(key, item)}>
             {deletable && <Menu.Item key="delete">删除</Menu.Item>}
-            <Menu.Item key="update">更新</Menu.Item>
+            <Menu.Item key="copy">复制</Menu.Item>
           </Menu>
         }
       >
@@ -373,7 +440,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           />
         );
       }
-      // @ts-ignore
       return (
         <Form onSubmit={this.handleSubmit}>
           <FormItem label="名称" {...this.formLayout}>
@@ -395,23 +461,36 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           </FormItem>
 
 
-          <FormItem label="数据库" {...this.formLayout}>
-            {getFieldDecorator('database', {
-              initialValue: current.database,
-              rules: [
-                {
-                  required: false,
-                },
-              ],
-            })(<Input placeholder="数据库名"/>)}
+          <FormItem label="config" {...this.formLayout}>
+            <AceEditor
+              mode="yaml"
+              onChange={x => this.setState({ config: x, current: {...current, config: x} })}
+              name="functionConstructorConfig"
+              editorProps={{ $blockScrolling: true }}
+              readOnly={false}
+              placeholder={'请输入Yaml配置'}
+              defaultValue={current.config === null ? '' : current.config}
+              value={this.state.config === null ? '' : this.state.config}
+              //@ts-ignore
+              width={765}
+              //@ts-ignore
+              height={230}
+            />
           </FormItem>
+
           <FormItem label="其他" {...this.formLayout}>
             <Row gutter={16}>
               <Col span={3}>
-                {getFieldDecorator('isActive', {
-                  initialValue: current.isActive,
+                {getFieldDecorator('isDefault', {
+                  initialValue: current.isDefault,
                   valuePropName: 'checked',
-                })(<Switch checkedChildren="激活" unCheckedChildren="禁用"/>)}
+                })(<Switch checkedChildren="默认" unCheckedChildren="取消"/>)}
+              </Col>
+              <Col span={3}>
+                {getFieldDecorator('isLocked', {
+                  initialValue: current.isLocked,
+                  valuePropName: 'checked',
+                })(<Switch checkedChildren="锁" unCheckedChildren="开"/>)}
               </Col>
             </Row>
           </FormItem>
@@ -460,7 +539,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       >
                         编辑
                       </a>,
-                      <Link to={`/resources/connection/name/${id}/template/${item.id}`}>模板</Link>,
                       <MoreBtn key="more" item={item}/>,
                     ]}
                   >

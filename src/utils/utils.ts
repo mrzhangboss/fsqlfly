@@ -133,8 +133,47 @@ client-id: 11021
 destination: example
 filter: .*\\..*`,
 };
+const base = `include: .*\\.*
+exclude:
+schema:
 
-const TABLE_TYPE_TEMPLATE = {};
+`;
+const kafkaSource = `include: .*\\.*
+exclude:
+schema:
+  - name: flink_process_time
+    data-type: TIMESTAMP
+    proctime: true
+  - name: rowTime
+    data-type: TIMESTAMP(3)
+    rowtime:
+      timestamps:
+        type: "from-field"
+        from: "rideTime"
+      watermarks:
+        type: "periodic-bounded"
+        delay: "60000"
+`;
+const view = `query: >
+      SELECT MyField2 + 42, CAST(MyField1 AS VARCHAR)
+      FROM MyTableSource
+      WHERE MyField2 > 200
+`;
+const temporalTable = `history-table: HistorySource
+primary-key: integerField
+time-attribute: rowtimeField  # could also be a proctime field
+`;
+
+const TABLE_TYPE_TEMPLATE = {
+  sink: base,
+  source: base,
+  both: base,
+  kafka_sink: base,
+  kafka_source: kafkaSource,
+  kafka_both: base,
+  view,
+  'temporal-table': temporalTable,
+};
 
 export {
   isAntDesignProOrDev,
