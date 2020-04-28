@@ -101,6 +101,9 @@ class ResourceName(Base):
     is_active = Column(Boolean, default=True)
     full_name = Column(String(512), nullable=False, unique=True)
 
+    def get_include(self):
+        return self.database + '.' + self.name if self.database else self.name
+
 
 class ResourceTemplate(Base):
     __tablename__ = 'resource_template'

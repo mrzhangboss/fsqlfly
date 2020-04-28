@@ -137,10 +137,13 @@ class MyTestCase(unittest.TestCase):
         session = DBSession.get_session()
         connection = DBDao.save(connection, session=session)
         scheme1 = SchemaEvent(name='example', info='abc', database='hh', connection_id=connection.id)
-        self.assertTrue(not isinstance(DBDao.upsert_schema_event(scheme1, session=session), DBRes))
+        scheme1, inserted = DBDao.upsert_schema_event(scheme1, session=session)
+        self.assertTrue(not isinstance(scheme1, DBRes))
+        self.assertTrue(inserted)
         self.assertEqual(len(DBDao.get('schema').data), 1)
         scheme2 = SchemaEvent(name='example', info='abc', database='hh', connection_id=connection.id)
-        scheme2 = DBDao.upsert_schema_event(scheme2, session=session)
+        scheme2, inserted = DBDao.upsert_schema_event(scheme2, session=session)
+        self.assertTrue(not inserted)
         self.assertTrue(isinstance(scheme2, SchemaEvent))
         data = DBDao.get('schema').data
         self.assertEqual(len(data), 1)
@@ -149,23 +152,28 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(DBDao.get('schema').data[0]['version'], 0)
 
         resource_name = ResourceName(name='xxx', connection_id=connection.id, full_name='xxx')
-        resource_name = DBDao.upsert_resource_name(resource_name, session=session)
-        DBDao.upsert_resource_name(resource_name, session=session)
+        resource_name, inserted = DBDao.upsert_resource_name(resource_name, session=session)
+        self.assertTrue(inserted)
+        resource_name, inserted = DBDao.upsert_resource_name(resource_name, session=session)
+        self.assertTrue(not inserted)
         self.assertEqual(len(DBDao.get('name').data), 1)
 
         template = ResourceTemplate(name='xxx', connection_id=connection.id, full_name='xxx',
                                     schema_version_id=scheme2.id, type='sink',
                                     resource_name_id=resource_name.id)
-        DBDao.upsert_resource_template(template, session=session)
-        DBDao.upsert_resource_template(template, session=session)
+        template, inserted = DBDao.upsert_resource_template(template, session=session)
+        self.assertTrue(inserted)
+        template, inserted = DBDao.upsert_resource_template(template, session=session)
+        self.assertTrue(not inserted)
         self.assertEqual(len(DBDao.get('template').data), 1)
 
         version = ResourceVersion(name='xxxx', connection_id=connection.id, full_name='xxx',
                                   schema_version_id=scheme2.id, template_id=template.id,
                                   resource_name_id=resource_name.id)
 
-        version = DBDao.upsert_resource_version(version, session=session)
+        version, inserted = DBDao.upsert_resource_version(version, session=session)
         DBDao.upsert_resource_version(version, session=session)
+        self.assertTrue(inserted)
         self.assertEqual(len(DBDao.get('version').data), 1)
 
         version2 = ResourceVersion(name='xxxx', connection_id=connection.id, full_name='xxxaaa',
@@ -173,7 +181,8 @@ class MyTestCase(unittest.TestCase):
                                    schema_version_id=scheme2.id,
                                    resource_name_id=resource_name.id)
 
-        new_version = DBDao.upsert_resource_version(version2, session=session)
+        new_version, inserted = DBDao.upsert_resource_version(version2, session=session)
+        self.assertTrue(inserted)
         self.assertTrue(new_version.version > version.version)
 
         session.close()

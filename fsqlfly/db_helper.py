@@ -122,6 +122,13 @@ class DBDao:
 
     @classmethod
     @session_add
+    def one(cls, *args, session: Session,
+            base: Union[Connection, ResourceName, ResourceVersion, ResourceTemplate], pk: int,
+            **kwargs) -> Union[Connection, ResourceName, ResourceVersion, ResourceTemplate]:
+        return session.query(base).filter(base.id == pk).one()
+
+    @classmethod
+    @session_add
     @filter_not_support
     def delete(cls, model: str, pk: int, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
         if settings.FSQLFLY_SAVE_MODE_DISABLE:
@@ -157,30 +164,30 @@ class DBDao:
         return obj
 
     @classmethod
-    def upsert_schema_event(cls, obj: SchemaEvent, *args, session: Session, **kwargs) -> SchemaEvent:
+    def upsert_schema_event(cls, obj: SchemaEvent, *args, session: Session, **kwargs) -> (SchemaEvent, bool):
+        inserted = True
         query = session.query(SchemaEvent).filter(and_(SchemaEvent.database == obj.database,
                                                        SchemaEvent.name == obj.name,
                                                        SchemaEvent.connection_id == obj.connection_id))
-        first = query.order_by(SchemaEvent.version.desc()).first()
+        res = first = query.order_by(SchemaEvent.version.desc()).first()
         if first:
-            if first.fields != obj.fields or first.primary_key != obj.primary_key:
+            if first.fields != obj.fields or first.primary_key != obj.primary_key or obj.partitionable != obj.partitionable:
                 obj.version = first.version + 1
                 obj.father = first
-                session.add(obj)
                 res = obj
             else:
-                first.info = obj.info
-                first.comment = obj.comment
-                session.add(first)
-                res = first
+                inserted = False
+                res.info = obj.info
+                res.comment = obj.comment
         else:
-            session.add(obj)
             res = obj
+        session.add(res)
         session.commit()
-        return res
+        return res, inserted
 
     @classmethod
-    def upsert_resource_name(cls, obj: ResourceName, *args, session: Session, **kwargs) -> ResourceName:
+    def upsert_resource_name(cls, obj: ResourceName, *args, session: Session, **kwargs) -> (ResourceName, bool):
+        inserted = False
         query = session.query(ResourceName).filter(and_(ResourceName.full_name == obj.full_name,
                                                         ResourceName.connection_id == obj.connection_id))
         res = first = query.first()
@@ -189,16 +196,19 @@ class DBDao:
             res.info = obj.info
             res.is_latest = first.latest_schema_id == obj.schema_version_id
         else:
+            inserted = True
             res = obj
         session.add(res)
         session.commit()
-        return res
+        return res, inserted
 
     @classmethod
-    def upsert_resource_template(cls, obj: ResourceTemplate, *args, session: Session, **kwargs) -> ResourceTemplate:
+    def upsert_resource_template(cls, obj: ResourceTemplate, *args,
+                                 session: Session, **kwargs) -> (ResourceTemplate, bool):
         query = session.query(ResourceTemplate).filter(and_(ResourceTemplate.name == obj.name,
                                                             ResourceTemplate.connection == obj.connection,
                                                             ResourceTemplate.resource_name == obj.resource_name))
+        inserted = False
         res = first = query.first()
         if first:
             res.config = obj.config
@@ -207,17 +217,20 @@ class DBDao:
             res.is_default = obj.is_default
             res.full_name = obj.full_name
         else:
+            inserted = True
             res = obj
         session.add(res)
         session.commit()
-        return res
+        return res, inserted
 
     @classmethod
-    def upsert_resource_version(cls, obj: ResourceVersion, *args, session: Session, **kwargs) -> ResourceVersion:
+    def upsert_resource_version(cls, obj: ResourceVersion, *args, session: Session, **kwargs) -> (
+            ResourceVersion, bool):
         query = session.query(ResourceVersion).filter(and_(ResourceVersion.name == obj.name,
                                                            ResourceVersion.connection_id == obj.connection_id,
                                                            ResourceVersion.resource_name_id == obj.resource_name_id,
                                                            ResourceVersion.template_id == obj.template_id))
+        inserted = True
         res = first = query.order_by(ResourceVersion.version.desc()).first()
         if first:
             if first.config == obj.config:
@@ -225,6 +238,7 @@ class DBDao:
                 res.cache = obj.cache
                 res.info = obj.info
                 res.cache = obj.cache
+                inserted = False
             else:
                 res = obj
                 max_version = session.query(ResourceVersion.version).order_by(ResourceVersion.version.desc()).first()
@@ -234,7 +248,7 @@ class DBDao:
 
         session.add(res)
         session.commit()
-        return res
+        return res, inserted
 
     @classmethod
     def create_all_tables(cls):
