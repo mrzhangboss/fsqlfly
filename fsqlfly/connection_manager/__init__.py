@@ -1,13 +1,15 @@
 # -*- coding:utf-8 -*-
-import attr
+import json
 import re
+import attr
 import logzero
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.sql.sqltypes import TypeDecorator
-from typing import Optional, List, Type
+from typing import Optional, List, Type, Union
 from re import _pattern_type
 from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent
 from fsqlfly.common import DBRes
+from fsqlfly.db_helper import DBSession, DBDao, Session
 
 
 class BlinkSQLType:
@@ -85,29 +87,111 @@ class SchemaContent:
     partitionable: bool = attr.ib(default=False)
 
 
+class UpdateStatus:
+    def __init__(self):
+        self.schema_inserted = 0
+        self.schema_updated = 0
+        self.name_inserted = 0
+        self.name_updated = 0
+        self.template_inserted = 0
+        self.template_updated = 0
+        self.version_inserted = 0
+        self.version_updated = 0
+
+    def update_schema(self, inserted: bool):
+        self.schema_inserted += inserted
+        self.schema_updated += not inserted
+
+    def update_resource_name(self, inserted: bool):
+        self.name_inserted += inserted
+        self.name_updated += not inserted
+
+    def update_template(self, inserted: bool):
+        self.template_inserted += inserted
+        self.template_updated += not inserted
+
+    def update_version(self, inserted: bool):
+        self.version_inserted += inserted
+        self.version_updated += not inserted
+
+    @property
+    def info(self) -> str:
+        return '\n'.join(['{}: {}'.format(x, getattr(self, x)) for x in dir(self) if x.endswith('ed')])
+
+
 class BaseManager:
     use_comment = False
     use_primary = False
     renewable = True
 
-    def run(self, connection: Connection) -> DBRes:
-        if not self.renewable:
-            return DBRes.api_error("Connection {} is Not renewable".format(connection.name))
+    def __init__(self, connection_url: str, table_name_filter: NameFilter, db_type):
+        self.connection_url = connection_url
+        self.need_tables = table_name_filter
+        self.db_type = db_type
 
-    def get_schema_event(self, schema: SchemaContent) -> SchemaEvent:
-        pass
+    def run(self, target: Union[Connection, ResourceName, ResourceTemplate, ResourceVersion]) -> DBRes:
+        if not self.renewable:
+            return DBRes.api_error("{} is Not renewable".format(target.name))
+        status = UpdateStatus()
+
+        session = DBSession.get_session()
+        if isinstance(target, (Connection, ResourceName)):
+            if isinstance(target, ResourceVersion):
+                target = target.connection
+            self.update_connection(status, session, target)
+        elif isinstance(target, ResourceTemplate):
+            self.update_template(status, session, target.connection, target.schema_version, target.resource_name)
+        elif isinstance(target, ResourceVersion):
+            self.update_version(status, session, target.connection, target.schema_version, target.resource_name,
+                                target.template)
+        else:
+            raise NotImplementedError("Not Suppport {}".format(type(target)))
+        return DBRes(data=status.info)
+
+    def update_connection(self, status: UpdateStatus, session: Session, connection: Connection):
+        for content in self.update():
+            schema = self.get_schema_event(schema=content, connection=connection)
+            schema, i = DBDao.upsert_schema_event(schema, session=session)
+            status.update_schema(i)
+            self.update_resource_name(status, session, connection, schema)
+
+    def update_resource_name(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent):
+        resource_name = self.get_resource_name(connection, schema)
+        resource_name, i = DBDao.upsert_resource_name(resource_name, session=session)
+        status.update_resource_name(i)
+        self.update_template(status, session, schema=schema, connection=connection, resource_name=resource_name)
+
+    def update_template(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent,
+                        resource_name: ResourceName):
+        for template in self.get_template(schema=schema, connection=connection, resource_name=resource_name):
+            template, i = DBDao.upsert_resource_template(template, session=session)
+            status.update_template(i)
+            self.update_version(status, session, schema=schema, connection=connection, resource_name=resource_name,
+                                template=template)
+
+    def update_version(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent,
+                       resource_name: ResourceName, template: ResourceTemplate):
+        version = self.get_default_version(connection, schema, resource_name, template)
+        version, i = DBDao.upsert_resource_version(version, session=session)
+        status.update_version(i)
+
+    def get_schema_event(self, schema: SchemaContent, connection: Connection) -> SchemaEvent:
+        return SchemaEvent(name=schema.name, info=schema.comment, database=schema.database,
+                           connection_id=connection.id, comment=schema.comment, primary_key=schema.primary_key,
+                           fields=json.dumps([attr.asdict(x) for x in schema.fields], ensure_ascii=False),
+                           partitionable=schema.partitionable)
 
     def update(self) -> List[SchemaContent]:
         return list()
 
-    def get_resource_name(self, schema: SchemaContent, connection: Connection) -> ResourceName:
+    def get_resource_name(self, connection: Connection, schema: SchemaEvent) -> ResourceName:
         raise NotImplementedError
 
-    def get_template(self, schema: SchemaContent, connection: Connection,
+    def get_template(self, connection: Connection, schema: SchemaEvent,
                      resource_name: ResourceName) -> List[ResourceTemplate]:
         raise NotImplementedError
 
-    def get_default_version(self, schema: SchemaContent, connection: Connection, name: ResourceName,
+    def get_default_version(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
                             template: ResourceTemplate) -> ResourceVersion:
         raise NotImplementedError
 
@@ -115,11 +199,6 @@ class BaseManager:
 class DatabaseManager(BaseManager):
     use_comment = True
     use_primary = True
-
-    def __init__(self, connection_url: str, table_name_filter: NameFilter, db_type='mysql'):
-        self.connection_url = connection_url
-        self.need_tables = table_name_filter
-        self.db_type = db_type
 
     def _get_flink_type(self, typ: TypeDecorator) -> Optional[str]:
         from sqlalchemy.dialects.mysql.types import _StringType as M_STRING, BIT as M_BIT, TINYINT, DOUBLE as M_DOUBLE
@@ -216,11 +295,8 @@ class HiveManager(DatabaseManager):
 
     hive_types = set(list(x for x in dir(BlinkHiveSQLType) if not x.startswith('__')))
 
-    def __init__(self, connection_url: str, table_name_filter: NameFilter):
-        super(HiveManager, self).__init__(connection_url, table_name_filter, 'hive')
-
     def _get_flink_type(self, typ: TypeDecorator) -> Optional[str]:
-        from sqlalchemy.sql.sqltypes import (DATE, _Binary, TIME, VARCHAR, String, CHAR, BINARY)
+        from sqlalchemy.sql.sqltypes import (VARCHAR, String, CHAR, BINARY)
 
         name = None
         types = BlinkHiveSQLType
@@ -239,9 +315,6 @@ class HiveManager(DatabaseManager):
 
 
 class ElasticSearchManager(DatabaseManager):
-    def __init__(self, connection_url: str, table_name_filter: NameFilter):
-        super(ElasticSearchManager, self).__init__(connection_url, table_name_filter, 'elasticsearch')
-
     def _es2flink(self, typ: str) -> Optional[str]:
         types = BlinkSQLType
         if typ in ("text", "keyword"):
@@ -264,6 +337,7 @@ class ElasticSearchManager(DatabaseManager):
             return types.DATE
 
     def update(self):
+        assert 'elasticsearch' == self.db_type
         from elasticsearch import Elasticsearch
         es = Elasticsearch(hosts=self.connection_url)
         schemas = []
@@ -296,10 +370,8 @@ class ElasticSearchManager(DatabaseManager):
 
 
 class HBaseManager(DatabaseManager):
-    def __init__(self, connection_url: str, table_name_filter: NameFilter):
-        super(HBaseManager, self).__init__(connection_url, table_name_filter, 'hbase')
-
     def update(self):
+        assert 'hbase' == self.db_type
         import happybase
         host, port = self.connection_url.split(':')
         connection = happybase.Connection(host, int(port), autoconnect=True)
@@ -337,4 +409,3 @@ SUPPORT_MANAGER = {
     'canal': CanalManager,
     'file': FileManger
 }
-
