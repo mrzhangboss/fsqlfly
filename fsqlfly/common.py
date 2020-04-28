@@ -8,6 +8,9 @@ from typing import Any, Optional, NamedTuple, Callable, Awaitable, Union
 from tornado.web import RequestHandler, HTTPError
 from logzero import logger
 
+SUPPORT_TABLE_TYPE = {'sink', 'source', 'both', 'view', 'temporal-table'}
+SUPPORT_MANAGER = {'hive', 'db', 'kafka', 'hbase', 'elasticsearch', 'canal', 'file'}
+
 
 class CodeMsg(NamedTuple):
     code: int
@@ -89,7 +92,10 @@ def safe_authenticated(
             raise HTTPError(403)
         try:
             return method(self, *args, **kwargs)
-        except Exception:
+        except Exception as error:
+            from fsqlfly import settings
+            if settings.FSQLFLY_DEBUG:
+                raise error
             err = traceback.format_exc()
             logger.error(err)
             return DBRes.sever_error(msg=f'meet {err}')

@@ -6,8 +6,9 @@ from functools import wraps
 from typing import Callable, Type, Optional, List, Union
 from fsqlfly import settings
 from fsqlfly.common import DBRes
-from sqlalchemy.orm.session import Session, sessionmaker
-from sqlalchemy.orm.session.query import Query
+from sqlalchemy.orm.session import Session, sessionmaker, query as session_query
+
+Query = session_query.Query
 
 SUPPORT_MODELS = {
     'connection': Connection,
@@ -48,12 +49,15 @@ def session_add(func: Callable) -> Callable:
             res = func(*args, session=session, **kwargs)
             session.commit()
             return res
-        except Exception:
+        except Exception as error:
             session.rollback()
+            if settings.FSQLFLY_DEBUG:
+                raise error
             err = traceback.format_exc()
             return DBRes.sever_error(msg=f'meet {err}')
         finally:
-            session.close()
+            if 'session' not in kwargs:
+                session.close()
 
     return _add_session
 
@@ -147,32 +151,38 @@ class DBDao:
         return query.all()
 
     @classmethod
-    @session_add
-    def save(cls, obj: Type[Base], *args, session: Session, **kwargs) -> Type[Base]:
+    def save(cls, obj: Base, *args, session: Session, **kwargs) -> Base:
         session.add(obj)
         session.commit()
         return obj
 
     @classmethod
-    @session_add
     def upsert_schema_event(cls, obj: SchemaEvent, *args, session: Session, **kwargs) -> SchemaEvent:
         query = session.query(SchemaEvent).filter(and_(SchemaEvent.database == obj.database,
                                                        SchemaEvent.name == obj.name,
-                                                       SchemaEvent.connection == obj.connection,
-                                                       SchemaEvent.fields == obj.fields))
+                                                       SchemaEvent.connection_id == obj.connection_id))
         first = query.order_by(SchemaEvent.version.desc()).first()
         if first:
-            obj.version = first.version + 1
-            obj.father = first
-        session.add(obj)
+            if first.fields != obj.fields or first.primary_key != obj.primary_key:
+                obj.version = first.version + 1
+                obj.father = first
+                session.add(obj)
+                res = obj
+            else:
+                first.info = obj.info
+                first.comment = obj.comment
+                session.add(first)
+                res = first
+        else:
+            session.add(obj)
+            res = obj
         session.commit()
-        return obj
+        return res
 
     @classmethod
-    @session_add
     def upsert_resource_name(cls, obj: ResourceName, *args, session: Session, **kwargs) -> ResourceName:
         query = session.query(ResourceName).filter(and_(ResourceName.full_name == obj.full_name,
-                                                        ResourceName.connection == obj.connection))
+                                                        ResourceName.connection_id == obj.connection_id))
         res = first = query.first()
         if first:
             res.latest_schema_id = obj.latest_schema_id
@@ -185,43 +195,46 @@ class DBDao:
         return res
 
     @classmethod
-    @session_add
     def upsert_resource_template(cls, obj: ResourceTemplate, *args, session: Session, **kwargs) -> ResourceTemplate:
         query = session.query(ResourceTemplate).filter(and_(ResourceTemplate.name == obj.name,
                                                             ResourceTemplate.connection == obj.connection,
                                                             ResourceTemplate.resource_name == obj.resource_name))
-        res = first = query.order_by(SchemaEvent.version.desc()).first()
+        res = first = query.first()
         if first:
             res.config = obj.config
             res.info = obj.info
             res.is_system = obj.is_system
             res.is_default = obj.is_default
             res.full_name = obj.full_name
-            res.is_latest = first.latest_schema_id == obj.schema_version_id
         else:
             res = obj
         session.add(res)
         session.commit()
-        return obj
+        return res
 
     @classmethod
-    @session_add
     def upsert_resource_version(cls, obj: ResourceVersion, *args, session: Session, **kwargs) -> ResourceVersion:
         query = session.query(ResourceVersion).filter(and_(ResourceVersion.name == obj.name,
-                                                           ResourceVersion.connection == obj.connection,
-                                                           ResourceVersion.resource_name == obj.resource_name,
-                                                           ResourceVersion.template == obj.template))
-        first = query.order_by(ResourceVersion.version.desc()).first()
+                                                           ResourceVersion.connection_id == obj.connection_id,
+                                                           ResourceVersion.resource_name_id == obj.resource_name_id,
+                                                           ResourceVersion.template_id == obj.template_id))
+        res = first = query.order_by(ResourceVersion.version.desc()).first()
         if first:
-            first.version += 1
-            first.config = obj.config
-            first.cache = obj.cache
+            if first.config == obj.config:
+                res.config = obj.config
+                res.cache = obj.cache
+                res.info = obj.info
+                res.cache = obj.cache
+            else:
+                res = obj
+                max_version = session.query(ResourceVersion.version).order_by(ResourceVersion.version.desc()).first()
+                res.version = max_version[0] + 1
         else:
-            first = obj
+            res = obj
 
-        session.add(first)
+        session.add(res)
         session.commit()
-        return first
+        return res
 
     @classmethod
     def create_all_tables(cls):

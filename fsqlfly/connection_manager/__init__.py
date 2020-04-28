@@ -338,4 +338,3 @@ SUPPORT_MANAGER = {
     'file': FileManger
 }
 
-SUPPORT_TABLE_TYPE = {'sink', 'source', 'both', 'view', 'temporal-table'}

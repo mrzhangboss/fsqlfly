@@ -1,10 +1,9 @@
 # -*- coding:utf-8 -*-
 from __future__ import absolute_import, unicode_literals, print_function
-from fsqlfly.db_models import *
+from fsqlfly.db_helper import *
 import sqlalchemy as sa
 import unittest
 from unittest.mock import patch, Mock
-from fsqlfly.db_helper import DBDao, DBSession
 from fsqlfly.common import RespCode, DBRes
 from sqlalchemy import event
 
@@ -96,8 +95,6 @@ class MyTestCase(unittest.TestCase):
         res = DBDao.create(model='name', obj=obj2)
         self.assertEqual('id' in res.data, True)
 
-
-
     def test_bulk_insert(self):
         data = []
         c = 'connection'
@@ -134,6 +131,52 @@ class MyTestCase(unittest.TestCase):
                          False)
         self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t2_name.id).first().is_default,
                          True)
+
+    def test_upsert(self):
+        connection = Connection(name='connection', connector='axx', url='abcde', type='hive')
+        session = DBSession.get_session()
+        connection = DBDao.save(connection, session=session)
+        scheme1 = SchemaEvent(name='example', info='abc', database='hh', connection_id=connection.id)
+        self.assertTrue(not isinstance(DBDao.upsert_schema_event(scheme1, session=session), DBRes))
+        self.assertEqual(len(DBDao.get('schema').data), 1)
+        scheme2 = SchemaEvent(name='example', info='abc', database='hh', connection_id=connection.id)
+        scheme2 = DBDao.upsert_schema_event(scheme2, session=session)
+        self.assertTrue(isinstance(scheme2, SchemaEvent))
+        data = DBDao.get('schema').data
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0].id, scheme2.id)
+        self.assertEqual(data[0]['id'], scheme2.id)
+        self.assertEqual(DBDao.get('schema').data[0]['version'], 0)
+
+        resource_name = ResourceName(name='xxx', connection_id=connection.id, full_name='xxx')
+        resource_name = DBDao.upsert_resource_name(resource_name, session=session)
+        DBDao.upsert_resource_name(resource_name, session=session)
+        self.assertEqual(len(DBDao.get('name').data), 1)
+
+        template = ResourceTemplate(name='xxx', connection_id=connection.id, full_name='xxx',
+                                    schema_version_id=scheme2.id, type='sink',
+                                    resource_name_id=resource_name.id)
+        DBDao.upsert_resource_template(template, session=session)
+        DBDao.upsert_resource_template(template, session=session)
+        self.assertEqual(len(DBDao.get('template').data), 1)
+
+        version = ResourceVersion(name='xxxx', connection_id=connection.id, full_name='xxx',
+                                  schema_version_id=scheme2.id, template_id=template.id,
+                                  resource_name_id=resource_name.id)
+
+        version = DBDao.upsert_resource_version(version, session=session)
+        DBDao.upsert_resource_version(version, session=session)
+        self.assertEqual(len(DBDao.get('version').data), 1)
+
+        version2 = ResourceVersion(name='xxxx', connection_id=connection.id, full_name='xxxaaa',
+                                   config='xxx', template_id=template.id,
+                                   schema_version_id=scheme2.id,
+                                   resource_name_id=resource_name.id)
+
+        new_version = DBDao.upsert_resource_version(version2, session=session)
+        self.assertTrue(new_version.version > version.version)
+
+        session.close()
 
 
 if __name__ == '__main__':

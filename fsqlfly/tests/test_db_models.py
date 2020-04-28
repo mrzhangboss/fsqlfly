@@ -44,8 +44,8 @@ class MyTestCase(unittest.TestCase):
 
     def get_create_object(self):
         connection = Connection(name='a', url='#', type='hive', connector='text')
-        schema = SchemaEvent(name='test', connection=connection, version=1, type='hive')
-        schema2 = SchemaEvent(name='test2', connection=connection, version=2, type='hive')
+        schema = SchemaEvent(name='test', connection=connection, version=1)
+        schema2 = SchemaEvent(name='test2', connection=connection, version=2)
         r_name = ResourceName(name='b', full_name='a.b', connection=connection, schema_version=schema)
         t_name = ResourceTemplate(name='c', resource_name=r_name, type='both', full_name='a.b.c', connection=connection,
                                   schema_version=schema)

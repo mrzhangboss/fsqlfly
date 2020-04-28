@@ -3,18 +3,24 @@ from typing import Any
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint, event
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
-from fsqlfly.connection_manager import SUPPORT_MANAGER, SUPPORT_TABLE_TYPE
+from fsqlfly.common import SUPPORT_MANAGER, SUPPORT_TABLE_TYPE
 from sqlalchemy_utils import ChoiceType, Choice
 from logzero import logger
 
 _Base = declarative_base()
 
-CONNECTION_TYPE = ChoiceType([(k, str(v)) for k, v in SUPPORT_MANAGER.items()], impl=String(16))
+CONNECTION_TYPE = ChoiceType([(k, k) for k in SUPPORT_MANAGER], impl=String(16))
 TABLE_TYPE = ChoiceType([(k, k) for k in SUPPORT_TABLE_TYPE], impl=String(8))
 
 
 def _b(x: str):
     return backref(x, cascade="delete, delete-orphan")
+
+
+class SaveDict(dict):
+    @property
+    def id(self):
+        return self.get('id')
 
 
 class Base(_Base):
@@ -25,13 +31,13 @@ class Base(_Base):
     updated_at = Column(DateTime, server_default=sa.func.now(), server_onupdate=sa.func.now())
     is_locked = Column(Boolean, default=False)
 
-    def as_dict(self):
+    def as_dict(self) -> SaveDict:
         def _convert(v: Any) -> Any:
             if isinstance(v, Choice):
                 return v.code
             return v
 
-        return {column.name: _convert(getattr(self, column.name)) for column in self.__table__.columns}
+        return SaveDict({column.name: _convert(getattr(self, column.name)) for column in self.__table__.columns})
 
 
 class Connection(Base):
@@ -55,12 +61,11 @@ class SchemaEvent(Base):
     name = Column(String(128), nullable=False)
     info = Column(Text)
     database = Column(String(64), nullable=True)
-    connection_id = Column(Integer, ForeignKey('connection.id'))
+    connection_id = Column(Integer, ForeignKey('connection.id'), nullable=False)
     connection = relationship('Connection', backref=_b('schemas'))
     father_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
     father = relationship('SchemaEvent', backref=_b('children'), remote_side='SchemaEvent.id')
-    type = Column(CONNECTION_TYPE, nullable=False)
-    version = Column(Integer, nullable=False)
+    version = Column(Integer, nullable=False, default=0)
     comment = Column(Text)
     primary_key = Column(String(64))
     fields = Column(Text)
@@ -81,6 +86,9 @@ class Connector(Base):
 
 class ResourceName(Base):
     __tablename__ = 'resource_name'
+    __table_args__ = (
+        UniqueConstraint('connection_id', 'name', 'database'),
+    )
     name = Column(String(128), nullable=False)
     info = Column(Text)
     database = Column(String(64), nullable=True)
@@ -96,6 +104,9 @@ class ResourceName(Base):
 
 class ResourceTemplate(Base):
     __tablename__ = 'resource_template'
+    __table_args__ = (
+        UniqueConstraint('resource_name_id', 'name'),
+    )
     name = Column(String(128), nullable=False)
     type = Column(TABLE_TYPE, nullable=False)
     info = Column(Text)
@@ -116,7 +127,7 @@ class ResourceVersion(Base):
     __table_args__ = (
         UniqueConstraint('template_id', 'version'),
     )
-    name = Column(String(128), nullable=True)
+    name = Column(String(128), nullable=False, default='latest')
     info = Column(Text)
     full_name = Column(String(512), nullable=False, unique=True)
     is_system = Column(Boolean, default=False)
@@ -135,9 +146,6 @@ class ResourceVersion(Base):
     cache = Column(Text)
 
     def get_full_name(self):
-        if self.is_latest:
-            return self.template.full_name + '.latest'
-        assert self.name, 'name must exists'
         return self.template.full_name + '.' + self.name
 
 
@@ -210,4 +218,4 @@ def create_all_tables(engine):
 
 __all__ = ['create_all_tables', 'delete_all_tables', 'Base', 'Connection',
            'SchemaEvent', 'Connector', 'ResourceName', 'ResourceVersion', 'ResourceTemplate',
-           'Namespace', 'FileResource', 'Transform', 'Functions', 'TransformSavepoint']
+           'Namespace', 'FileResource', 'Transform', 'Functions', 'TransformSavepoint', 'SaveDict']
