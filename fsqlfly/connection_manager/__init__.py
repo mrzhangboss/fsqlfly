@@ -9,7 +9,7 @@ from typing import Optional, List, Type, Union
 from re import _pattern_type
 from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent
 from fsqlfly.common import DBRes
-from fsqlfly.db_helper import DBSession, DBDao, Session
+from fsqlfly.db_helper import DBSession, DBDao, Session, SUPPORT_MODELS
 
 
 class BlinkSQLType:
@@ -409,3 +409,35 @@ SUPPORT_MANAGER = {
     'canal': CanalManager,
     'file': FileManger
 }
+
+
+class ManagerHelper:
+    @classmethod
+    def is_support(cls, mode: str) -> bool:
+        return mode == 'update'
+
+    @classmethod
+    def update(cls, model: str, pk: str):
+        if model not in SUPPORT_MODELS:
+            return DBRes.api_error(msg='{} not support'.format(model))
+        session = DBSession.get_session()
+        try:
+            obj = DBDao.one(base=SUPPORT_MODELS[model], pk=int(pk), session=session)
+            if isinstance(obj, Connection):
+                name_filter = NameFilter(obj.include, obj.exclude)
+                manager = SUPPORT_MANAGER[obj.type](obj.url, name_filter)
+            elif isinstance(obj, ResourceName):
+                name_filter = NameFilter(obj.get_include())
+                manager = SUPPORT_MANAGER[obj.connection.type](obj.connection.url, name_filter)
+            else:
+                name_filter = NameFilter()
+                typ = obj.connection.type
+                manager = SUPPORT_MANAGER[typ](
+                    obj.connection.url,
+                    name_filter,
+                    typ
+                )
+
+            return manager.run(obj)
+        finally:
+            session.close()
