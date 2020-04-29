@@ -121,7 +121,6 @@ class DBDao:
         return DBRes(data=[x.as_dict() for x in query.all()])
 
     @classmethod
-    @session_add
     def one(cls, *args, session: Session,
             base: Union[Connection, ResourceName, ResourceVersion, ResourceTemplate], pk: int,
             **kwargs) -> Union[Connection, ResourceName, ResourceVersion, ResourceTemplate]:

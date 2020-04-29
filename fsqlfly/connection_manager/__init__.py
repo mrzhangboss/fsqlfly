@@ -3,6 +3,7 @@ import json
 import re
 import attr
 import logzero
+import yaml
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.sql.sqltypes import TypeDecorator
 from typing import Optional, List, Type, Union
@@ -136,7 +137,7 @@ class BaseManager:
 
         session = DBSession.get_session()
         if isinstance(target, (Connection, ResourceName)):
-            if isinstance(target, ResourceVersion):
+            if isinstance(target, ResourceName):
                 target = target.connection
             self.update_connection(status, session, target)
         elif isinstance(target, ResourceTemplate):
@@ -145,25 +146,25 @@ class BaseManager:
             self.update_version(status, session, target.connection, target.schema_version, target.resource_name,
                                 target.template)
         else:
-            raise NotImplementedError("Not Suppport {}".format(type(target)))
+            raise NotImplementedError("Not Support {}".format(type(target)))
         return DBRes(data=status.info)
 
     def update_connection(self, status: UpdateStatus, session: Session, connection: Connection):
         for content in self.update():
-            schema = self.get_schema_event(schema=content, connection=connection)
+            schema = self.generate_schema_event(schema=content, connection=connection)
             schema, i = DBDao.upsert_schema_event(schema, session=session)
             status.update_schema(i)
             self.update_resource_name(status, session, connection, schema)
 
     def update_resource_name(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent):
-        resource_name = self.get_resource_name(connection, schema)
+        resource_name = self.generate_resource_name(connection, schema)
         resource_name, i = DBDao.upsert_resource_name(resource_name, session=session)
         status.update_resource_name(i)
         self.update_template(status, session, schema=schema, connection=connection, resource_name=resource_name)
 
     def update_template(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent,
                         resource_name: ResourceName):
-        for template in self.get_template(schema=schema, connection=connection, resource_name=resource_name):
+        for template in self.generate_template(schema=schema, connection=connection, resource_name=resource_name):
             template, i = DBDao.upsert_resource_template(template, session=session)
             status.update_template(i)
             self.update_version(status, session, schema=schema, connection=connection, resource_name=resource_name,
@@ -171,11 +172,12 @@ class BaseManager:
 
     def update_version(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent,
                        resource_name: ResourceName, template: ResourceTemplate):
-        version = self.get_default_version(connection, schema, resource_name, template)
+        version = self.generate_default_version(connection, schema, resource_name, template)
         version, i = DBDao.upsert_resource_version(version, session=session)
         status.update_version(i)
 
-    def get_schema_event(self, schema: SchemaContent, connection: Connection) -> SchemaEvent:
+    @classmethod
+    def generate_schema_event(cls, schema: SchemaContent, connection: Connection) -> SchemaEvent:
         return SchemaEvent(name=schema.name, info=schema.comment, database=schema.database,
                            connection_id=connection.id, comment=schema.comment, primary_key=schema.primary_key,
                            fields=json.dumps([attr.asdict(x) for x in schema.fields], ensure_ascii=False),
@@ -184,19 +186,34 @@ class BaseManager:
     def update(self) -> List[SchemaContent]:
         return list()
 
-    def get_resource_name(self, connection: Connection, schema: SchemaEvent) -> ResourceName:
+    @classmethod
+    def generate_resource_name(cls, connection: Connection, schema: SchemaEvent) -> ResourceName:
+        return ResourceName(name=schema.name, database=schema.database, connection_id=connection.id,
+                            schema_version_id=schema.id, latest_schema_id=schema.id, is_latest=True,
+                            full_name=ResourceName.generate_full_name(connection.name, schema.database, schema.name))
+
+    def generate_template(self, connection: Connection, schema: SchemaEvent,
+                          resource_name: ResourceName) -> List[ResourceTemplate]:
         raise NotImplementedError
 
-    def get_template(self, connection: Connection, schema: SchemaEvent,
-                     resource_name: ResourceName) -> List[ResourceTemplate]:
-        raise NotImplementedError
-
-    def get_default_version(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
-                            template: ResourceTemplate) -> ResourceVersion:
+    def generate_default_version(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
+                                 template: ResourceTemplate) -> ResourceVersion:
         raise NotImplementedError
 
 
 class DatabaseManager(BaseManager):
+    def get_sink(self, fields: List[SchemaField], config: dict) -> Optional[ResourceTemplate]:
+        pass
+
+    def generate_template(self, connection: Connection, schema: SchemaEvent,
+                          resource_name: ResourceName) -> List[ResourceTemplate]:
+        fields = [SchemaField(**x) for x in json.loads(schema.fields)]
+
+
+    def generate_default_version(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
+                                 template: ResourceTemplate) -> ResourceVersion:
+        pass
+
     use_comment = True
     use_primary = True
 
@@ -258,7 +275,13 @@ class DatabaseManager(BaseManager):
         schemas = []
 
         for db, tb in update_tables:
-            comment = insp.get_table_comment(table_name=tb, schema=db)['text'] if self.use_comment else None
+            comment = None
+            if self.use_comment:
+                try:
+                    comment = insp.get_table_comment(table_name=tb, schema=db)['text']
+                except NotImplementedError as err:
+                    print('meet ', err)
+
             schema = SchemaContent(name=tb, database=db, comment=comment, type=self.db_type)
             columns = insp.get_columns(table_name=tb, schema=db)
             primary = insp.get_primary_keys(tb, db) if self.use_primary else None
@@ -283,7 +306,7 @@ class DatabaseManager(BaseManager):
 
             schema.fields.extend(fields)
 
-            print(schema)
+            # print(schema)
             schemas.append(schema)
 
         return schemas
@@ -425,10 +448,11 @@ class ManagerHelper:
             obj = DBDao.one(base=SUPPORT_MODELS[model], pk=int(pk), session=session)
             if isinstance(obj, Connection):
                 name_filter = NameFilter(obj.include, obj.exclude)
-                manager = SUPPORT_MANAGER[obj.type](obj.url, name_filter)
+                manager = SUPPORT_MANAGER[obj.type](obj.url, name_filter, obj.type)
             elif isinstance(obj, ResourceName):
                 name_filter = NameFilter(obj.get_include())
-                manager = SUPPORT_MANAGER[obj.connection.type](obj.connection.url, name_filter)
+                typ = obj.connection.type
+                manager = SUPPORT_MANAGER[typ](obj.connection.url, name_filter, typ)
             else:
                 name_filter = NameFilter()
                 typ = obj.connection.type

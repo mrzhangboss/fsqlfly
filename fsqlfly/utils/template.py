@@ -1,8 +1,10 @@
+from typing import Optional
 from datetime import timedelta, datetime
 from fsqlfly.utils import macros
 
 
-def generate_template_context(self, execution_date: datetime):
+def generate_template_context(self, execution_date: Optional[datetime] = None, **kwargs):
+    execution_date = execution_date if execution_date else datetime.now()
     task = self.task
     ds = execution_date.strftime('%Y-%m-%d')
     ts = execution_date.isoformat()
@@ -31,4 +33,5 @@ def generate_template_context(self, execution_date: datetime):
         'execution_date': execution_date,
         'latest_date': ds,
         'macros': macros,
+        **kwargs
     }

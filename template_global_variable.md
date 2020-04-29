@@ -16,6 +16,16 @@ Variable | Description
 {{ template }} |  the generate version template field (version.template)
 {{ resource_name }} |  the generate version resource_name field (version.resource_name)
 
+### Connection Connector Format Variable
+
+ps when `Type` = `connection` mean it's only generate in the connection 
+
+
+Variable | Description | Type
+---- | --- | ---
+
+
+
 ### Template And Version Config Field Format
 
 Variable | Description|type
