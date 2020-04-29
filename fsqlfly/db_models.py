@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from typing import Any
+from typing import Any, Optional
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint, event
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
@@ -103,6 +103,10 @@ class ResourceName(Base):
 
     def get_include(self):
         return self.database + '.' + self.name if self.database else self.name
+
+    @classmethod
+    def generate_full_name(cls, connection_name: str, database: Optional[str], name: str):
+        return connection_name + (database + '.' + name if database else name)
 
 
 class ResourceTemplate(Base):

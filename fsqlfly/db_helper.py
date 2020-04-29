@@ -36,9 +36,9 @@ class DBSession:
         cls._Session = sessionmaker(bind=engine)
 
     @classmethod
-    def get_session(cls) -> Session:
+    def get_session(cls, *args, **kwargs) -> Session:
         assert cls.engine is not None
-        return cls._Session()
+        return cls._Session(*args, **kwargs)
 
 
 def session_add(func: Callable) -> Callable:
