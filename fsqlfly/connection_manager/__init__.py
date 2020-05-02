@@ -209,7 +209,6 @@ class DatabaseManager(BaseManager):
                           resource_name: ResourceName) -> List[ResourceTemplate]:
         fields = [SchemaField(**x) for x in json.loads(schema.fields)]
 
-
     def generate_default_version(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
                                  template: ResourceTemplate) -> ResourceVersion:
         pass
@@ -411,8 +410,8 @@ class HBaseManager(DatabaseManager):
         return schemas
 
 
-class CanalManager(BaseManager):
-    renewable = False
+class CanalManager(DatabaseManager):
+    renewable = True
 
 
 class FileManger(BaseManager):
