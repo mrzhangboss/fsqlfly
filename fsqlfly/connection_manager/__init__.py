@@ -188,16 +188,71 @@ class BaseManager:
     def update_version(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent,
                        resource_name: ResourceName, template: ResourceTemplate):
         version = self.generate_default_version(connection, schema, resource_name, template)
-        self.rebuild_version_cache(version)
         version, i = DBDao.upsert_resource_version(version, session=session)
         status.update_version(i)
+        version.cache = self.generate_version_cache(session, connection, schema, resource_name, template, version)
+        DBDao.save(version, session=session)
 
     @classmethod
-    def rebuild_version_cache(cls, version: ResourceVersion):
-        fields = [SchemaField(**x) for x in load_yaml(version.schema_version.fields)]
+    def generate_version_cache(cls, session: Session, connection: Connection, schema: SchemaEvent,
+                               resource_name: ResourceName, template: ResourceTemplate,
+                               version: ResourceVersion) -> str:
+
+        base = load_yaml(template.config) if template.config else dict()
+        version_config = load_yaml(version.config) if version.config else dict()
+        base.update(**version_config)
+        config = VersionConfig(**base)
+        v_info = "Version {}:{}".format(version.id, version.name)
+        if template.type == 'view':
+            assert config.query is not None, '{} View Must Need a Query'.format(v_info)
+            res = dict(query=config.query)
+        elif template.type == 'temporal-table':
+            assert config.history_table is not None, '{} View Must Need a history_table'.format(v_info)
+            assert config.primary_key is not None, '{} View Must Need a primary_key'.format(v_info)
+            assert config.time_attribute is not None, '{} View Must Need a time_attribute'.format(v_info)
+            res = {
+                "history-table": config.history_table,
+                "primary-key": config.primary_key,
+                "time-attribute": config.time_attribute
+            }
+        elif template.type in ('sink', 'source', 'both'):
+            res = dict()
+            if config.update_mode:
+                res['update-mode'] = config.update_mode
+            if config.format:
+                res['format'] = config.format
+            else:
+                res['format'] = {"type": 'json', "derive-schema": True}
+
+            res['connector'] = version.get_connection_connector()
+
+            need_fields = NameFilter(config.include, config.exclude)
+            fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema else []
+            field_names = [x.name for x in fields]
+            schemas = []
+
+            if config.schema:
+                for x in config.schema:
+                    assert x['name'] not in field_names, "{} contain in origin field"
+                schemas.extend(config.schema)
+
+            for x in fields:
+                if x.name in need_fields:
+                    schemas.append({
+                        "name": x.name,
+                        "data-type": x.type
+                    })
+
+            res['schema'] = schemas
+
+        else:
+            raise NotImplementedError("Not Support {}".format(template.type))
+
+        return dump_yaml(res)
 
     def update_version_cache(self, status: UpdateStatus, session: Session, version: ResourceVersion):
-        self.rebuild_version_cache(version)
+        version.cache = self.generate_version_cache(session, version.connection, version.schema_version,
+                                                    version.template, version)
         DBDao.save(version, session=session)
         status.update_version(False)
 

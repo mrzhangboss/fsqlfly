@@ -1,10 +1,14 @@
 import sqlalchemy as sa
+from jinja2 import Template
+from datetime import datetime
 from configparser import ConfigParser
 from typing import Any, Optional, Union, Type
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint, event
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 from fsqlfly.common import SUPPORT_MANAGER, SUPPORT_TABLE_TYPE
+from fsqlfly.utils.strings import load_yaml, dump_yaml
+from fsqlfly.utils.template import generate_template_context
 from sqlalchemy_utils import ChoiceType, Choice
 from logzero import logger
 
@@ -223,6 +227,14 @@ class ResourceVersion(Base):
     @classmethod
     def get_full_name(cls, template: ResourceTemplate, name: str = 'latest'):
         return template.full_name + '.' + name
+
+    def get_connection_connector(self) -> dict:
+        context = generate_template_context(execution_date=datetime.now(), connection=self.connection,
+                                            schema=self.schema_version,
+                                            tempalte=self.template, resource_name=self.resource_name,
+                                            version=self)
+        output = Template(self.connection.connector).render(**context)
+        return load_yaml(output)
 
 
 class Namespace(Base):

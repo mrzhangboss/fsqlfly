@@ -78,6 +78,7 @@ class ManagerTest(unittest.TestCase):
             self.assertTrue(session.query(ResourceName).count() > 0)
             self.assertTrue(session.query(ResourceTemplate).count() > 0)
             self.assertTrue(session.query(ResourceVersion).count() > 0)
+            self.assertTrue(session.query(ResourceVersion).filter(ResourceVersion.cache.isnot(None)).count() > 0)
             session.close()
 
 

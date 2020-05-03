@@ -3,9 +3,8 @@ from datetime import timedelta, datetime
 from fsqlfly.utils import macros
 
 
-def generate_template_context(self, execution_date: Optional[datetime] = None, **kwargs):
+def generate_template_context(execution_date: Optional[datetime] = None, **kwargs):
     execution_date = execution_date if execution_date else datetime.now()
-    task = self.task
     ds = execution_date.strftime('%Y-%m-%d')
     ts = execution_date.isoformat()
     yesterday_ds = (execution_date - timedelta(1)).strftime('%Y-%m-%d')
@@ -18,7 +17,6 @@ def generate_template_context(self, execution_date: Optional[datetime] = None, *
     tomorrow_ds_nodash = tomorrow_ds.replace('-', '')
 
     return {
-        'dag': task.dag,
         'ds': ds,
         'ds_nodash': ds_nodash,
         'ts': ts,
