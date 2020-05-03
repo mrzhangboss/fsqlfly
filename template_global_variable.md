@@ -64,7 +64,7 @@ exclude| the field not be add in final version(sep by ',' and support regex)| st
 include| the field'll be add in final version(sep by ',' and support regex)|str
 schema|add into final version|list format (name: type)
 format|replace final version format|yml format 
-update-mode|if add then will replace default update-mode field|str
+update_mode|if add then will replace default update-mode field|str
 query|if add then will replace default query field|str
 history-table|if add then will replace default history-table field|str
 primary-key|if add then will replace default primary-key field|str

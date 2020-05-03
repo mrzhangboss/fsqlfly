@@ -1,14 +1,13 @@
 # -*- coding:utf-8 -*-
-import json
 import re
 import attr
 import logzero
-import yaml
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.sql.sqltypes import TypeDecorator
-from typing import Optional, List, Type, Union
+from typing import Optional, List, Type, Union, Any
 from re import _pattern_type
 from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent
+from fsqlfly.utils.strings import load_yaml, dump_yaml
 from fsqlfly.common import DBRes
 from fsqlfly.db_helper import DBSession, DBDao, Session, SUPPORT_MODELS
 
@@ -88,6 +87,19 @@ class SchemaContent:
     partitionable: bool = attr.ib(default=False)
 
 
+@attr.s
+class VersionConfig:
+    exclude: Optional[str] = attr.ib(default=None)
+    include: Optional[str] = attr.ib(default=None)
+    update_mode: Optional[str] = attr.ib(default=None)
+    query: Optional[str] = attr.ib(default=None)
+    history_table: Optional[str] = attr.ib(default=None)
+    primary_key: Optional[str] = attr.ib(default=None)
+    time_attribute: Optional[str] = attr.ib(default=None)
+    schema: List[Any] = attr.ib(factory=list)
+    format: List[Any] = attr.ib(factory=list)
+
+
 class UpdateStatus:
     def __init__(self):
         self.schema_inserted = 0
@@ -143,8 +155,11 @@ class BaseManager:
         elif isinstance(target, ResourceTemplate):
             self.update_template(status, session, target.connection, target.schema_version, target.resource_name)
         elif isinstance(target, ResourceVersion):
-            self.update_version(status, session, target.connection, target.schema_version, target.resource_name,
-                                target.template)
+            if target.is_system:
+                self.update_version(status, session, target.connection, target.schema_version, target.resource_name,
+                                    target.template)
+            else:
+                self.update_version_cache(status, session, target)
         else:
             raise NotImplementedError("Not Support {}".format(type(target)))
         return DBRes(data=status.info)
@@ -173,14 +188,24 @@ class BaseManager:
     def update_version(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent,
                        resource_name: ResourceName, template: ResourceTemplate):
         version = self.generate_default_version(connection, schema, resource_name, template)
+        self.rebuild_version_cache(version)
         version, i = DBDao.upsert_resource_version(version, session=session)
         status.update_version(i)
+
+    @classmethod
+    def rebuild_version_cache(cls, version: ResourceVersion):
+        fields = [SchemaField(**x) for x in load_yaml(version.schema_version.fields)]
+
+    def update_version_cache(self, status: UpdateStatus, session: Session, version: ResourceVersion):
+        self.rebuild_version_cache(version)
+        DBDao.save(version, session=session)
+        status.update_version(False)
 
     @classmethod
     def generate_schema_event(cls, schema: SchemaContent, connection: Connection) -> SchemaEvent:
         return SchemaEvent(name=schema.name, info=schema.comment, database=schema.database,
                            connection_id=connection.id, comment=schema.comment, primary_key=schema.primary_key,
-                           fields=json.dumps([attr.asdict(x) for x in schema.fields], ensure_ascii=False),
+                           fields=dump_yaml([attr.asdict(x) for x in schema.fields]),
                            partitionable=schema.partitionable)
 
     def update(self) -> List[SchemaContent]:
@@ -192,26 +217,43 @@ class BaseManager:
                             schema_version_id=schema.id, latest_schema_id=schema.id, is_latest=True,
                             full_name=ResourceName.generate_full_name(connection.name, schema.database, schema.name))
 
+    support_type = []
+
     def generate_template(self, connection: Connection, schema: SchemaEvent,
                           resource_name: ResourceName) -> List[ResourceTemplate]:
+        res = []
+        for x in self.support_type:
+            temp = ResourceTemplate(name=x, type=x, is_system=True,
+                                    full_name=ResourceTemplate.get_full_name(resource_name, x),
+                                    connection_id=connection.id, resource_name_id=resource_name.id,
+                                    schema_version_id=schema.id)
+            res.append(temp)
+        return res
+
+    def generate_default_version_config(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
+                                        template: ResourceTemplate) -> VersionConfig:
         raise NotImplementedError
 
     def generate_default_version(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
                                  template: ResourceTemplate) -> ResourceVersion:
-        raise NotImplementedError
+        config = self.generate_default_version_config(connection, schema, name, template)
+
+        config_str = dump_yaml(attr.asdict(config))
+        return ResourceVersion(full_name=ResourceVersion.get_full_name(template), is_system=True, is_latest=True,
+                               connection_id=connection.id, resource_name_id=name.id, template_id=template.id,
+                               schema_version_id=schema.id, config=config_str)
 
 
 class DatabaseManager(BaseManager):
-    def get_sink(self, fields: List[SchemaField], config: dict) -> Optional[ResourceTemplate]:
-        pass
+    support_type = ['sink', 'source', 'both']
 
-    def generate_template(self, connection: Connection, schema: SchemaEvent,
-                          resource_name: ResourceName) -> List[ResourceTemplate]:
-        fields = [SchemaField(**x) for x in json.loads(schema.fields)]
-
-    def generate_default_version(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
-                                 template: ResourceTemplate) -> ResourceVersion:
-        pass
+    def generate_default_version_config(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
+                                        template: ResourceTemplate) -> VersionConfig:
+        config = VersionConfig()
+        if template.type == 'sink':
+            if name.get_config('insert_primary_key', typ=bool) and schema.primary_key:
+                config.exclude = schema.primary_key
+        return config
 
     use_comment = True
     use_primary = True

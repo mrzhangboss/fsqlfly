@@ -4,7 +4,7 @@ import yaml
 from typing import Optional
 from collections import namedtuple
 from io import StringIO
-from typing import Callable, List, Tuple
+from typing import Callable, List, Tuple, Union, Any
 
 __CAMEL_PATTERN = re.compile("(?<=[a-z0-9])(_[a-z])")
 
@@ -34,14 +34,27 @@ def dict2underline(v: dict) -> dict:
     return _dict2_(v, str2underline)
 
 
-def _load_yaml(source: str) -> dict:
+def load_yaml(source: str) -> dict:
     d = yaml.load(StringIO(source), Loader=yaml.SafeLoader)
     return d
 
 
+def _remove_none(source: Any) -> Any:
+    if isinstance(source, dict):
+        return {k: v for k, v in source.items() if v is not None}
+    elif isinstance(source, list):
+        return [_remove_none(x) for x in source]
+    else:
+        return source
+
+
+def dump_yaml(source: Union[list, dict]) -> str:
+    return yaml.dump(_remove_none(source))
+
+
 def check_yaml(source: str) -> bool:
     try:
-        _load_yaml(source)
+        load_yaml(source)
     except Exception as e:
         print(e)
         return False
@@ -50,14 +63,14 @@ def check_yaml(source: str) -> bool:
 
 
 def get_schema(source: str) -> dict:
-    data = _load_yaml(source)
+    data = load_yaml(source)
     if 'schema' not in data:
         raise SystemError("Schema Not In Yaml file")
     return data['schema']
 
 
 def get_sink_config(source: str) -> dict:
-    return _load_yaml(source)
+    return load_yaml(source)
 
 
 def generate_yaml(source: List[Tuple[str, str]], is_sink: bool = False) -> str:

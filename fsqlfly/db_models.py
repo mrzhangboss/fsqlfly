@@ -95,7 +95,7 @@ class Connection(Base):
 
     def get_config(self, name: str, section: Optional[str] = None,
                    typ: Optional[Union[Type[int], Type[float], Type[float], Type[str]]] = None) -> Any:
-        return super(Connection, self).get_config(name, section if section else self.type, typ)
+        return super(Connection, self).get_config(name, section=section if section else self.type, typ=typ)
 
     def get_config_parser(self) -> ConfigParser:
         parser = super(Connection, self).get_config_parser()
@@ -170,7 +170,7 @@ class ResourceName(Base):
 
     def get_config(self, name: str, section: Optional[str] = None,
                    typ: Optional[Union[Type[int], Type[float], Type[float], Type[str]]] = None) -> Any:
-        return super(ResourceName, self).get_config(name, section if section else self.connection.type, typ)
+        return super(ResourceName, self).get_config(name, section=section if section else self.connection.type, typ=typ)
 
 
 class ResourceTemplate(Base):
@@ -191,6 +191,10 @@ class ResourceTemplate(Base):
     schema_version = relationship(SchemaEvent, backref=_b('templates'))
     schema_version_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
     config = Column(Text)
+
+    @classmethod
+    def get_full_name(cls, resource_name: ResourceName, name: str) -> str:
+        return resource_name.full_name + '.' + name
 
 
 class ResourceVersion(Base):
@@ -216,8 +220,9 @@ class ResourceVersion(Base):
     config = Column(Text)
     cache = Column(Text)
 
-    def get_full_name(self):
-        return self.template.full_name + '.' + self.name
+    @classmethod
+    def get_full_name(cls, template: ResourceTemplate, name: str = 'latest'):
+        return template.full_name + '.' + name
 
 
 class Namespace(Base):
