@@ -1,5 +1,6 @@
 import sqlalchemy as sa
-from typing import Any, Optional
+from configparser import ConfigParser
+from typing import Any, Optional, Union, Type
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint, event
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
@@ -23,6 +24,20 @@ class SaveDict(dict):
         return self.get('id')
 
 
+_DEFAULT_CONFIG = """
+[db]
+insert_primary_key = false
+
+[kafka]
+process_time_enable = true
+process_time_name = flink_process_time
+rowtime_enable = true
+rowtime_from = MYSQL_DB_EXECUTE_TIME
+
+
+"""
+
+
 class Base(_Base):
     __abstract__ = True
 
@@ -39,6 +54,31 @@ class Base(_Base):
 
         return SaveDict({column.name: _convert(getattr(self, column.name)) for column in self.__table__.columns})
 
+    @classmethod
+    def get_default_config_parser(cls) -> ConfigParser:
+        config = ConfigParser()
+        config.read_string(_DEFAULT_CONFIG)
+        return config
+
+    def get_config_parser(self) -> ConfigParser:
+        return self.get_default_config_parser()
+
+    def get_config(self, name: str, section: str,
+                   typ: Optional[Union[Type[int], Type[float], Type[float], Type[str]]] = None) -> Any:
+        cache_name = '__config_parser__'
+        if not hasattr(self, cache_name):
+            setattr(self, cache_name, self.get_config_parser())
+        parser = getattr(self, cache_name)
+        secret = parser[section]
+        if typ:
+            if typ is int:
+                return secret.getint(name)
+            elif typ is float:
+                return secret.getint(name)
+            elif typ is bool:
+                return secret.getboolean(name)
+        return secret[name]
+
 
 class Connection(Base):
     __tablename__ = 'connection'
@@ -48,9 +88,21 @@ class Connection(Base):
     type = Column(CONNECTION_TYPE, nullable=False)
     info = Column(Text)
     connector = Column(Text, nullable=False)
+    config = Column(Text)
     include = Column(String(2048))
     exclude = Column(String(2048))
     is_active = Column(Boolean, default=False)
+
+    def get_config(self, name: str, section: Optional[str] = None,
+                   typ: Optional[Union[Type[int], Type[float], Type[float], Type[str]]] = None) -> Any:
+        return super(Connection, self).get_config(name, section if section else self.type, typ)
+
+    def get_config_parser(self) -> ConfigParser:
+        parser = super(Connection, self).get_config_parser()
+        if self.config and self.config.strip():
+            parser.read_string(self.config)
+
+        return parser
 
 
 class SchemaEvent(Base):
@@ -97,6 +149,7 @@ class ResourceName(Base):
     schema_version_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
     schema_version = relationship(SchemaEvent, backref=_b('resource_names'), foreign_keys=schema_version_id)
     latest_schema_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
+    config = Column(Text)
     is_latest = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
     full_name = Column(String(512), nullable=False, unique=True)
@@ -107,6 +160,17 @@ class ResourceName(Base):
     @classmethod
     def generate_full_name(cls, connection_name: str, database: Optional[str], name: str):
         return connection_name + (database + '.' + name if database else name)
+
+    def get_config_parser(self) -> ConfigParser:
+        parser = self.connection.get_config_parser()
+        if self.config and self.config.strip():
+            parser.read_string(self.config)
+
+        return parser
+
+    def get_config(self, name: str, section: Optional[str] = None,
+                   typ: Optional[Union[Type[int], Type[float], Type[float], Type[str]]] = None) -> Any:
+        return super(ResourceName, self).get_config(name, section if section else self.connection.type, typ)
 
 
 class ResourceTemplate(Base):

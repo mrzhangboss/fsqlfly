@@ -16,13 +16,43 @@ Variable | Description
 {{ template }} |  the generate version template field (version.template)
 {{ resource_name }} |  the generate version resource_name field (version.resource_name)
 
-### Connection Connector Format Variable
+### Connection And ResourceName Config Format Variable
 
-ps when `Type` = `connection` mean it's only generate in the connection 
+`ResourceName` config inherit his `Connection` config.The `Config` format is `Configuration`.
+
+eg:
+
+        [DEFAULT]
+        ServerAliveInterval = 45
+        Compression = yes
+        CompressionLevel = 9
+        ForwardX11 = yes
 
 
-Variable | Description | Type
+
+#### Section: db
+
+ 
+
+Variable | Description | Default
 ---- | --- | ---
+insert_primary_key| if false not insert primary key when in a sink table| false
+
+
+#### Section: kafka
+
+
+Variable | Description | Default
+---- | --- | ---
+
+process_time_enable| if true then kafka source will generate a process time in table|true
+process_time_name| kafka source process time name(make true your table fields not contain it) |flink_process_time
+rowtime_enable| if true then kafka source will generate a rowtime in table|true
+rowtime_name| kafka source rowtime name(make true your table fields not contain it)  |row_time
+rowtime_from| kafka source rowtime field from  |MYSQL_DB_EXECUTE_TIME
+
+
+
 
 
 
