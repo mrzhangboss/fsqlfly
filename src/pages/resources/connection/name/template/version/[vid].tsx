@@ -15,7 +15,7 @@ import {
   Menu,
   Modal,
   Tag,
-  Tooltip, Row, Col, Switch,
+  Tooltip, Row, Col, Switch, Drawer
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
 import { Connection, ResourceName, ResourceTemplate, ResourceVersion } from '@/pages/resources/data';
@@ -50,6 +50,7 @@ interface BasicListProps extends FormComponentProps {
 interface BasicListState {
   visible: boolean;
   runVisible: boolean;
+  cacheVisible: boolean;
   runDone: boolean;
   done: boolean;
   current?: Partial<ResourceVersion>;
@@ -72,8 +73,8 @@ const NAMESPACE = 'version';
    }: {
     version: { list: ResourceVersion[], dependence: Connection, dependence1: ResourceName, dependence2: ResourceTemplate };
     loading: {
-      models: { [key: string]: boolean };
-      effects: { [key: string]: boolean };
+      models: { [ key: string ]: boolean };
+      effects: { [ key: string ]: boolean };
     };
     total: number;
     user: UserModelState
@@ -83,13 +84,14 @@ const NAMESPACE = 'version';
     names: version.dependence1,
     templates: version.dependence2,
     loading: loading.models.version,
-    fetchLoading: loading.effects['version/fetch'],
+    fetchLoading: loading.effects[ 'version/fetch' ],
     deletable: user.currentUser?.deletable,
   }),
 )
 class BasicList extends Component<BasicListProps, BasicListState> {
   state: BasicListState = {
     visible: false,
+    cacheVisible: false,
     runVisible: false,
     runDone: false,
     done: false,
@@ -124,7 +126,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const { connections } = this.props;
     const id = this.getCurrentConnectionId();
     const connection = connections.filter(x => x.id === id);
-    return connection.length >= 1 ? connection[0].type : 'unknown';
+    return connection.length >= 1 ? connection[ 0 ].type : 'unknown';
   };
 
   getCurrentNameId = () => {
@@ -142,12 +144,12 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   getFullName = (s: string) => {
     const { connections, names, templates } = this.props;
     const id = this.getCurrentConnectionId();
-    const [connection = { name: 'test' }] = connections.filter(x => x.id === id);
+    const [ connection = { name: 'test' } ] = connections.filter(x => x.id === id);
     const nid = this.getCurrentNameId();
-    const [name = { name: 'n', database: null }] = names.filter(x => x.id === nid);
+    const [ name = { name: 'n', database: null } ] = names.filter(x => x.id === nid);
     const tid = this.getTemplateId();
 
-    const [template = { name: 'n' }] = templates.filter(x => x.id === tid);
+    const [ template = { name: 'n' } ] = templates.filter(x => x.id === tid);
     return connection.name + '.' + (name.database === undefined || name.database === null ? name.name : `${name.database}.${name.name}`) + '.' + template.name + '.' + s;
   };
 
@@ -224,6 +226,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           runDone: true,
           success: res.success,
         });
+        this.doRefresh();
       },
     });
   };
@@ -254,9 +257,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     form.validateFields((err: string | undefined, fieldsValue: ResourceName) => {
       if (err) return;
       this.setState({ submitted: true });
-      const fullName = this.getFullName(fieldsValue['name']);
+      const fullName = this.getFullName(fieldsValue[ 'name' ]);
       if (current?.version === undefined || current?.version === null) {
-        fieldsValue['version'] = this.getMaxVersion() + 1;
+        fieldsValue[ 'version' ] = this.getMaxVersion() + 1;
       }
       dispatch({
         type: `${NAMESPACE}/submit`,
@@ -335,6 +338,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       if (key === 'edit') this.showEditModal(currentItem);
       else if (key == 'update') this.showManageModal(currentItem, 'update');
       else if (key == 'copy') this.showCopyCreateModal(currentItem);
+      else if (key == 'show') this.setState({cacheVisible: true, current: currentItem});
       else if (key == 'upgrade') this.showManageModal(currentItem, 'upgrade');
       else if (key === 'delete') {
         Modal.confirm({
@@ -416,6 +420,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Menu onClick={({ key }) => editAndDelete(key, item)}>
             {deletable && <Menu.Item key="delete">删除</Menu.Item>}
             <Menu.Item key="update">更新</Menu.Item>
+            <Menu.Item key="show">显示缓存</Menu.Item>
             <Menu.Item key="copy">复制</Menu.Item>
           </Menu>
         }
@@ -465,7 +470,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <FormItem label="config" {...this.formLayout}>
             <AceEditor
               mode="yaml"
-              onChange={x => this.setState({ config: x, current: {...current, config: x} })}
+              onChange={x => this.setState({ config: x, current: { ...current, config: x } })}
               name="functionConstructorConfig"
               editorProps={{ $blockScrolling: true }}
               readOnly={false}
@@ -602,6 +607,25 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         >
           {getModalContent(current.id === undefined)}
         </Modal>
+        <Drawer
+          title={current.name === undefined || current.name !== null ? current.name : ''}
+          placement="right"
+          // @ts-ignore
+          onClose={x => this.setState({ cacheVisible: false })}
+          visible={this.state.cacheVisible}
+          width={800}
+        >
+          <AceEditor
+            mode="yaml"
+            name="cacheName"
+            readOnly={true}
+            value={current.cache}
+            //@ts-ignore
+            width={800}
+            //@ts-ignore
+            height={980}
+          />
+        </Drawer>
       </>
     );
   }

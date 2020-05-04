@@ -134,6 +134,7 @@ export interface ResourceVersion {
   isDefault: boolean;
   isLocked: boolean;
   fullName: string;
+  cache?: string;
   schemaVersionId?: number;
   createAt: string;
   updateAt: string;

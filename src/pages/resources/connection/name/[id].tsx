@@ -416,7 +416,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               readOnly={false}
               placeholder={'请输入Yaml配置'}
               defaultValue={current.config}
-              value={this.state.config}
+              value={this.state.config !== null ? this.state.config : ''}
               //@ts-ignore
               width={765}
               //@ts-ignore

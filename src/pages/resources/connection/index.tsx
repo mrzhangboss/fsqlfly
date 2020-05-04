@@ -441,7 +441,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
           <FormItem label="介绍" {...this.formLayout}>
             {getFieldDecorator('info', {
-              initialValue: current.info,
+              initialValue: current.info !== null ? current.info : '',
               rules: [
                 {
                   required: false,
@@ -489,7 +489,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
           <FormItem label="资源过滤正则" {...this.formLayout}>
             {getFieldDecorator('include', {
-              initialValue: current.include,
+              initialValue: current.include !== null ? current.include : '',
               rules: [
                 {
                   required: false,
@@ -500,7 +500,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
           <FormItem label="资源排除" {...this.formLayout}>
             {getFieldDecorator('exclude', {
-              initialValue: current.exclude,
+              initialValue: current.exclude !== null ? current.exclude : '',
               rules: [
                 {
                   required: false,
@@ -535,7 +535,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               readOnly={false}
               placeholder={'请输入Yaml配置'}
               defaultValue={current.config}
-              value={this.state.config}
+              value={this.state.config !== null ? this.state.config : ''}
               //@ts-ignore
               width={765}
               //@ts-ignore
