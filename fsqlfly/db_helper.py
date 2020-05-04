@@ -223,11 +223,9 @@ class DBDao:
         return res, inserted
 
     @classmethod
-    def upsert_resource_version(cls, obj: ResourceVersion, *args, session: Session, **kwargs) -> (
-            ResourceVersion, bool):
+    def upsert_resource_version(cls, obj: ResourceVersion, *args, session: Session,
+                                **kwargs) -> (ResourceVersion, bool):
         query = session.query(ResourceVersion).filter(and_(ResourceVersion.name == obj.name,
-                                                           ResourceVersion.connection_id == obj.connection_id,
-                                                           ResourceVersion.resource_name_id == obj.resource_name_id,
                                                            ResourceVersion.template_id == obj.template_id))
         inserted = True
         res = first = query.order_by(ResourceVersion.version.desc()).first()

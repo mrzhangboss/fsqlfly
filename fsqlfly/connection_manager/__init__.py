@@ -224,7 +224,15 @@ class BaseManager:
             else:
                 res['format'] = {"type": 'json', "derive-schema": True}
 
-            res['connector'] = version.get_connection_connector()
+            connector = version.get_connection_connector()
+
+            if connector and template.type in ('source', 'both') and schema.primary_key and connection.type == 'db':
+                if resource_name.get_config('auto_add_read_partition_key', typ=bool) and 'read' not in connector:
+                    connector['read'] = dict(partition=dict(column=schema.primary_key,
+                                                            num=resource_name.get_config('read_partition_num',
+                                                                                         typ=int)))
+
+            res['connector'] = connector if connector else None
 
             need_fields = NameFilter(config.include, config.exclude)
             fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema else []
@@ -294,7 +302,8 @@ class BaseManager:
         config = self.generate_default_version_config(connection, schema, name, template)
 
         config_str = dump_yaml(attr.asdict(config))
-        return ResourceVersion(full_name=ResourceVersion.get_full_name(template), is_system=True, is_latest=True,
+        return ResourceVersion(name=ResourceVersion.latest_name(), full_name=ResourceVersion.get_full_name(template),
+                               is_system=True, is_latest=True,
                                connection_id=connection.id, resource_name_id=name.id, template_id=template.id,
                                schema_version_id=schema.id, config=config_str)
 

@@ -31,6 +31,9 @@ class SaveDict(dict):
 _DEFAULT_CONFIG = """
 [db]
 insert_primary_key = false
+auto_add_read_partition_key = true
+read_partition_num = 50
+read_partition_fetch_size = 0
 
 [kafka]
 process_time_enable = true
@@ -229,12 +232,17 @@ class ResourceVersion(Base):
         return template.full_name + '.' + name
 
     def get_connection_connector(self) -> dict:
+        config = self.resource_name.get_config_parser()
         context = generate_template_context(execution_date=datetime.now(), connection=self.connection,
                                             schema=self.schema_version,
                                             tempalte=self.template, resource_name=self.resource_name,
-                                            version=self)
+                                            version=self, **config[self.connection.type])
         output = Template(self.connection.connector).render(**context)
         return load_yaml(output)
+
+    @classmethod
+    def latest_name(cls):
+        return 'latest'
 
 
 class Namespace(Base):

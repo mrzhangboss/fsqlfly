@@ -45,11 +45,11 @@ def _convert_yaml(source: Any, con: Callable) -> Any:
 
 def load_yaml(source: str) -> dict:
     d = yaml.load(StringIO(source), Loader=yaml.SafeLoader)
-    return _convert_yaml(d, lambda x: x.repalce('-', '_'))
+    return _convert_yaml(d, lambda x: x.replace('-', '_'))
 
 
 def dump_yaml(source: Union[list, dict]) -> str:
-    return yaml.dump(_convert_yaml(source, lambda x: x.repalce('_', '-')))
+    return yaml.dump(_convert_yaml(source, lambda x: x.replace('_', '-')))
 
 
 def check_yaml(source: str) -> bool:

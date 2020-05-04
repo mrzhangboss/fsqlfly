@@ -37,6 +37,11 @@ eg:
 Variable | Description | Default
 ---- | --- | ---
 insert_primary_key| if false not insert primary key when in a sink table| false
+auto_add_read_partition_key| if true add read partition key in connector if database has a primary key and connector has no read field | true
+read_partition_num| partition num | 50
+read_partition_fetch_size| Gives the reader a hint as to the number of rows that should be fetched if 0 then ignore | 0
+read_partition_lower_bound| the smallest value of the first partition | None
+read_partition_upper_bound| the largest value of the last partition. | None
 
 
 #### Section: kafka
