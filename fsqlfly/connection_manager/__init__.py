@@ -96,8 +96,8 @@ class VersionConfig:
     history_table: Optional[str] = attr.ib(default=None)
     primary_key: Optional[str] = attr.ib(default=None)
     time_attribute: Optional[str] = attr.ib(default=None)
+    format: Optional[Any] = attr.ib(default=None)
     schema: List[Any] = attr.ib(factory=list)
-    format: List[Any] = attr.ib(factory=list)
 
 
 class UpdateStatus:

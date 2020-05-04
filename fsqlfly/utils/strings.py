@@ -34,22 +34,22 @@ def dict2underline(v: dict) -> dict:
     return _dict2_(v, str2underline)
 
 
-def load_yaml(source: str) -> dict:
-    d = yaml.load(StringIO(source), Loader=yaml.SafeLoader)
-    return d
-
-
-def _remove_none(source: Any) -> Any:
+def _convert_yaml(source: Any, con: Callable) -> Any:
     if isinstance(source, dict):
-        return {k: v for k, v in source.items() if v is not None}
+        return {con(k): _convert_yaml(v, con) for k, v in source.items() if v is not None}
     elif isinstance(source, list):
-        return [_remove_none(x) for x in source]
+        return [_convert_yaml(x, con) for x in source]
     else:
         return source
 
 
+def load_yaml(source: str) -> dict:
+    d = yaml.load(StringIO(source), Loader=yaml.SafeLoader)
+    return _convert_yaml(d, lambda x: x.repalce('-', '_'))
+
+
 def dump_yaml(source: Union[list, dict]) -> str:
-    return yaml.dump(_remove_none(source))
+    return yaml.dump(_convert_yaml(source, lambda x: x.repalce('_', '-')))
 
 
 def check_yaml(source: str) -> bool:
