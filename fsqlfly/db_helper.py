@@ -205,8 +205,8 @@ class DBDao:
     def upsert_resource_template(cls, obj: ResourceTemplate, *args,
                                  session: Session, **kwargs) -> (ResourceTemplate, bool):
         query = session.query(ResourceTemplate).filter(and_(ResourceTemplate.name == obj.name,
-                                                            ResourceTemplate.connection == obj.connection,
-                                                            ResourceTemplate.resource_name == obj.resource_name))
+                                                            ResourceTemplate.connection_id == obj.connection_id,
+                                                            ResourceTemplate.resource_name_id == obj.resource_name_id))
         inserted = False
         res = first = query.first()
         if first:

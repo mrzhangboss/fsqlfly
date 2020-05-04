@@ -166,7 +166,7 @@ class ResourceName(Base):
 
     @classmethod
     def generate_full_name(cls, connection_name: str, database: Optional[str], name: str):
-        return connection_name + (database + '.' + name if database else name)
+        return connection_name + '.' + (database + '.' + name if database else name)
 
     def get_config_parser(self) -> ConfigParser:
         parser = self.connection.get_config_parser()
