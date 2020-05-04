@@ -399,6 +399,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         overlay={
           <Menu onClick={({ key }) => editAndDelete(key, item)}>
             {deletable && <Menu.Item key="delete">删除</Menu.Item>}
+            <Menu.Item key="update">更新</Menu.Item>
             <Menu.Item key="copy">复制</Menu.Item>
           </Menu>
         }
@@ -424,8 +425,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           />
         );
       }
-      // @ts-ignore
       const supportTableType = ['sink', 'source', 'both', 'view', 'temporal-table'];
+      // @ts-ignore
       return (
         <Form onSubmit={this.handleSubmit}>
           <FormItem label="名称" {...this.formLayout}>
@@ -457,6 +458,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               ],
             })(
               <Select
+                // @ts-ignore
                 disabled={!isCreate}
                 size="middle"
                 style={{ width: 140 }}
@@ -619,4 +621,4 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   }
 }
 
-export default Form.create<BasicListProps>()(BasicList);
+export default Form.create<BasicListProps>()(BasicList)

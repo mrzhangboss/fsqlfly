@@ -32,7 +32,8 @@ import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
 import styles from '@/pages/resources/style.less';
 import { UserModelState } from '@/models/user';
 import { Link } from 'umi';
-
+import AceEditor from 'react-ace';
+import 'brace/mode/ini';
 interface BasicListProps extends FormComponentProps {
   listBasicList: ResourceName[];
   connections: Connection[];
@@ -51,7 +52,7 @@ interface BasicListState {
   done: boolean;
   current?: Partial<ResourceName>;
   search: string;
-  config: string;
+  config?: string;
   type: string;
   msg: string;
   success: boolean;
@@ -139,6 +140,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       visible: true,
       current: item,
       submitted: false,
+      config: item.config
     });
   };
 
@@ -405,6 +407,23 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               ],
             })(<Input placeholder="数据库名"/>)}
           </FormItem>
+          <FormItem label="config" {...this.formLayout}>
+            <AceEditor
+              mode="ini"
+              onChange={x => this.setState({ config: x, current: { ...current, config: x } })}
+              name="functionConstructorConfig"
+              editorProps={{ $blockScrolling: true }}
+              readOnly={false}
+              placeholder={'请输入Yaml配置'}
+              defaultValue={current.config}
+              value={this.state.config}
+              //@ts-ignore
+              width={765}
+              //@ts-ignore
+              height={230}
+            />
+          </FormItem>
+
           <FormItem label="其他" {...this.formLayout}>
             <Row gutter={16}>
               <Col span={3}>

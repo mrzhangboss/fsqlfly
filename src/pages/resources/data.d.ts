@@ -78,6 +78,7 @@ export interface Connection {
   include: string;
   exclude: string;
   connector: string;
+  config: string;
   updateInterval: number;
   isActive: boolean;
   isLocked: boolean;
@@ -94,6 +95,8 @@ export interface ResourceName {
   schemaVersionId?: number;
   latestSchemaId?: number;
   fullName: string;
+  config?: string;
+
   isLocked: boolean;
   isActive: boolean;
   isLatest: boolean;

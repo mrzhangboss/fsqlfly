@@ -15,6 +15,17 @@ export default {
         'isLocked|1': [false, true],
         createAt: '@datetime',
         updateAt: '@datetime',
+        config: `
+[db]
+insert_primary_key = false
+
+[kafka]
+process_time_enable = true
+process_time_name = flink_process_time
+rowtime_enable = true
+rowtime_from = MYSQL_DB_EXECUTE_TIME
+        `,
+
         'connector|1': [
           `type: filesystem
 path: "file:///path/to/whatever"`,

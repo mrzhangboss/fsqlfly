@@ -30,6 +30,7 @@ import { PageHeaderWrapper } from '@ant-design/pro-layout';
 import { cutStr, CONNECTION_TEMPLATE, getStatus } from '@/utils/utils';
 import AceEditor from 'react-ace';
 import 'brace/mode/yaml';
+import 'brace/mode/ini';
 
 const SelectOption = Select.Option;
 const FormItem = Form.Item;
@@ -60,6 +61,7 @@ interface BasicListState {
   search: string;
   tag: string;
   connector: string;
+  config?: string;
   type: string;
   msg: string;
   success: boolean;
@@ -151,6 +153,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       current: item,
       submitted: false,
       connector: item.connector,
+      config: item.config,
     });
   };
 
@@ -516,6 +519,23 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               placeholder={'请输入Yaml配置'}
               defaultValue={current.connector}
               value={this.state.connector}
+              //@ts-ignore
+              width={765}
+              //@ts-ignore
+              height={230}
+            />
+          </FormItem>
+
+          <FormItem label="config" {...this.formLayout}>
+            <AceEditor
+              mode="ini"
+              onChange={x => this.setState({ config: x, current: { ...current, config: x } })}
+              name="functionConstructorConfig"
+              editorProps={{ $blockScrolling: true }}
+              readOnly={false}
+              placeholder={'请输入Yaml配置'}
+              defaultValue={current.config}
+              value={this.state.config}
               //@ts-ignore
               width={765}
               //@ts-ignore
