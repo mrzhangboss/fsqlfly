@@ -48,7 +48,7 @@ import { cutStr } from '@/utils/utils';
 interface BasicListProps extends FormComponentProps {
   listBasicList: TransformInfo[];
   namespaces: Namespace[];
-  resources: Resource[];
+  resources: string[];
   dispatch: Dispatch<AnyAction>;
   loading: boolean;
 }
@@ -59,7 +59,7 @@ interface BasicListState {
   edithDone: boolean;
   edithSubmit: boolean;
   done: boolean;
-  current?: Partial<TransformInfo>;
+  current: Partial<TransformInfo>;
   search: string;
   msg: string;
   success: boolean;
@@ -74,7 +74,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   state: BasicListState = {
     visible: false,
     done: false,
-    current: undefined,
+    current: {},
     search: '',
     msg: '',
     success: false,
@@ -114,7 +114,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   showModal = () => {
-    this.setState({ editVisible: true, current: undefined });
+    this.setState({ editVisible: true, current: {} });
   };
 
   showRunModal = (item: TransformInfo, method: string) => {
@@ -298,7 +298,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   render() {
     const { loading, namespaces } = this.props;
 
-    const { search, current, edithSubmit } = this.state;
+    const { search, current = {}, edithSubmit } = this.state;
     const { listBasicList } = this.props;
 
     const editAndDelete = (key: string, currentItem: TransformInfo) => {
@@ -446,19 +446,10 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       resources,
     } = this.props;
 
-    const getRealNamespaceName = (id: number, tab: string) => {
-      let names = namespaces.filter(x => x.id === id);
-      return names.length === 0 ? tab : names[0].name + '.' + tab;
-    };
-    const getName = (x: Resource) =>
-      x.namespaceId !== undefined && x.namespaceId !== null
-        ? getRealNamespaceName(x.namespaceId, x.name)
-        : x.name;
-
     const resourceSelect = Array.isArray(resources)
       ? resources.map(x => (
-          <Option key={x.id} title={x.info} value={getName(x)}>
-            {getName(x)}
+          <Option key={x} title={x} value={x}>
+            {x}
           </Option>
         ))
       : [];
@@ -629,8 +620,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 editorProps={{ $blockScrolling: true }}
                 readOnly={false}
                 placeholder={'请输入Yaml配置'}
-                defaultValue={current === undefined ? '' : current.sql}
-                value={current === undefined ? '' : current.sql}
+                defaultValue={current.sql === undefined || current.sql === null ? '' : current.sql}
+                value={current.sql === undefined || current.sql === null ? '' : current.sql}
                 //@ts-ignore
                 width={765}
                 //@ts-ignore
@@ -646,8 +637,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 editorProps={{ $blockScrolling: true }}
                 readOnly={false}
                 placeholder={'请输入Yaml配置'}
-                defaultValue={current === undefined ? '' : current.yaml}
-                value={current === undefined ? '' : current.yaml}
+                defaultValue={current.yaml === null ? '' : current.yaml}
+                value={current.yaml === undefined || current.yaml === null ? '' : current.yaml}
                 //@ts-ignore
                 width={765}
                 //@ts-ignore

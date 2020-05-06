@@ -66,6 +66,11 @@ export default {
     ],
     success: true,
   }),
+  'GET /api/require': mockjs.mock({
+    'data|5-9': ['@word'],
+    success: true,
+  }),
+
   'GET /api/transform/:id': (
     req: { params: { id: string }; body: { createAt: string } },
     res: { send: (arg0: { data: any }) => void },

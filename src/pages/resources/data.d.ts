@@ -57,7 +57,8 @@ export interface Functions {
 
 export interface CountPage {
   namespaceNum: number;
-  resourceNum: number;
+  connectionNum: number;
+  nameNum: number;
   functionNum: number;
   fileNum: number;
   transformNum: number;

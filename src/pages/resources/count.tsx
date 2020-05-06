@@ -34,7 +34,7 @@ class Welcome extends Component<CountPro> {
             </Col>
             <Col span={6}>
               <Card title="数据源" bordered={false}>
-                {count.resourceNum}
+                {count.connectionNum}
               </Card>
             </Col>
             <Col span={6}>
