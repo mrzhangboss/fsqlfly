@@ -16,6 +16,9 @@ class APICounter(BaseHandler):
 class CRHandler(BaseHandler):
     @safe_authenticated
     def get(self, model: str):
+        if model == 'require':
+            return self.write_res(DBDao.get_require_name())
+
         def b2v(x):
             v = x[0].decode()
             if v.isdigit():

@@ -20,10 +20,14 @@ def str2underline(v: str) -> str:
     return v[0].lower() + __UNDERLINE_PATTERN.sub(lambda x: '_' + x.group().lower(), v[1:])
 
 
-def _dict2_(value: dict, method: Callable[[str], str]) -> dict:
-    return {method(k): _dict2_(v, method) if isinstance(v, dict) else (
-        [_dict2_(xx, method) for xx in v] if isinstance(v, list) else v) for k, v in
-            value.items()}
+def _dict2_(value: Union[dict, list, str, int, float],
+            method: Callable[[str], str]) -> Union[dict, list, str, int, float]:
+    if isinstance(value, dict):
+        return {method(k): _dict2_(v, method) for k, v in value.items()}
+    elif isinstance(value, list):
+        return [_dict2_(x, method) for x in value]
+    else:
+        return value
 
 
 def dict2camel(v: dict) -> dict:
@@ -133,3 +137,7 @@ def get_job_header(transform, **kwargs) -> str:
 
 def get_job_short_name(transform) -> str:
     return "{}_{}".format(transform.id, transform.name)
+
+
+def get_full_name(*args) -> str:
+    return '.'.join([x for x in args if x])

@@ -5,10 +5,9 @@ import logzero
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.sql.sqltypes import TypeDecorator
 from typing import Optional, List, Type, Union, Any
-from re import _pattern_type
 from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent
-from fsqlfly.utils.strings import load_yaml, dump_yaml
-from fsqlfly.common import DBRes
+from fsqlfly.utils.strings import load_yaml, dump_yaml, get_full_name
+from fsqlfly.common import DBRes, NameFilter, SchemaField, SchemaContent, VersionConfig
 from fsqlfly.db_helper import DBSession, DBDao, Session, SUPPORT_MODELS
 
 
@@ -45,59 +44,6 @@ class BlinkTableType:
 class DBSupportType:
     MySQL = 'MySQL'
     PostgreSQL = 'PostgreSQL'
-
-
-class NameFilter:
-    @classmethod
-    def get_pattern(cls, s: str) -> List[Type[_pattern_type]]:
-        s = s.replace('，', ',')
-        patterns = [s.strip()] if ',' not in s else s.split(',')
-        res = [re.compile(pattern=x + '$') for x in patterns]
-        return res
-
-    def __init__(self, include: str = '', exclude: str = ''):
-        self.includes = self.get_pattern(include) if include else [re.compile(r'.*')]
-        self.excludes = self.get_pattern(exclude) if exclude else []
-
-    def __contains__(self, item: str) -> bool:
-        if any(map(lambda x: x.match(item) is not None, self.includes)):
-            if self.excludes and any(map(lambda x: x.match(item), self.excludes)):
-                return False
-            return True
-        return False
-
-
-@attr.s
-class SchemaField:
-    name: str = attr.ib()
-    type: str = attr.ib()
-    comment: Optional[str] = attr.ib(default=None)
-    nullable: Optional[bool] = attr.ib(default=True)
-    autoincrement: Optional[bool] = attr.ib(default=None)
-
-
-@attr.s
-class SchemaContent:
-    name: str = attr.ib()
-    type: str = attr.ib()
-    database: Optional[str] = attr.ib(default=None)
-    comment: Optional[str] = attr.ib(default=None)
-    primary_key: Optional[str] = attr.ib(default=None)
-    fields: List[SchemaField] = attr.ib(factory=list)
-    partitionable: bool = attr.ib(default=False)
-
-
-@attr.s
-class VersionConfig:
-    exclude: Optional[str] = attr.ib(default=None)
-    include: Optional[str] = attr.ib(default=None)
-    update_mode: Optional[str] = attr.ib(default=None)
-    query: Optional[str] = attr.ib(default=None)
-    history_table: Optional[str] = attr.ib(default=None)
-    primary_key: Optional[str] = attr.ib(default=None)
-    time_attribute: Optional[str] = attr.ib(default=None)
-    format: Optional[Any] = attr.ib(default=None)
-    schema: List[Any] = attr.ib(factory=list)
 
 
 class UpdateStatus:
@@ -190,77 +136,11 @@ class BaseManager:
         version = self.generate_default_version(connection, schema, resource_name, template)
         version, i = DBDao.upsert_resource_version(version, session=session)
         status.update_version(i)
-        version.cache = self.generate_version_cache(session, connection, schema, resource_name, template, version)
+        version.cache = dump_yaml(version.generate_version_cache())
         DBDao.save(version, session=session)
 
-    @classmethod
-    def generate_version_cache(cls, session: Session, connection: Connection, schema: SchemaEvent,
-                               resource_name: ResourceName, template: ResourceTemplate,
-                               version: ResourceVersion) -> str:
-
-        base = load_yaml(template.config) if template.config else dict()
-        version_config = load_yaml(version.config) if version.config else dict()
-        base.update(**version_config)
-        config = VersionConfig(**base)
-        v_info = "Version {}:{}".format(version.id, version.name)
-        if template.type == 'view':
-            assert config.query is not None, '{} View Must Need a Query'.format(v_info)
-            res = dict(query=config.query)
-        elif template.type == 'temporal-table':
-            assert config.history_table is not None, '{} View Must Need a history_table'.format(v_info)
-            assert config.primary_key is not None, '{} View Must Need a primary_key'.format(v_info)
-            assert config.time_attribute is not None, '{} View Must Need a time_attribute'.format(v_info)
-            res = {
-                "history-table": config.history_table,
-                "primary-key": config.primary_key,
-                "time-attribute": config.time_attribute
-            }
-        elif template.type in ('sink', 'source', 'both'):
-            res = dict()
-            if config.update_mode:
-                res['update-mode'] = config.update_mode
-            if config.format:
-                res['format'] = config.format
-            else:
-                res['format'] = {"type": 'json', "derive-schema": True}
-
-            connector = version.get_connection_connector()
-
-            if connector and template.type in ('source', 'both') and schema.primary_key and connection.type == 'db':
-                if resource_name.get_config('auto_add_read_partition_key', typ=bool) and 'read' not in connector:
-                    connector['read'] = dict(partition=dict(column=schema.primary_key,
-                                                            num=resource_name.get_config('read_partition_num',
-                                                                                         typ=int)))
-
-            res['connector'] = connector if connector else None
-
-            need_fields = NameFilter(config.include, config.exclude)
-            fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema else []
-            field_names = [x.name for x in fields]
-            schemas = []
-
-            if config.schema:
-                for x in config.schema:
-                    assert x['name'] not in field_names, "{} contain in origin field"
-                schemas.extend(config.schema)
-
-            for x in fields:
-                if x.name in need_fields:
-                    schemas.append({
-                        "name": x.name,
-                        "data-type": x.type
-                    })
-
-            res['schema'] = schemas
-
-        else:
-            raise NotImplementedError("Not Support {}".format(template.type))
-
-        return dump_yaml(res)
-
     def update_version_cache(self, status: UpdateStatus, session: Session, version: ResourceVersion):
-        version.cache = self.generate_version_cache(session, version.connection, version.schema_version,
-                                                    version.template, version)
+        version.cache = dump_yaml(version.generate_version_cache())
         DBDao.save(version, session=session)
         status.update_version(False)
 
@@ -278,7 +158,7 @@ class BaseManager:
     def generate_resource_name(cls, connection: Connection, schema: SchemaEvent) -> ResourceName:
         return ResourceName(name=schema.name, database=schema.database, connection_id=connection.id,
                             schema_version_id=schema.id, latest_schema_id=schema.id, is_latest=True,
-                            full_name=ResourceName.generate_full_name(connection.name, schema.database, schema.name))
+                            full_name=get_full_name(connection.name, schema.database, schema.name))
 
     support_type = []
 
@@ -287,7 +167,7 @@ class BaseManager:
         res = []
         for x in self.support_type:
             temp = ResourceTemplate(name=x, type=x, is_system=True,
-                                    full_name=ResourceTemplate.get_full_name(resource_name, x),
+                                    full_name=get_full_name(resource_name.full_name, x),
                                     connection_id=connection.id, resource_name_id=resource_name.id,
                                     schema_version_id=schema.id)
             res.append(temp)
@@ -302,7 +182,7 @@ class BaseManager:
         config = self.generate_default_version_config(connection, schema, name, template)
 
         config_str = dump_yaml(attr.asdict(config))
-        return ResourceVersion(name=ResourceVersion.latest_name(), full_name=ResourceVersion.get_full_name(template),
+        return ResourceVersion(name=ResourceVersion.latest_name(), full_name=get_full_name(template.full_name),
                                is_system=True, is_latest=True,
                                connection_id=connection.id, resource_name_id=name.id, template_id=template.id,
                                schema_version_id=schema.id, config=config_str)

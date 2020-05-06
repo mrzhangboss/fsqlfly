@@ -1,10 +1,12 @@
 # -*- coding:utf-8 -*-
+import re
 import functools
 import urllib
 import traceback
 import attr
 from urllib.parse import urlencode
-from typing import Any, Optional, NamedTuple, Callable, Awaitable, Union
+from re import _pattern_type
+from typing import Any, Optional, NamedTuple, Callable, Awaitable, Union, List, Type
 from tornado.web import RequestHandler, HTTPError
 from logzero import logger
 
@@ -101,3 +103,56 @@ def safe_authenticated(
             return DBRes.sever_error(msg=f'meet {err}')
 
     return wrapper
+
+
+class NameFilter:
+    @classmethod
+    def get_pattern(cls, s: str) -> List[Type[_pattern_type]]:
+        s = s.replace('，', ',')
+        patterns = [s.strip()] if ',' not in s else s.split(',')
+        res = [re.compile(pattern=x + '$') for x in patterns]
+        return res
+
+    def __init__(self, include: str = '', exclude: str = ''):
+        self.includes = self.get_pattern(include) if include else [re.compile(r'.*')]
+        self.excludes = self.get_pattern(exclude) if exclude else []
+
+    def __contains__(self, item: str) -> bool:
+        if any(map(lambda x: x.match(item) is not None, self.includes)):
+            if self.excludes and any(map(lambda x: x.match(item), self.excludes)):
+                return False
+            return True
+        return False
+
+
+@attr.s
+class SchemaField:
+    name: str = attr.ib()
+    type: str = attr.ib()
+    comment: Optional[str] = attr.ib(default=None)
+    nullable: Optional[bool] = attr.ib(default=True)
+    autoincrement: Optional[bool] = attr.ib(default=None)
+
+
+@attr.s
+class SchemaContent:
+    name: str = attr.ib()
+    type: str = attr.ib()
+    database: Optional[str] = attr.ib(default=None)
+    comment: Optional[str] = attr.ib(default=None)
+    primary_key: Optional[str] = attr.ib(default=None)
+    fields: List[SchemaField] = attr.ib(factory=list)
+    partitionable: bool = attr.ib(default=False)
+
+
+@attr.s
+class VersionConfig:
+    exclude: Optional[str] = attr.ib(default=None)
+    include: Optional[str] = attr.ib(default=None)
+    update_mode: Optional[str] = attr.ib(default=None)
+    query: Optional[str] = attr.ib(default=None)
+    history_table: Optional[str] = attr.ib(default=None)
+    primary_key: Optional[str] = attr.ib(default=None)
+    time_attribute: Optional[str] = attr.ib(default=None)
+    format: Optional[Any] = attr.ib(default=None)
+    schema: list = attr.ib(factory=list)

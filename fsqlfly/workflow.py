@@ -4,66 +4,20 @@ import re
 import subprocess
 import tempfile
 import yaml
-from typing import Optional, List
+from typing import Optional
 from jinja2 import Template
 from terminado.management import NamedTermManager
 from fsqlfly.settings import FSQLFLY_UPLOAD_DIR, FSQLFLY_FLINK_BIN, logger
-from fsqlfly.db_helper import Transform, Namespace, ResourceName as Resource, Functions
+from fsqlfly.db_helper import Transform, DBDao
 from fsqlfly import settings
 from fsqlfly.utils.strings import get_job_header
-
-
-def _create_config_from_resource(resource: Resource, args: dict) -> dict:
-    data = yaml.load(handle_template(text=resource.yaml, args=args), yaml.FullLoader)
-    data['name'] = resource.name
-    return data
-
-
-def _get_functions() -> list:
-    res = []
-    for f in Functions.select().where(Functions.is_deleted == False).objects():
-        fc = {
-            'name': f.name,
-            'from': f.function_from,
-            'class': f.class_name
-        }
-        if f.constructor_config.strip():
-            fc['constructor'] = yaml.load(f.constructor_config, yaml.FullLoader)
-        res.append(fc)
-    return res
-
-
-def _get_jar() -> List[str]:
-    res = []
-    for f in Functions.select().where(Functions.is_deleted == False).objects():
-        r_p = os.path.join(FSQLFLY_UPLOAD_DIR, f.resource.real_path[1:])
-        res.append(r_p)
-
-    out = []
-    for x in set(res):
-        out.extend(['-j', x])
-    return out
+from fsqlfly.utils.template import generate_template_context
 
 
 def _create_config(require: str, config: Optional[str], args: dict) -> str:
     tables = []
     if require.strip():
-        for x in require.split(','):
-            if '.' in x:
-                space, name = x.split('.', 1)
-            else:
-                space, name = None, x
-
-            if space:
-                space = Namespace.select().where(Namespace.name == space).first()
-
-            resource = Resource.select().where(Namespace.name == name & Resource.namespace == space).first()
-            resource_only_name = Resource.select().where(Resource.name == name).first()
-            if resource is None and resource_only_name is not None:
-                resource = resource_only_name
-
-            data = _create_config_from_resource(resource, args)
-            tables.append(data)
+        tables.extend(DBDao.get_require_table(require.strip()))
     base_config = yaml.load(handle_template(config, args), yaml.FullLoader) if config else dict()
     if base_config is None:
         base_config = dict()
@@ -71,7 +25,7 @@ def _create_config(require: str, config: Optional[str], args: dict) -> str:
         base_config['tables'].extend(tables)
     else:
         base_config['tables'] = tables
-    base_config['functions'] = _get_functions()
+    base_config['functions'] = DBDao.get_require_functions()
     return yaml.dump(base_config)
 
 
@@ -79,8 +33,8 @@ def _clean(s: str) -> str:
     return re.sub(r'\[\d+(;\d+)?m?', '', s)
 
 
-def handle_template(text: str, args: dict) -> str:
-    return Template(text).render(**args)
+def handle_template(text: Optional[str], args: dict) -> str:
+    return Template(text).render(**generate_template_context(**args)) if text else ''
 
 
 def run_transform(transform: Transform, **kwargs) -> (bool, str):
@@ -95,7 +49,7 @@ def run_transform(transform: Transform, **kwargs) -> (bool, str):
     run_commands = [FSQLFLY_FLINK_BIN, 'embedded',
                     '-s', get_job_header(transform, **kwargs),
                     '--environment', yaml_f,
-                    *_get_jar(),
+                    *DBDao.get_require_jar(),
                     '<', sql_f]
     print(' '.join(run_commands))
     try:
@@ -128,7 +82,7 @@ def run_debug_transform(data: dict, manager: NamedTermManager) -> (str, str):
     run_commands = [FSQLFLY_FLINK_BIN, 'embedded',
                     '-s', '{}{}'.format(settings.TEMP_TERMINAL_HEAD, str(name)),
                     '--environment', yaml_f,
-                    *_get_jar()]
+                    *DBDao.get_require_jar()]
     logger.debug('running commands is : {}'.format(' '.join(run_commands)))
     term = manager.new_terminal(shell_command=run_commands)
 

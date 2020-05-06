@@ -1,5 +1,7 @@
 from fsqlfly.db_models import *
+import os
 import traceback
+import yaml
 from sqlalchemy import and_, event
 from sqlalchemy.engine import Engine
 from functools import wraps
@@ -7,6 +9,7 @@ from typing import Callable, Type, Optional, List, Union
 from fsqlfly import settings
 from fsqlfly.common import DBRes
 from sqlalchemy.orm.session import Session, sessionmaker, query as session_query
+from fsqlfly.settings import FSQLFLY_UPLOAD_DIR, FSQLFLY_FLINK_BIN, logger
 
 Query = session_query.Query
 
@@ -84,7 +87,7 @@ class DBDao:
         if first is None:
             return DBRes.not_found()
 
-        if first.is_locked:
+        if first.is_locked and obj.get('is_locked') is False:
             return DBRes.resource_locked()
 
         for k, v in obj.items():
@@ -119,6 +122,85 @@ class DBDao:
         if filter_:
             query = cls.build_and(filter_, base, query)
         return DBRes(data=[x.as_dict() for x in query.all()])
+
+    @classmethod
+    @session_add
+    def get_require_name(cls, *args, session: Session, **kwargs) -> DBRes:
+        query = session.query(ResourceVersion.full_name).join(ResourceVersion.connection).join(
+            ResourceVersion.resource_name)
+        version_data = [x[0] for x in
+                        query.filter(and_(Connection.is_active == True, ResourceName.is_active == True)).all()]
+
+        v_query = session.query(ResourceVersion).join(ResourceVersion.connection).join(
+            ResourceVersion.resource_name)
+        default_version_data = list(x.template.full_name for x in v_query.filter(
+            and_(Connection.is_active == True, ResourceName.is_active == True,
+                 ResourceVersion.is_default == True)).all())
+        t_query = session.query(ResourceTemplate).join(ResourceTemplate.connection).join(
+            ResourceTemplate.resource_name)
+        resource_data = list(x.resource_name.full_name for x in t_query.filter(
+            and_(Connection.is_active == True,
+                 ResourceName.is_active == True,
+                 ResourceTemplate.is_default == True)).all())
+
+        return DBRes(data=version_data + default_version_data + resource_data)
+
+    @classmethod
+    @session_add
+    def get_require_table(cls, require: str, *args, session: Session, **kwargs) -> List[dict]:
+        names = set()
+        res = []
+        for full_name in require.split(','):
+            version = session.query(ResourceVersion).filter(ResourceVersion.full_name == full_name).first()
+            if version is None:
+                version = session.query(ResourceVersion).join(ResourceVersion.template).filter(
+                    ResourceTemplate.full_name == full_name,
+                    ResourceVersion.is_default == True).first()
+                if version is None:
+                    version = session.query(ResourceVersion).join(ResourceVersion.template).join(
+                        ResourceVersion.resource_name).filter(ResourceName.full_name == full_name,
+                                                              ResourceTemplate.is_default == True).first()
+
+            assert version, "Not Found {} in database, try use full name".format(full_name)
+            cache = version.generate_version_cache()
+            r_name = version.resource_name
+            cache['type'] = version.template.type.code
+            for name in [r_name.name, r_name.full_name, version.full_name]:
+                if name not in names:
+                    cache['name'] = name.replace('.', '__')
+                    names.add(name)
+                    break
+            assert 'name' in cache, 'Not generate suit name for version {}'.format(full_name)
+            res.append(cache)
+        return res
+
+    @classmethod
+    @session_add
+    def get_require_functions(cls, *args, session: Session, **kwargs) -> List[dict]:
+        res = []
+        for f in session.query(Functions).filter(Functions.is_active == True).all():
+            fc = {
+                'name': f.name,
+                'from': f.function_from,
+                'class': f.class_name
+            }
+            if f.constructor_config.strip():
+                fc['constructor'] = yaml.load(f.constructor_config, yaml.FullLoader)
+            res.append(fc)
+        return res
+
+    @classmethod
+    @session_add
+    def get_require_jar(cls, *args, session: Session, **kwargs) -> List[str]:
+        res = []
+        for f in session.query(Functions).filter(Functions.is_active == True).all():
+            r_p = os.path.join(FSQLFLY_UPLOAD_DIR, f.resource.real_path[1:])
+            res.append(r_p)
+
+        out = []
+        for x in set(res):
+            out.extend(['-j', x])
+        return out
 
     @classmethod
     def one(cls, *args, session: Session,

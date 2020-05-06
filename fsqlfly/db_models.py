@@ -3,11 +3,12 @@ from jinja2 import Template
 from datetime import datetime
 from configparser import ConfigParser
 from typing import Any, Optional, Union, Type
-from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint, event
+from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
-from fsqlfly.common import SUPPORT_MANAGER, SUPPORT_TABLE_TYPE
-from fsqlfly.utils.strings import load_yaml, dump_yaml
+from fsqlfly.common import SUPPORT_MANAGER, SUPPORT_TABLE_TYPE, NameFilter, SchemaField, SchemaContent, VersionConfig
+
+from fsqlfly.utils.strings import load_yaml
 from fsqlfly.utils.template import generate_template_context
 from sqlalchemy_utils import ChoiceType, Choice
 from logzero import logger
@@ -31,9 +32,11 @@ class SaveDict(dict):
 _DEFAULT_CONFIG = """
 [db]
 insert_primary_key = false
-auto_add_read_partition_key = true
+add_read_partition_key = false
+read_partition_fetch_size = 100
+read_partition_lower_bound = 0
+read_partition_upper_bound = 50000
 read_partition_num = 50
-read_partition_fetch_size = 0
 
 [kafka]
 process_time_enable = true
@@ -164,10 +167,6 @@ class ResourceName(Base):
     def get_include(self):
         return self.database + '.' + self.name if self.database else self.name
 
-    @classmethod
-    def generate_full_name(cls, connection_name: str, database: Optional[str], name: str):
-        return connection_name + '.' + (database + '.' + name if database else name)
-
     def get_config_parser(self) -> ConfigParser:
         parser = self.connection.get_config_parser()
         if self.config and self.config.strip():
@@ -199,10 +198,6 @@ class ResourceTemplate(Base):
     schema_version_id = Column(Integer, ForeignKey('schema_event.id'), nullable=True)
     config = Column(Text)
 
-    @classmethod
-    def get_full_name(cls, resource_name: ResourceName, name: str) -> str:
-        return resource_name.full_name + '.' + name
-
 
 class ResourceVersion(Base):
     __tablename__ = 'resource_version'
@@ -227,10 +222,6 @@ class ResourceVersion(Base):
     config = Column(Text)
     cache = Column(Text)
 
-    @classmethod
-    def get_full_name(cls, template: ResourceTemplate, name: str = 'latest'):
-        return template.full_name + '.' + name
-
     def get_connection_connector(self) -> dict:
         config = self.resource_name.get_config_parser()
         context = generate_template_context(execution_date=datetime.now(), connection=self.connection,
@@ -243,6 +234,78 @@ class ResourceVersion(Base):
     @classmethod
     def latest_name(cls):
         return 'latest'
+
+    def generate_version_cache(self) -> dict:
+        template = self.template
+        version = self
+        resource_name = self.resource_name
+        schema = self.schema_version
+        connection = self.connection
+        base = load_yaml(template.config) if template.config else dict()
+        version_config = load_yaml(version.config) if version.config else dict()
+        base.update(**version_config)
+        config = VersionConfig(**base)
+        v_info = "Version {}:{}".format(version.id, version.name)
+        if template.type == 'view':
+            assert config.query is not None, '{} View Must Need a Query'.format(v_info)
+            res = dict(query=config.query)
+        elif template.type == 'temporal-table':
+            assert config.history_table is not None, '{} View Must Need a history_table'.format(v_info)
+            assert config.primary_key is not None, '{} View Must Need a primary_key'.format(v_info)
+            assert config.time_attribute is not None, '{} View Must Need a time_attribute'.format(v_info)
+            res = {
+                "history-table": config.history_table,
+                "primary-key": config.primary_key,
+                "time-attribute": config.time_attribute
+            }
+        elif template.type in ('sink', 'source', 'both'):
+            res = dict()
+            if config.update_mode:
+                res['update-mode'] = config.update_mode
+            if config.format:
+                res['format'] = config.format
+            elif connection.type.code not in ['hbase', 'db']:
+                res['format'] = {"type": 'json', "derive-schema": True}
+
+            connector = version.get_connection_connector()
+
+            if connector and template.type in ('source', 'both') and schema.primary_key and connection.type == 'db':
+                if resource_name.get_config('add_read_partition_key', typ=bool) and 'read' not in connector:
+                    connector['read'] = {
+                        "partition": {
+                            "column": schema.primary_key,
+                            "num": resource_name.get_config('read_partition_num', typ=int),
+                            "lower-bound": resource_name.get_config('read_partition_lower_bound', typ=int),
+                            "upper-bound": resource_name.get_config('read_partition_upper_bound', typ=int),
+                        },
+                        "fetch-size": resource_name.get_config('read_partition_fetch_size', typ=int)
+                    }
+
+            res['connector'] = connector if connector else None
+
+            need_fields = NameFilter(config.include, config.exclude)
+            fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema else []
+            field_names = [x.name for x in fields]
+            schemas = []
+
+            if config.schema:
+                for x in config.schema:
+                    assert x['name'] not in field_names, "{} contain in origin field"
+                schemas.extend(config.schema)
+
+            for x in fields:
+                if x.name in need_fields:
+                    schemas.append({
+                        "name": x.name,
+                        "data-type": x.type
+                    })
+
+            res['schema'] = schemas
+
+        else:
+            raise NotImplementedError("Not Support {}".format(template.type))
+
+        return res
 
 
 class Namespace(Base):
