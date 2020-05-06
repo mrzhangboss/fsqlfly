@@ -2,10 +2,10 @@ from fsqlfly.db_models import *
 import os
 import traceback
 import yaml
+from functools import wraps
+from typing import Callable, Type, Optional, List, Union, Any
 from sqlalchemy import and_, event
 from sqlalchemy.engine import Engine
-from functools import wraps
-from typing import Callable, Type, Optional, List, Union
 from fsqlfly import settings
 from fsqlfly.common import DBRes
 from sqlalchemy.orm.session import Session, sessionmaker, query as session_query
@@ -79,6 +79,10 @@ def filter_not_support(func: Callable) -> Callable:
 
 class DBDao:
     @classmethod
+    def is_null_foreign_key(cls, k: str, v: Any) -> bool:
+        return k.endswith('_id') and v == 0
+
+    @classmethod
     @session_add
     @filter_not_support
     def update(cls, model: str, pk: int, obj: dict, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
@@ -91,7 +95,7 @@ class DBDao:
             return DBRes.resource_locked()
 
         for k, v in obj.items():
-            if k not in ['id', 'create_at', 'update_at']:
+            if k not in ['id', 'create_at', 'update_at'] and not cls.is_null_foreign_key(k, v):
                 setattr(first, k, v)
         return DBRes(data=first.as_dict())
 
