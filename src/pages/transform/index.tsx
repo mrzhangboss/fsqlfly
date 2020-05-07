@@ -370,7 +370,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       </div>
     );
     const ListContent = ({
-      data: { name, info, isAvailable, isPublish, createAt, updateAt, namespaceId },
+      data: { name, info, isDaemon, createAt, updateAt, namespaceId },
     }: {
       data: TransformInfo;
     }) => (
@@ -388,7 +388,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Progress
             type="circle"
             percent={100}
-            status={isAvailable ? (isPublish ? 'success' : 'normal') : 'exception'}
+            status={isDaemon ? 'success' : 'normal'}
             strokeWidth={1}
             width={50}
             style={{ width: 180 }}
@@ -648,16 +648,10 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             <FormItem label="其他" {...this.formLayout}>
               <Row gutter={16}>
                 <Col span={3}>
-                  {getFieldDecorator('isAvailable', {
-                    initialValue: current === undefined ? false : current.isAvailable,
+                  {getFieldDecorator('isDaemon', {
+                    initialValue: current === undefined ? false : current.isDaemon,
                     valuePropName: 'checked',
-                  })(<Switch checkedChildren="启用" unCheckedChildren="禁止" />)}
-                </Col>
-                <Col span={3}>
-                  {getFieldDecorator('isPublish', {
-                    initialValue: current === undefined ? false : current.isPublish,
-                    valuePropName: 'checked',
-                  })(<Switch checkedChildren="发布" unCheckedChildren="开发" />)}
+                  })(<Switch checkedChildren="守护" unCheckedChildren="禁止" />)}
                 </Col>
               </Row>
             </FormItem>

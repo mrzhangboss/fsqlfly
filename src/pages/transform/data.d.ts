@@ -30,8 +30,7 @@ export interface TransformInfo {
   name: string;
   info: string;
   namespaceId: number;
-  isPublish: boolean;
-  isAvailable: boolean;
+  isDaemon: boolean;
   createAt: string;
   updateAt: string;
   require: string;
