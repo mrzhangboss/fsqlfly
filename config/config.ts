@@ -176,6 +176,14 @@ export default {
               component: './resources/connection/name/template/version/[vid]',
             },
             {
+              path: '/resources/connector',
+              name: 'connector',
+              hideInMenu: false,
+              exact: true,
+              icon: 'database',
+              component: './resources/connection',
+            },
+            {
               path: '/resources/relationship',
               name: 'relationship',
               hideInMenu: true,
