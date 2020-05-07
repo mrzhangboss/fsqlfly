@@ -180,16 +180,16 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     });
   };
 
-  handleSubmit = (e: React.FormEvent, isUpdate?: boolean) => {
+  handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // @ts-ignore
     const { dispatch, form, connections } = this.props;
     const { current } = this.state;
     const connectionId = this.getCurrentConnectionId();
-    const connction = connections.filter(x => x.id === connectionId);
+    const connction = connections.filter(x => x.id == connectionId);
     let connctionName: string;
     if (connction.length !== 1) {
-      connctionName = 'test';
+      connctionName = 'dev';
     } else {
       connctionName = connction[0].name;
     }
@@ -199,6 +199,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       if (err) return;
       this.setState({ submitted: true });
       const fullName = fieldsValue.database === undefined ? `${connctionName}.${fieldsValue.name}` : `${connctionName}.${fieldsValue.database}.${fieldsValue.name}`;
+
       dispatch({
         type: `${NAMESPACE}/submit`,
         payload: { ...current, ...fieldsValue, fullName, connectionId: this.getCurrentConnectionId() },
@@ -405,7 +406,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                   required: false,
                 },
               ],
-            })(<Input placeholder="数据库名"/>)}
+            })(<Input disabled={!isCreate} placeholder="数据库名"/>)}
           </FormItem>
           <FormItem label="config" {...this.formLayout}>
             <AceEditor

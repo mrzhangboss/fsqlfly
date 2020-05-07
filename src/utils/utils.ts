@@ -104,6 +104,26 @@ password: "password"
 
 table: "{{ resource_name.name }}"
 
+                            # the hint is ignored. The default value is zero.
+
+lookup: # lookup options, optional, used in temporary join
+  cache:
+    max-rows: 5000 # optional, max number of rows of lookup cache, over this value, the oldest rows will
+                   # be eliminated. "cache.max-rows" and "cache.ttl" options must all be specified if any
+                   # of them is specified. Cache is not enabled as default.
+    ttl: "10s"     # optional, the max time to live for each rows in lookup cache, over this time, the oldest rows
+                   # will be expired. "cache.max-rows" and "cache.ttl" options must all be specified if any of
+                   # them is specified. Cache is not enabled as default.
+  max-retries: 3   # optional, max retry times if lookup database failed
+
+write: # sink options, optional, used when writing into table
+    flush:
+      max-rows: 5000 # optional, flush max size (includes all append, upsert and delete records),
+                     # over this number of records, will flush data. The default value is "5000".
+      interval: "2s" # optional, flush interval mills, over this time, asynchronous threads will flush data.
+                     # The default value is "0s", which means no asynchronous flush thread will be scheduled.
+    max-retries: 3   # optional, max retry times if writing records to database failed.
+
 `,
 
   file: `type: filesystem

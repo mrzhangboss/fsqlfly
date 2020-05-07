@@ -133,12 +133,10 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   getFullName = (s: string) => {
-    const { connections, names } = this.props;
-    const id = this.getCurrentConnectionId();
+    const { names } = this.props;
     const nid = this.getCurrentNameId();
-    const [connection = { name: 'test' }] = connections.filter(x => x.id === id);
-    const [name = { name: 'n', database: null }] = names.filter(x => x.id === nid);
-    return connection.name + '.' + (name.database === undefined || name.database === null ? name.name : `${name.database}.${name.name}`) + '.' + s;
+    const [name = { fullName: 'example' }] = names.filter(x => x.id == nid);
+    return  name.fullName + '.' + s;
   };
 
 
@@ -222,17 +220,19 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     });
   };
 
-  handleSubmit = (e: React.FormEvent, isUpdate?: boolean) => {
+  handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // @ts-ignore
     const { dispatch, form } = this.props;
     const { current } = this.state;
+    const isUpdate = current?.id !== undefined && current.id !== null
 
     setTimeout(() => this.addBtn && this.addBtn.blur(), 0);
     form.validateFields((err: string | undefined, fieldsValue: ResourceName) => {
       if (err) return;
       this.setState({ submitted: true });
-      const fullName = this.getFullName(fieldsValue['name']);
+      const fullName = isUpdate ? current?.fullName : this.getFullName(fieldsValue[ 'name' ]);
+      console.log('fullName is current ' + current?.fullName + ' is Upaate' + isUpdate)
       dispatch({
         type: `${NAMESPACE}/submit`,
         payload: {
