@@ -2,7 +2,7 @@ from fsqlfly.db_models import *
 import os
 import traceback
 import yaml
-from functools import wraps
+from functools import wraps, partial
 from typing import Callable, Type, Optional, List, Union, Any
 from sqlalchemy import and_, event
 from sqlalchemy.engine import Engine
@@ -347,12 +347,13 @@ from fsqlfly.settings import ENGINE
 DBSession.init_engine(ENGINE)
 
 
-def update_default_value(mapper, connection, target):
+def update_default_value(mapper, connection, target, father_name):
     if target.is_default:
+        father_id = getattr(target, father_name)
         connection.execute(
-            'update %s set is_default = 0 where id <> %d and is_default = 1' % (mapper.local_table.fullname, target.id))
+            'update %s set is_default = 0 where id <> %d and is_default = 1 and %s = %d' % (mapper.local_table.fullname, target.id, father_name, father_id))
 
 
 for _mode in ['after_insert', 'after_update']:
-    for _model in [ResourceTemplate, ResourceVersion]:
-        event.listen(_model, _mode, update_default_value)
+    for _model, f_n in zip([ResourceTemplate, ResourceVersion], ['resource_name_id', 'template_id']):
+        event.listen(_model, _mode, partial(update_default_value, father_name=f_n))

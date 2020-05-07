@@ -110,10 +110,17 @@ class MyTestCase(unittest.TestCase):
                                    resource_name=r_name, is_default=True)
         t2_name = ResourceTemplate(name='t2', type='sink', connection=connection, full_name='example.r2_name.t2',
                                    resource_name=r_name, is_default=True)
+
+        r2_name = ResourceName(name='r2_name', connection=connection, full_name='example.r2_name')
+        t3_name = ResourceTemplate(name='t3', type='sink', connection=connection, full_name='example.r1_name.t3',
+                                   resource_name=r2_name, is_default=True)
+        t4_name = ResourceTemplate(name='t4', type='sink', connection=connection, full_name='example.r2_name.t4',
+                                   resource_name=r2_name, is_default=True)
         session = DBSession.get_session()
         session.add(connection)
         session.add(r_name)
         session.add(t1_name)
+        session.add_all([r2_name, t3_name, t4_name])
         session.commit()
 
         session.add(t2_name)
@@ -125,12 +132,16 @@ class MyTestCase(unittest.TestCase):
                          True)
         self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t2_name.id).first().is_default,
                          False)
-        t2_name.is_default = True
+        t3_name.is_default = True
         session.commit()
         self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t1_name.id).first().is_default,
-                         False)
-        self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t2_name.id).first().is_default,
                          True)
+        self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t2_name.id).first().is_default,
+                         False)
+        self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t3_name.id).first().is_default,
+                         True)
+        self.assertEqual(session.query(ResourceTemplate).filter(ResourceTemplate.id == t4_name.id).first().is_default,
+                         False)
 
     def test_upsert(self):
         connection = Connection(name='connection', connector='axx', url='abcde', type='hive')
