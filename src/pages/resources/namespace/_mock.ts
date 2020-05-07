@@ -17,8 +17,7 @@ export default {
           'https://gw.alipayobjects.com/zos/rmsportal/ComBAopevLwENQdKWiIn.png', // Vue
           'https://gw.alipayobjects.com/zos/rmsportal/nxkuOJlFJuAUhzlMTCEe.png', // Webpack
         ],
-        'isAvailable|1': true,
-        'isPublish|1': true,
+        'isDaemon|1': true,
         createAt: '@datetime',
         updateAt: '@datetime',
       },
