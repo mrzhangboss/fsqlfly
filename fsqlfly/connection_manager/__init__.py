@@ -88,12 +88,13 @@ class BaseManager:
         self.need_tables = table_name_filter
         self.db_type = db_type
 
-    def run(self, target: Union[Connection, ResourceName, ResourceTemplate, ResourceVersion]) -> DBRes:
+    def run(self, target: Union[Connection, ResourceName, ResourceTemplate, ResourceVersion],
+            session: Optional[Session] = None) -> DBRes:
         if not self.renewable:
             return DBRes.api_error("{} is Not renewable".format(target.name))
         status = UpdateStatus()
 
-        session = DBSession.get_session()
+        session = DBSession.get_session() if session is None else session
         if isinstance(target, (Connection, ResourceName)):
             if isinstance(target, ResourceName):
                 target = target.connection
@@ -182,7 +183,8 @@ class BaseManager:
         config = self.generate_default_version_config(connection, schema, name, template)
 
         config_str = dump_yaml(attr.asdict(config))
-        return ResourceVersion(name=ResourceVersion.latest_name(), full_name=get_full_name(template.full_name),
+        return ResourceVersion(name=ResourceVersion.latest_name(),
+                               full_name=get_full_name(template.full_name, ResourceVersion.latest_name()),
                                is_system=True, is_latest=True,
                                connection_id=connection.id, resource_name_id=name.id, template_id=template.id,
                                schema_version_id=schema.id, config=config_str)
@@ -218,7 +220,9 @@ class DatabaseManager(BaseManager):
         elif isinstance(typ, BOOLEAN):
             name = types.BOOLEAN
         elif isinstance(typ, TINYINT):
-            name = types.TINYINT
+            name = types.INTEGER
+            if typ.display_width == 1:
+                name = types.BOOLEAN
         elif isinstance(typ, SMALLINT):
             name = types.SMALLINT
         elif isinstance(typ, (P_BIT, M_BIT)):
@@ -396,10 +400,6 @@ class HBaseManager(DatabaseManager):
         return schemas
 
 
-class CanalManager(DatabaseManager):
-    renewable = True
-
-
 class FileManger(BaseManager):
     renewable = False
 
@@ -414,7 +414,6 @@ SUPPORT_MANAGER = {
     'kafka': KafkaManger,
     'hbase': HBaseManager,
     'elasticsearch': ElasticSearchManager,
-    'canal': CanalManager,
     'file': FileManger
 }
 
@@ -447,6 +446,7 @@ class ManagerHelper:
                     typ
                 )
 
-            return manager.run(obj)
+            return manager.run(obj, session)
         finally:
+            session.commit()
             session.close()

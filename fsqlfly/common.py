@@ -11,7 +11,8 @@ from tornado.web import RequestHandler, HTTPError
 from logzero import logger
 
 SUPPORT_TABLE_TYPE = {'sink', 'source', 'both', 'view', 'temporal-table'}
-SUPPORT_MANAGER = {'hive', 'db', 'kafka', 'hbase', 'elasticsearch', 'canal', 'file'}
+SUPPORT_MANAGER = {'hive', 'db', 'kafka', 'hbase', 'elasticsearch', 'file'}
+CONNECTOR_TYPE = {'canal', 'system'}
 
 
 class CodeMsg(NamedTuple):

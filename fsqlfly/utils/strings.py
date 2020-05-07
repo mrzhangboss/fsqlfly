@@ -47,13 +47,13 @@ def _convert_yaml(source: Any, con: Callable) -> Any:
         return source
 
 
-def load_yaml(source: str) -> dict:
+def load_yaml(source: str, to_underline: bool = True) -> dict:
     d = yaml.load(StringIO(source), Loader=yaml.SafeLoader)
-    return _convert_yaml(d, lambda x: x.replace('-', '_'))
+    return _convert_yaml(d, lambda x: x.replace('-', '_') if to_underline else lambda x: x)
 
 
-def dump_yaml(source: Union[list, dict]) -> str:
-    return yaml.dump(_convert_yaml(source, lambda x: x.replace('_', '-')))
+def dump_yaml(source: Union[list, dict], not_underline: bool = True) -> str:
+    return yaml.dump(_convert_yaml(source, lambda x: x.replace('_', '-') if not_underline else lambda x: x))
 
 
 def check_yaml(source: str) -> bool:

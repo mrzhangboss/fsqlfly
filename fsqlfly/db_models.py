@@ -6,7 +6,7 @@ from typing import Any, Optional, Union, Type
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
-from fsqlfly.common import SUPPORT_MANAGER, SUPPORT_TABLE_TYPE, NameFilter, SchemaField, SchemaContent, VersionConfig
+from fsqlfly.common import SUPPORT_MANAGER, SUPPORT_TABLE_TYPE, NameFilter, SchemaField, CONNECTOR_TYPE, VersionConfig
 
 from fsqlfly.utils.strings import load_yaml
 from fsqlfly.utils.template import generate_template_context
@@ -17,6 +17,7 @@ _Base = declarative_base()
 
 CONNECTION_TYPE = ChoiceType([(k, k) for k in SUPPORT_MANAGER], impl=String(16))
 TABLE_TYPE = ChoiceType([(k, k) for k in SUPPORT_TABLE_TYPE], impl=String(8))
+CONNECTOR_CHOICE_TYPE = ChoiceType([(k, k) for k in CONNECTOR_TYPE], impl=String(8))
 
 
 def _b(x: str):
@@ -138,12 +139,14 @@ class Connector(Base):
     __tablename__ = 'connector'
     name = Column(String(128), nullable=False, unique=True)
     info = Column(Text)
+    type = Column(CONNECTOR_CHOICE_TYPE, nullable=False)
     source_id = Column(Integer, ForeignKey('connection.id'), nullable=False)
     target_id = Column(Integer, ForeignKey('connection.id'), nullable=False)
     source = relationship(Connection, foreign_keys=source_id, passive_deletes=False)
     target = relationship(Connection, foreign_keys=target_id, passive_deletes=False)
     config = Column(Text)
     generate_sql = Column(Text)
+    cache = Column(Text)
 
 
 class ResourceName(Base):

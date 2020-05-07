@@ -158,12 +158,13 @@ class DBDao:
             version = session.query(ResourceVersion).filter(ResourceVersion.full_name == full_name).first()
             if version is None:
                 version = session.query(ResourceVersion).join(ResourceVersion.template).filter(
-                    ResourceTemplate.full_name == full_name,
-                    ResourceVersion.is_default == True).first()
+                    and_(ResourceTemplate.full_name == full_name,
+                         ResourceVersion.is_default == True)).first()
                 if version is None:
                     version = session.query(ResourceVersion).join(ResourceVersion.template).join(
-                        ResourceVersion.resource_name).filter(ResourceName.full_name == full_name,
-                                                              ResourceTemplate.is_default == True).first()
+                        ResourceVersion.resource_name).filter(and_(ResourceName.full_name == full_name,
+                                                                   ResourceTemplate.is_default == True,
+                                                                   ResourceVersion.is_default == True)).first()
 
             assert version, "Not Found {} in database, try use full name".format(full_name)
             cache = version.generate_version_cache()
@@ -279,7 +280,8 @@ class DBDao:
         if first:
             res.latest_schema_id = obj.latest_schema_id
             res.info = obj.info
-            res.is_latest = first.latest_schema_id == obj.schema_version_id
+            res.is_latest = True
+            res.schema_version_id = obj.schema_version_id
         else:
             inserted = True
             res = obj
@@ -301,6 +303,7 @@ class DBDao:
             res.is_system = obj.is_system
             res.is_default = obj.is_default
             res.full_name = obj.full_name
+            res.schema_version_id = obj.schema_version_id
         else:
             inserted = True
             res = obj
@@ -321,6 +324,7 @@ class DBDao:
                 res.cache = obj.cache
                 res.info = obj.info
                 res.cache = obj.cache
+                res.schema_version_id = obj.schema_version_id
                 inserted = False
             else:
                 res = obj
@@ -350,8 +354,10 @@ DBSession.init_engine(ENGINE)
 def update_default_value(mapper, connection, target, father_name):
     if target.is_default:
         father_id = getattr(target, father_name)
+        father_id = int(father_id) if isinstance(father_id, str) else father_id
         connection.execute(
-            'update %s set is_default = 0 where id <> %d and is_default = 1 and %s = %d' % (mapper.local_table.fullname, target.id, father_name, father_id))
+            'update %s set is_default = 0 where id <> %d and is_default = 1 and %s = %d' % (
+                mapper.local_table.fullname, target.id, father_name, father_id))
 
 
 for _mode in ['after_insert', 'after_update']:

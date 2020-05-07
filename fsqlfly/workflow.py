@@ -10,7 +10,7 @@ from terminado.management import NamedTermManager
 from fsqlfly.settings import FSQLFLY_UPLOAD_DIR, FSQLFLY_FLINK_BIN, logger
 from fsqlfly.db_helper import Transform, DBDao
 from fsqlfly import settings
-from fsqlfly.utils.strings import get_job_header
+from fsqlfly.utils.strings import get_job_header, dump_yaml
 from fsqlfly.utils.template import generate_template_context
 
 
@@ -26,7 +26,7 @@ def _create_config(require: str, config: Optional[str], args: dict) -> str:
     else:
         base_config['tables'] = tables
     base_config['functions'] = DBDao.get_require_functions()
-    return yaml.dump(base_config)
+    return dump_yaml(base_config)
 
 
 def _clean(s: str) -> str:
