@@ -25,7 +25,7 @@ import { Dispatch } from 'redux';
 import { FileResource } from '../data';
 import Result from '../components/Result';
 import { PageHeaderWrapper } from '@ant-design/pro-layout';
-import { cutStr } from '@/utils/utils';
+import { cutStr, getStatus } from '@/utils/utils';
 
 import styles from '../style.less';
 
@@ -261,7 +261,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       </div>
     );
     const ListContent = ({
-      data: { name, info, isAvailable, isPublish, createAt, updateAt },
+      data: { name, info, isActive, isLocked, createAt, updateAt },
     }: {
       data: FileResource;
     }) => (
@@ -278,7 +278,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Progress
             type="circle"
             percent={100}
-            status={isAvailable ? (isPublish ? 'success' : 'normal') : 'exception'}
+            status={getStatus(isActive, isLocked)}
             strokeWidth={1}
             width={50}
             style={{ width: 180 }}
@@ -339,47 +339,45 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               initialValue: current.info,
             })(<TextArea placeholder="请输入" />)}
           </FormItem>
-          {isCreate && (
-            <FormItem label="文件" {...this.formLayout}>
-              {getFieldDecorator('upload', {
-                valuePropName: 'fileList',
-                getValueFromEvent: this.normFile,
-                initialValue: fileList,
-                rules: [
-                  {
-                    required: true,
-                    message: '文件必须存在',
-                  },
-                ],
-              })(
-                <Upload
-                  name="file"
-                  action="/api/upload"
-                  fileList={fileList}
-                  onChange={e => this.setState({ fileList: e.fileList })}
-                >
-                  {fileList.length === 1 ? null : (
-                    <Button>
-                      <UploadOutlined /> 点击上传
-                    </Button>
-                  )}
-                </Upload>,
-              )}
-            </FormItem>
-          )}
+          <FormItem label="文件" {...this.formLayout}>
+            {getFieldDecorator('upload', {
+              valuePropName: 'fileList',
+              getValueFromEvent: this.normFile,
+              initialValue: fileList,
+              rules: [
+                {
+                  required: true,
+                  message: '文件必须存在',
+                },
+              ],
+            })(
+              <Upload
+                name="file"
+                action="/api/upload"
+                fileList={fileList}
+                onChange={e => this.setState({ fileList: e.fileList })}
+              >
+                {fileList.length === 1 ? null : (
+                  <Button>
+                    <UploadOutlined /> {isCreate ? '点击上传' : '点击替换文件'}
+                  </Button>
+                )}
+              </Upload>,
+            )}
+          </FormItem>
           <FormItem label="其他" {...this.formLayout}>
             <Row gutter={16}>
               <Col span={3}>
-                {getFieldDecorator('isAvailable', {
-                  initialValue: current.isAvailable,
+                {getFieldDecorator('isActive', {
+                  initialValue: current.isActive,
                   valuePropName: 'checked',
                 })(<Switch checkedChildren="启用" unCheckedChildren="禁止" />)}
               </Col>
               <Col span={3}>
-                {getFieldDecorator('isPublish', {
-                  initialValue: current.isPublish,
+                {getFieldDecorator('isLocked', {
+                  initialValue: current.isLocked,
                   valuePropName: 'checked',
-                })(<Switch checkedChildren="发布" unCheckedChildren="开发" />)}
+                })(<Switch checkedChildren="锁" unCheckedChildren="开" />)}
               </Col>
             </Row>
           </FormItem>
@@ -446,7 +444,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                         </Tooltip>
                       }
                       description={
-                        <Tooltip title={item.info} placement="right">
+                        <Tooltip title={item.info + ' : ' + item.realPath} placement="right">
                           <span>{cutStr(item.info)}</span>
                         </Tooltip>
                       }

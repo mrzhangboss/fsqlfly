@@ -7,8 +7,7 @@ export interface Namespace {
   info: string;
   typ?: string;
   avatar?: string;
-  isAvailable: boolean;
-  isPublish: boolean;
+  isDaemon: boolean;
   createAt?: string;
   updateAt?: string;
 }
@@ -18,8 +17,8 @@ export interface FileResource {
   name: string;
   info: string;
   realPath: string;
-  isPublish: boolean;
-  isAvailable: boolean;
+  isLocked: boolean;
+  isActive: boolean;
   createAt?: string;
   updateAt?: string;
 }
@@ -45,12 +44,11 @@ export interface User {
 export interface Functions {
   id?: number;
   name: string;
-  functionFrom: string;
   className: string;
   constructorConfig: string;
   resourceId: number;
-  isPublish: boolean;
-  isAvailable: boolean;
+  isLocked: boolean;
+  isActive: boolean;
   createAt?: string;
   updateAt?: string;
 }

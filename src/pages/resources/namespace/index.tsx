@@ -150,11 +150,13 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       ) => {
         if (err) return;
         this.setState({ submitted: true });
-        let avatar;
+        let avatar = null;
         if (fileList.length > 0) {
           avatar = fileList[0].response.data.realPath;
+          console.log(`avatar change to ${avatar}`);
         }
-        if (current && current.id !== undefined) avatar = current.avatar;
+        if (avatar === null && current && current.id !== undefined) avatar = current.avatar;
+        console.log(`avatar set to ${avatar}`);
         dispatch({
           type: 'namespace/submit',
           payload: { ...(current ? current : {}), ...fieldsValue, avatar },
@@ -227,7 +229,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       </div>
     );
     const ListContent = ({
-      data: { name, info, avatar, isAvailable, isPublish, createAt, updateAt },
+      data: { name, info, avatar, isDaemon, createAt, updateAt },
     }: {
       data: Namespace;
     }) => (
@@ -244,7 +246,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Progress
             type="circle"
             percent={100}
-            status={isAvailable ? (isPublish ? 'success' : 'normal') : 'exception'}
+            status={isDaemon ? 'success' : 'normal'}
             strokeWidth={1}
             width={50}
             style={{ width: 180 }}
@@ -301,37 +303,29 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               initialValue: current.info,
             })(<TextArea placeholder="请输入" />)}
           </FormItem>
-          {isCreate && (
-            <FormItem label="背景图" {...this.formLayout}>
-              <Upload
-                name="logo"
-                action="/api/upload"
-                listType="picture-card"
-                fileList={fileList}
-                onChange={e => this.setState({ fileList: e.fileList })}
-              >
-                {fileList.length === 1 ? null : (
-                  <Button>
-                    <UploadOutlined /> 点击上传
-                  </Button>
-                )}
-              </Upload>
-              ,
-            </FormItem>
-          )}
+          <FormItem label="背景图" {...this.formLayout}>
+            <Upload
+              name="logo"
+              action="/api/upload"
+              listType="picture-card"
+              fileList={fileList}
+              onChange={e => this.setState({ fileList: e.fileList })}
+            >
+              {fileList.length === 1 ? null : (
+                <Button>
+                  <UploadOutlined /> {isCreate ? '点击上传' : '替换图片'}
+                </Button>
+              )}
+            </Upload>
+            ,
+          </FormItem>
           <FormItem label="其他" {...this.formLayout}>
             <Row gutter={16}>
               <Col span={3}>
-                {getFieldDecorator('isAvailable', {
-                  initialValue: current.isAvailable,
+                {getFieldDecorator('isDaemon', {
+                  initialValue: current.isDaemon,
                   valuePropName: 'checked',
-                })(<Switch checkedChildren="启用" unCheckedChildren="禁止" />)}
-              </Col>
-              <Col span={3}>
-                {getFieldDecorator('isPublish', {
-                  initialValue: current.isPublish,
-                  valuePropName: 'checked',
-                })(<Switch checkedChildren="发布" unCheckedChildren="开发" />)}
+                })(<Switch checkedChildren="守护" unCheckedChildren="禁止" />)}
               </Col>
             </Row>
           </FormItem>

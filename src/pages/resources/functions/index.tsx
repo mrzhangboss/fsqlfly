@@ -34,7 +34,7 @@ import 'brace/theme/solarized_dark';
 import styles from '../style.less';
 
 const SelectOption = Select.Option;
-import { cutStr } from '@/utils/utils';
+import { cutStr, getStatus } from '@/utils/utils';
 
 const FormItem = Form.Item;
 const { Search } = Input;
@@ -276,7 +276,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       </div>
     );
     const ListContent = ({
-      data: { name, className, isAvailable, isPublish, createAt, updateAt, resourceId },
+      data: { name, className, isActive, isLocked, createAt, updateAt, resourceId },
     }: {
       data: Functions;
     }) => (
@@ -299,7 +299,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Progress
             type="circle"
             percent={100}
-            status={isAvailable ? (isPublish ? 'success' : 'normal') : 'exception'}
+            status={getStatus(isActive, isLocked)}
             strokeWidth={1}
             width={50}
             style={{ width: 180 }}
@@ -355,17 +355,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             })(<Input placeholder="请输入" />)}
           </FormItem>
 
-          <FormItem label="来源" {...this.formLayout}>
-            {getFieldDecorator('functionFrom', {
-              initialValue: 'class',
-              rules: [
-                {
-                  required: true,
-                },
-              ],
-            })(<Input placeholder="请输入" disabled />)}
-          </FormItem>
-
           <FormItem label="类名" {...this.formLayout}>
             {getFieldDecorator('className', {
               initialValue: current.className,
@@ -415,16 +404,16 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <FormItem label="其他" {...this.formLayout}>
             <Row gutter={16}>
               <Col span={3}>
-                {getFieldDecorator('isAvailable', {
-                  initialValue: current.isAvailable,
+                {getFieldDecorator('isActive', {
+                  initialValue: current.isActive,
                   valuePropName: 'checked',
                 })(<Switch checkedChildren="启用" unCheckedChildren="禁止" />)}
               </Col>
               <Col span={3}>
-                {getFieldDecorator('isPublish', {
-                  initialValue: current.isPublish,
+                {getFieldDecorator('isLocked', {
+                  initialValue: current.isLocked,
                   valuePropName: 'checked',
-                })(<Switch checkedChildren="发布" unCheckedChildren="开发" />)}
+                })(<Switch checkedChildren="锁" unCheckedChildren="开" />)}
               </Col>
             </Row>
           </FormItem>
