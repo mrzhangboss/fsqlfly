@@ -242,7 +242,7 @@ class ResourceVersion(Base):
         template = self.template
         version = self
         resource_name = self.resource_name
-        schema = self.schema_version
+        schema = self.schema_version if self.schema_version else resource_name.schema_version
         connection = self.connection
         base = load_yaml(template.config) if template.config else dict()
         version_config = load_yaml(version.config) if version.config else dict()

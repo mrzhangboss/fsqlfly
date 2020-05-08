@@ -100,7 +100,10 @@ class BaseManager:
                 target = target.connection
             self.update_connection(status, session, target)
         elif isinstance(target, ResourceTemplate):
-            self.update_template(status, session, target.connection, target.schema_version, target.resource_name)
+            if target.is_system:
+                self.update_template(status, session, target.connection, target.schema_version, target.resource_name)
+            else:
+                self.update_version(status, session, target.connection, target.schema_version, target.resource_name, target)
         elif isinstance(target, ResourceVersion):
             if target.is_system:
                 self.update_version(status, session, target.connection, target.schema_version, target.resource_name,
@@ -187,7 +190,7 @@ class BaseManager:
                                full_name=get_full_name(template.full_name, ResourceVersion.latest_name()),
                                is_system=True, is_latest=True,
                                connection_id=connection.id, resource_name_id=name.id, template_id=template.id,
-                               schema_version_id=schema.id, config=config_str)
+                               schema_version_id=schema.id if schema else None, config=config_str)
 
 
 class DatabaseManager(BaseManager):
