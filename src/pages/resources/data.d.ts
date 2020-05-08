@@ -150,3 +150,18 @@ export interface Relationship {
   createAt?: string;
   updateAt?: string;
 }
+
+export interface Connector {
+  id: number;
+  name: string;
+  info: string;
+  type: string;
+  config: string;
+  generateSql: string;
+  cache: string;
+  sourceId: number;
+  targetId: number;
+  isLocked: boolean;
+  createAt?: string;
+  updateAt?: string;
+}

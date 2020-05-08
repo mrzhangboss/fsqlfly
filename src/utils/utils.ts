@@ -128,7 +128,7 @@ write: # sink options, optional, used when writing into table
 
   file: `type: filesystem
 path: "file:///path/to/whatever"`,
-  canal: `type: canal
+  canal: `[canal]
 host: localhost
 port: 11111
 username: root

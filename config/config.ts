@@ -180,8 +180,8 @@ export default {
               name: 'connector',
               hideInMenu: false,
               exact: true,
-              icon: 'database',
-              component: './resources/connection',
+              icon: 'Api',
+              component: './resources/connector',
             },
             {
               path: '/resources/relationship',

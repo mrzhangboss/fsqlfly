@@ -23,7 +23,7 @@ import {
   Tooltip,
 } from 'antd';
 import { FormComponentProps } from '@ant-design/compatible/es/form';
-import { Connection } from '../data';
+import { Connection, Connector } from '../data';
 import { Dispatch } from 'redux';
 import Result from '../components/Result';
 import { PageHeaderWrapper } from '@ant-design/pro-layout';
@@ -41,10 +41,11 @@ import { UNIQUE_NAME_RULES } from '@/utils/UNIQUE_NAME_RULES';
 import styles from '../style.less';
 import { RadioChangeEvent } from 'antd/lib/radio/interface';
 import { UserModelState } from '@/models/user';
-import { Link } from 'umi';
+import { SelectValue } from 'antd/es/select';
 
 interface BasicListProps extends FormComponentProps {
-  listBasicList: Connection[];
+  listBasicList: Connector[];
+  connections: Connection[];
   dispatch: Dispatch<AnyAction>;
   total: number;
   loading: boolean;
@@ -57,7 +58,7 @@ interface BasicListState {
   runVisible: boolean;
   runDone: boolean;
   done: boolean;
-  current?: Partial<Connection>;
+  current?: Partial<Connector>;
   search: string;
   tag: string;
   connector: string;
@@ -67,7 +68,9 @@ interface BasicListState {
   success: boolean;
   submitted: boolean;
   pageSize: number;
-  currentPage: number;
+  currentType: string;
+  sourceId: number | SelectValue;
+  targetId: number | SelectValue;
 }
 
 const RadioGroup = Radio.Group;
@@ -81,7 +84,7 @@ const NAMESPACE = 'connector';
     total,
     user,
   }: {
-    connector: { list: Connection[] };
+    connector: { list: Connector[]; dependence: Connection };
     loading: {
       models: { [key: string]: boolean };
       effects: { [key: string]: boolean };
@@ -90,6 +93,7 @@ const NAMESPACE = 'connector';
     user: UserModelState;
   }) => ({
     listBasicList: connector.list,
+    connections: connector.dependence,
     loading: loading.models.connector,
     fetchLoading: loading.effects['connector/fetch'],
     deletable: user.currentUser?.deletable,
@@ -107,10 +111,12 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     success: false,
     submitted: false,
     pageSize: 5,
-    currentPage: 1,
+    currentType: 'system',
     tag: '',
     connector: '',
     type: '',
+    sourceId: 0,
+    targetId: 0,
   };
 
   formLayout = {
@@ -143,21 +149,20 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       visible: true,
       submitted: false,
       current: {},
-      connector: '',
+      config: '',
     });
   };
 
-  showEditModal = (item: Connection) => {
+  showEditModal = (item: Connector) => {
     this.setState({
       visible: true,
       current: item,
       submitted: false,
-      connector: item.connector,
       config: item.config,
     });
   };
 
-  showManageModal = (item: Connection, mode: string) => {
+  showManageModal = (item: Connector, mode: string) => {
     this.setState({
       runVisible: true,
       runDone: false,
@@ -242,7 +247,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   onSearch = (value: string, event?: any) => {
-    this.setState({ search: value, currentPage: 1 });
+    this.setState({ search: value });
   };
 
   getFilterPageData = () => {
@@ -258,14 +263,37 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     return res;
   };
 
-  getCurrentPageData = () => {
-    const { pageSize, currentPage } = this.state;
-    const data = this.getFilterPageData();
-    return data.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  getConnectionSelectInfo = (connection: Connection) => {
+    return (
+      <SelectOption key={connection.id} value={connection.id}>
+        <Tooltip title={connection.info} placement="left">
+          <div>
+            <Tag color={'blue'}>{connection.type}</Tag>
+            {connection.name}
+          </div>
+        </Tooltip>
+      </SelectOption>
+    );
   };
 
-  onPageChange = (current: number, newPageSize: any) => {
-    this.setState({ pageSize: newPageSize, currentPage: current });
+  getSourceConnection = () => {
+    const { currentType, targetId } = this.state;
+    const { connections } = this.props;
+    return connections
+      .filter(
+        x =>
+          (currentType === 'canal' ? x.type === 'db' : x.type !== 'elasticsearch') &&
+          x.id !== targetId,
+      )
+      .map(this.getConnectionSelectInfo);
+  };
+
+  getTargetConnection = () => {
+    const { currentType, sourceId } = this.state;
+    const { connections } = this.props;
+    return connections
+      .filter(x => (currentType === 'canal' ? x.type === 'kafka' : true) && x.id !== sourceId)
+      .map(this.getConnectionSelectInfo);
   };
 
   onTagChage = (event: RadioChangeEvent) => {
@@ -274,18 +302,21 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   onSelectTypeChange = (value: any) => {
+    this.setState({ currentType: value });
     console.log('value is ');
     console.log(value);
     const template = CONNECTION_TEMPLATE[value];
     if (template !== undefined)
       this.setState({
-        connector: template,
-        current: { ...this.state.current, connector: template },
+        config: template,
+        current: { ...this.state.current, config: template },
       });
+    const { form } = this.props;
+    form.resetFields(['sourceId', 'targetId']);
   };
 
   render() {
-    const supportConnectionType = ['hive', 'db', 'kafka', 'hbase', 'elasticsearch', 'file'];
+    const supportConnectionType = ['system', 'canal'];
     const { loading } = this.props;
     const {
       form: { getFieldDecorator },
@@ -300,10 +331,10 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       success,
       msg,
       submitted,
-      currentPage,
+      currentType,
     } = this.state;
 
-    const editAndDelete = (key: string, currentItem: Connection) => {
+    const editAndDelete = (key: string, currentItem: Connector) => {
       if (key === 'edit') this.showEditModal(currentItem);
       else if (key == 'update') this.showManageModal(currentItem, 'update');
       else if (key == 'upgrade') this.showManageModal(currentItem, 'upgrade');
@@ -357,9 +388,9 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       </div>
     );
     const ListContent = ({
-      data: { name, type, isActive, isLocked, createAt, updateAt },
+      data: { name, type, isLocked, createAt, updateAt },
     }: {
-      data: Connection;
+      data: Connector;
     }) => (
       <div className={styles.listContent}>
         <div className={styles.listContentItem}>
@@ -379,7 +410,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
           <Progress
             type="circle"
             percent={100}
-            status={getStatus(isActive, isLocked)}
+            status={getStatus(true, isLocked)}
             strokeWidth={1}
             width={50}
             style={{ width: 180 }}
@@ -390,7 +421,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
     const { deletable } = this.props;
     const MoreBtn: React.SFC<{
-      item: Connection;
+      item: Connector;
     }> = ({ item }) => (
       <Dropdown
         overlay={
@@ -405,6 +436,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         </a>
       </Dropdown>
     );
+
     const getModalContent = (isCreate: boolean) => {
       if (done) {
         return (
@@ -444,7 +476,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
           <FormItem label="类型" {...this.formLayout}>
             {getFieldDecorator('type', {
-              initialValue: current.type,
+              initialValue:
+                current.type !== undefined && current.type !== null ? current.type : currentType,
               rules: [
                 {
                   required: true,
@@ -468,54 +501,44 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             )}
           </FormItem>
 
-          <FormItem label="url" {...this.formLayout}>
-            {getFieldDecorator('url', {
-              initialValue: current.url,
+          <FormItem label="源" {...this.formLayout}>
+            {getFieldDecorator('sourceId', {
+              initialValue: current.sourceId,
               rules: [
                 {
                   required: true,
                 },
               ],
-            })(<Input placeholder="数据库连接url" />)}
+            })(
+              <Select
+                disabled={!isCreate}
+                size="middle"
+                style={{ width: 286 }}
+                onChange={x => this.setState({ sourceId: x })}
+              >
+                {this.getSourceConnection()}
+              </Select>,
+            )}
           </FormItem>
 
-          <FormItem label="资源过滤正则" {...this.formLayout}>
-            {getFieldDecorator('include', {
-              initialValue: current.include !== null ? current.include : '',
+          <FormItem label="目标" {...this.formLayout}>
+            {getFieldDecorator('targetId', {
+              initialValue: current.sourceId,
               rules: [
                 {
-                  required: false,
+                  required: true,
                 },
               ],
-            })(<Input placeholder="使用逗号分割多个正则表达" />)}
-          </FormItem>
-
-          <FormItem label="资源排除" {...this.formLayout}>
-            {getFieldDecorator('exclude', {
-              initialValue: current.exclude !== null ? current.exclude : '',
-              rules: [
-                {
-                  required: false,
-                },
-              ],
-            })(<Input placeholder="使用逗号分割多个正则表达" />)}
-          </FormItem>
-
-          <FormItem label="connector" {...this.formLayout}>
-            <AceEditor
-              mode="yaml"
-              onChange={x => this.setState({ connector: x, current: { ...current, connector: x } })}
-              name="functionConstructorConfig"
-              editorProps={{ $blockScrolling: true }}
-              readOnly={false}
-              placeholder={'请输入Yaml配置'}
-              defaultValue={current.connector}
-              value={this.state.connector}
-              //@ts-ignore
-              width={765}
-              //@ts-ignore
-              height={230}
-            />
+            })(
+              <Select
+                disabled={!isCreate}
+                size="middle"
+                style={{ width: 286 }}
+                onChange={x => this.setState({ targetId: x })}
+              >
+                {this.getTargetConnection()}
+              </Select>,
+            )}
           </FormItem>
 
           <FormItem label="config" {...this.formLayout}>
@@ -535,25 +558,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             />
           </FormItem>
 
-          <FormItem label="自动更新周期（s）" {...this.formLayout}>
-            {getFieldDecorator('updateInterval', {
-              initialValue: current.updateInterval,
-              rules: [
-                {
-                  required: false,
-                },
-              ],
-            })(<Input type="number" placeholder="秒" width={20} />)}
-          </FormItem>
-
           <FormItem label="其他" {...this.formLayout}>
             <Row gutter={16}>
-              <Col span={3}>
-                {getFieldDecorator('isActive', {
-                  initialValue: current.isActive,
-                  valuePropName: 'checked',
-                })(<Switch checkedChildren="启用" unCheckedChildren="禁止" />)}
-              </Col>
               <Col span={3}>
                 {getFieldDecorator('isLocked', {
                   initialValue: current.isLocked,
@@ -577,19 +583,17 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               bodyStyle={{ padding: '0 32px 40px 32px' }}
               extra={extraContent}
             >
-              {currentPage === 1 && (
-                <Button
-                  type="dashed"
-                  style={{ width: '100%', marginBottom: 8 }}
-                  icon={<PlusOutlined />}
-                  onClick={this.showModal}
-                  ref={component => {
-                    this.addBtn = findDOMNode(component) as HTMLButtonElement;
-                  }}
-                >
-                  添加
-                </Button>
-              )}
+              <Button
+                type="dashed"
+                style={{ width: '100%', marginBottom: 8 }}
+                icon={<PlusOutlined />}
+                onClick={this.showModal}
+                ref={component => {
+                  this.addBtn = findDOMNode(component) as HTMLButtonElement;
+                }}
+              >
+                添加
+              </Button>
               <List
                 size="large"
                 rowKey="id"
@@ -607,7 +611,6 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                       >
                         编辑
                       </a>,
-                      <Link to={`/resources/connection/name/${item.id}`}>资源</Link>,
                       <MoreBtn key="more" item={item} />,
                     ]}
                   >
