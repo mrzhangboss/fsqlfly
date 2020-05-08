@@ -2,6 +2,7 @@
 from __future__ import absolute_import, unicode_literals, print_function
 import unittest
 from unittest.mock import patch, Mock
+from fsqlfly.db_helper import Connector
 from fsqlfly.connection_manager import *
 from sqlalchemy import create_engine, event
 
@@ -80,6 +81,21 @@ class ManagerTest(unittest.TestCase):
             self.assertTrue(session.query(ResourceVersion).count() > 0)
             self.assertTrue(session.query(ResourceVersion).filter(ResourceVersion.cache.isnot(None)).count() > 0)
             session.close()
+
+    def test_update_canal_connector(self):
+        db = Connection(name='db', url='sqlite:///test.sqlite3', type='db', connector='')
+        kafka = Connection(name='kafka', url='localhost:9092', type='kafka', connector='')
+        session = DBSession.get_session()
+        session.add_all([db, kafka])
+        session.commit()
+        connector = Connector(name='example', type='canal', source_id=db.id, target_id=kafka.id)
+        session.add(connector)
+        session.commit()
+
+        res = ManagerHelper.update('connector', connector.id)
+        self.assertTrue(res.success)
+
+        self.assertTrue(session.query(SchemaEvent).count() > 0)
 
 
 if __name__ == '__main__':

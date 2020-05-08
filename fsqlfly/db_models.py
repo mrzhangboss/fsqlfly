@@ -2,7 +2,7 @@ import sqlalchemy as sa
 from jinja2 import Template
 from datetime import datetime
 from configparser import ConfigParser
-from typing import Any, Optional, Union, Type
+from typing import Any, Optional, Union, Type, TypeVar
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
@@ -18,6 +18,7 @@ _Base = declarative_base()
 CONNECTION_TYPE = ChoiceType([(k, k) for k in SUPPORT_MANAGER], impl=String(16))
 TABLE_TYPE = ChoiceType([(k, k) for k in SUPPORT_TABLE_TYPE], impl=String(8))
 CONNECTOR_CHOICE_TYPE = ChoiceType([(k, k) for k in CONNECTOR_TYPE], impl=String(8))
+CONFIG_T = TypeVar('CONFIG_T', int, str, bool, float)
 
 
 def _b(x: str):
@@ -46,6 +47,13 @@ rowtime_enable = true
 rowtime_from = MYSQL_DB_EXECUTE_TIME
 
 
+[canal]
+mode = upsert
+process_time_enable = true
+process_time_name = flink_process_time
+rowtime_enable = true
+rowtime_from = MYSQL_DB_EXECUTE_TIME
+binlog_type_name = MYSQL_DB_EVENT_TYPE
 """
 
 
@@ -74,8 +82,7 @@ class Base(_Base):
     def get_config_parser(self) -> ConfigParser:
         return self.get_default_config_parser()
 
-    def get_config(self, name: str, section: str,
-                   typ: Optional[Union[Type[int], Type[float], Type[float], Type[str]]] = None) -> Any:
+    def get_config(self, name: str, section: str, typ: Optional[Type[CONFIG_T]] = None) -> CONFIG_T:
         cache_name = '__config_parser__'
         if not hasattr(self, cache_name):
             setattr(self, cache_name, self.get_config_parser())
@@ -148,6 +155,44 @@ class Connector(Base):
     generate_sql = Column(Text)
     cache = Column(Text)
 
+    def get_config_parser(self) -> ConfigParser:
+        parser = self.get_config_parser()
+        if self.config and self.config.strip():
+            parser.read_string(self.config)
+
+        return parser
+
+    def get_config(self, name: str, section: Optional[str] = None, typ: Optional[Type[CONFIG_T]] = None) -> CONFIG_T:
+        return super(Connector, self).get_config(name, section=section if section else self.type, typ=typ)
+
+    @property
+    def mode(self) -> str:
+        return self.get_config('mode', typ=str)
+
+    @property
+    def process_time_enable(self) -> bool:
+        return self.get_config('process_time_enable', typ=bool)
+
+    @property
+    def process_time_name(self) -> str:
+        return self.get_config('process_time_enable', typ=str)
+
+    @property
+    def rowtime_enable(self) -> bool:
+        return self.get_config('rowtime_enable', typ=bool)
+
+    @property
+    def rowtime_name(self) -> str:
+        return self.get_config('rowtime_name', typ=str)
+
+    @property
+    def rowtime_from(self) -> str:
+        return self.get_config('rowtime_from', typ=str)
+
+    @property
+    def binlog_type_name(self) -> str:
+        return self.get_config('binlog_type_name', typ=str)
+
 
 class ResourceName(Base):
     __tablename__ = 'resource_name'
@@ -178,7 +223,7 @@ class ResourceName(Base):
         return parser
 
     def get_config(self, name: str, section: Optional[str] = None,
-                   typ: Optional[Union[Type[int], Type[float], Type[float], Type[str]]] = None) -> Any:
+                   typ: Optional[Union[Type[CONFIG_T]]] = None) -> CONFIG_T:
         return super(ResourceName, self).get_config(name, section=section if section else self.connection.type, typ=typ)
 
 

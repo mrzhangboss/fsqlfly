@@ -2,13 +2,14 @@
 import re
 import attr
 import logzero
+from functools import partial
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.sql.sqltypes import TypeDecorator
 from typing import Optional, List, Type, Union, Any
 from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent
 from fsqlfly.utils.strings import load_yaml, dump_yaml, get_full_name
 from fsqlfly.common import DBRes, NameFilter, SchemaField, SchemaContent, VersionConfig
-from fsqlfly.db_helper import DBSession, DBDao, Session, SUPPORT_MODELS
+from fsqlfly.db_helper import DBSession, DBDao, Session, SUPPORT_MODELS, Connector, DBT
 
 
 class BlinkSQLType:
@@ -88,8 +89,7 @@ class BaseManager:
         self.need_tables = table_name_filter
         self.db_type = db_type
 
-    def run(self, target: Union[Connection, ResourceName, ResourceTemplate, ResourceVersion],
-            session: Optional[Session] = None) -> DBRes:
+    def run(self, target: DBT, session: Optional[Session] = None) -> DBRes:
         if not self.renewable:
             return DBRes.api_error("{} is Not renewable".format(target.name))
         status = UpdateStatus()
@@ -103,7 +103,8 @@ class BaseManager:
             if target.is_system:
                 self.update_template(status, session, target.connection, target.schema_version, target.resource_name)
             else:
-                self.update_version(status, session, target.connection, target.schema_version, target.resource_name, target)
+                self.update_version(status, session, target.connection, target.schema_version, target.resource_name,
+                                    target)
         elif isinstance(target, ResourceVersion):
             if target.is_system:
                 self.update_version(status, session, target.connection, target.schema_version, target.resource_name,
@@ -253,6 +254,9 @@ class DatabaseManager(BaseManager):
         return name
 
     def update(self):
+        update_cache_name = '__update_cache_name'
+        if hasattr(self, update_cache_name):
+            return getattr(self, update_cache_name)
         from sqlalchemy.sql.sqltypes import INTEGER, SMALLINT, BIGINT
         engine = create_engine(self.connection_url)
         insp = inspect(engine)
@@ -300,7 +304,7 @@ class DatabaseManager(BaseManager):
 
             # print(schema)
             schemas.append(schema)
-
+        setattr(self, update_cache_name, schemas)
         return schemas
 
 
@@ -422,10 +426,97 @@ SUPPORT_MANAGER = {
 
 
 class ConnectorManager:
-    pass
+    def _run(self, connector: Connector, session: Session) -> DBRes:
+        raise NotImplementedError
+
+    def run(self, connector: Connector, _session: Optional[Session] = None) -> DBRes:
+        session = DBSession.get_session() if _session is None else _session
+        try:
+            return self._run(connector, session)
+        finally:
+            session.close()
 
 
-class CanalManager(ConnectorManager):
+class CanalMode:
+    upsert = 'upsert'
+    update = 'update'
+    insert_delete = 'insert_delete'
+    both = 'both'
+
+
+class CanalKafkaManager(DatabaseManager):
+    renewable = True
+
+    def __init__(self, connection: Connection, mode: str, ):
+        super().__init__(connection.connection_url, NameFilter(), 'kafka')
+
+    def update(self):
+        pass
+
+
+class CanalManager:
+
+    def __init__(self, connector: Connector, session: Session):
+        db, kafka = connector.source, connector.target
+        self.connector = connector
+        self.db = db
+        self.kafka = kafka
+        self.session = session
+        self.db_manager = DatabaseManager(db.url, NameFilter(db.include, db.exclude), db.type)
+        self.mode = self.connector.mode
+        assert hasattr(CanalMode, self.mode), 'Canal Config not support mode {}'.format(self.mode)
+
+    def run(self) -> DBRes:
+        db, kafka, session, db_manager = self.db, self.kafka, self.session, self.db_manager
+        db_status = UpdateStatus()
+        kf_status = UpdateStatus()
+        for content in db_manager.update():
+            schema = db_manager.generate_schema_event(schema=content, connection=db)
+            schema, i = DBDao.upsert_schema_event(schema, session=session)
+            db_status.update_schema(i)
+            db_manager.update_resource_name(db_status, session, db, schema)
+            self.update_kafka(content, kafka, kf_status)
+        msg = "Kafka Status:\n\n\n{}\n\n\n MySQL Status:\n\n\n{}\n\n\n".format(kf_status.info, db_status.info)
+        return DBRes(msg=msg)
+
+    def update_kafka(self, content: SchemaContent, connection: Connection, status: UpdateStatus):
+        schema = self.generate_kafka_schema_event(schema=content, connection=self.kafka)
+        schema, i = DBDao.upsert_schema_event(schema, session=self.session)
+        status.update_schema(i)
+        self.update_kafka_resource_name(status, self.session, self.kafka, schema)
+
+    def generate_kafka_schema_event(self, schema: SchemaContent, connection: Connection) -> SchemaEvent:
+        pass
+
+    def update_kafka_resource_name(self, status: UpdateStatus, session: Session, connection: Connection,
+                                   schema: SchemaEvent):
+        pass
+
+    def update_kafka_template(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent,
+                              resource_name: ResourceName):
+        for template in self.generate_kafka_template(schema=schema, connection=connection, resource_name=resource_name):
+            template, i = DBDao.upsert_resource_template(template, session=session)
+            status.update_template(i)
+            self.db_manager.update_version(status, session, schema=schema, connection=connection,
+                                           resource_name=resource_name,
+                                           template=template)
+
+    def generate_kafka_template(self, schema: SchemaEvent, connection: Connection, resource_name: ResourceName) -> List[
+        ResourceTemplate]:
+        pass
+
+
+class CanalConnectorManager(ConnectorManager):
+    def _run(self, connector: Connector, session: Session) -> DBRes:
+        assert connector.source.type.code == 'db', 'Canal Source Type must be db'
+        assert connector.target.type.code == 'kafka', 'Canal Target Type must be kafka'
+
+        manager = CanalManager(connector, session)
+
+        return manager.run()
+
+
+class SystemConnectorManager(ConnectorManager):
     pass
 
 
@@ -435,26 +526,26 @@ class BaseHelper:
         return mode == 'update'
 
     @classmethod
-    def update(cls, model: str, pk: str):
+    def update(cls, model: str, pk: int):
         raise NotImplementedError
 
 
 class ConnectorHelper(BaseHelper):
     @classmethod
-    def update(cls, model: str, pk: str):
+    def update(cls, model: str, pk: int):
         assert model == 'connector', 'Only support Connector Model'
         session = DBSession.get_session()
-        obj = DBDao.one(base=SUPPORT_MODELS[model], pk=int(pk), session=session)
-        if obj.type.code == 'system':
-            pass
+        obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
+        manager = CanalConnectorManager() if obj.type.code == 'canal' else SystemConnectorManager()
+        return manager.run(obj, session)
 
 
 class ConnectionHelper(BaseHelper):
     @classmethod
-    def update(cls, model: str, pk: str):
+    def update(cls, model: str, pk: int):
         session = DBSession.get_session()
         try:
-            obj = DBDao.one(base=SUPPORT_MODELS[model], pk=int(pk), session=session)
+            obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
             if isinstance(obj, Connection):
                 name_filter = NameFilter(obj.include, obj.exclude)
                 manager = SUPPORT_MANAGER[obj.type](obj.url, name_filter, obj.type)
@@ -490,7 +581,7 @@ class ManagerHelper:
         return cls.get_helper(model).is_support(mode)
 
     @classmethod
-    def update(cls, model: str, pk: str) -> DBRes:
+    def update(cls, model: str, pk: Union[str, int]) -> DBRes:
         if model not in SUPPORT_MODELS:
             return DBRes.api_error(msg='{} not support'.format(model))
-        return cls.get_helper(model).update(model, pk)
+        return cls.get_helper(model).update(model, pk if isinstance(pk, int) else int(pk))

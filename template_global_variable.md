@@ -58,16 +58,22 @@ Variable | Description | Default
 
 Variable | Description | Default
 ---- | --- | ---
-mode| support `upsert` `update` `insert` `update_insert` | `upsert`
+mode| support `upsert`,`update`,`insert`,`delete`,`all` | `upsert`
 process_time_enable| if true then kafka source will generate a process time in table|true
 process_time_name| kafka source process time name(make true your table fields not contain it) |flink_process_time
 rowtime_enable| if true then kafka source will generate a rowtime in table|true
 rowtime_name| kafka source rowtime name(make true your table fields not contain it)  |row_time
 rowtime_from| kafka source rowtime field from  |MYSQL_DB_EXECUTE_TIME
+binlog_type_name| mysql bin log type name  |MYSQL_DB_EVENT_TYPE
+before_column_suffix| if mode contain `update` then will add to the field suffix|_before
+after_column_suffix| if mode contain `update` then will add to the field suffix|__after
+update_suffix| if mode contain `update` then will add to the field suffix|_updated
+ 
 
 
-PS: if `mode` is `upsert`, will convert log to upsert mode, if `mode` is `update`, will only convert `update` log to `kafka` , otherwise.
-
+PS: `mysql` bin log has three type, `update`,`insert` and `delete`,you can use `upsert` to convert
+  all log to one kafka topic, also you can separate it into three topics. You can choose `all`
+  or combine mode by `,` choose your canal sink type.  
 
 
 ### Template And Version Config Field Format
