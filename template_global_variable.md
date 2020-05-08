@@ -50,6 +50,15 @@ read_partition_upper_bound| the largest value of the last partition. | 50000
 Variable | Description | Default
 ---- | --- | ---
 
+
+
+
+#### Section: canal
+
+
+Variable | Description | Default
+---- | --- | ---
+mode| support `upsert` `update` `insert` `update_insert` | `upsert`
 process_time_enable| if true then kafka source will generate a process time in table|true
 process_time_name| kafka source process time name(make true your table fields not contain it) |flink_process_time
 rowtime_enable| if true then kafka source will generate a rowtime in table|true
@@ -57,7 +66,7 @@ rowtime_name| kafka source rowtime name(make true your table fields not contain 
 rowtime_from| kafka source rowtime field from  |MYSQL_DB_EXECUTE_TIME
 
 
-
+PS: if `mode` is `upsert`, will convert log to upsert mode, if `mode` is `update`, will only convert `update` log to `kafka` , otherwise.
 
 
 
