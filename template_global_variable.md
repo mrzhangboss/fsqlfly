@@ -62,11 +62,12 @@ mode| support `upsert`,`update`,`insert`,`delete`,`all` | `upsert`
 process_time_enable| if true then kafka source will generate a process time in table|true
 process_time_name| kafka source process time name(make true your table fields not contain it) |flink_process_time
 rowtime_enable| if true then kafka source will generate a rowtime in table|true
-rowtime_name| kafka source rowtime name(make true your table fields not contain it)  |row_time
+rowtime_name| kafka source rowtime name(make true your table fields not contain it)  |mysql_row_time
+rowtime_watermarks|kafka source rowtime watermarks default 5000 ms (5s)|5000
 rowtime_from| kafka source rowtime field from  |MYSQL_DB_EXECUTE_TIME
 binlog_type_name| mysql bin log type name  |MYSQL_DB_EVENT_TYPE
 before_column_suffix| if mode contain `update` then will add to the field suffix|_before
-after_column_suffix| if mode contain `update` then will add to the field suffix|__after
+after_column_suffix| if mode contain `update` then will add to the field suffix|_after
 update_suffix| if mode contain `update` then will add to the field suffix|_updated
  
 
