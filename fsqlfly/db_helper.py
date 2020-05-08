@@ -3,7 +3,7 @@ import os
 import traceback
 import yaml
 from functools import wraps, partial
-from typing import Callable, Type, Optional, List, Union, Any
+from typing import Callable, Type, Optional, List, Union, Any, TypeVar
 from sqlalchemy import and_, event
 from sqlalchemy.engine import Engine
 from fsqlfly import settings
@@ -27,6 +27,9 @@ SUPPORT_MODELS = {
     'savepoint': TransformSavepoint
 
 }
+
+DBT = TypeVar('DBT', Connection, Connector, SchemaEvent, ResourceName, ResourceTemplate,
+              ResourceVersion, FileResource, Functions, Transform, Namespace, TransformSavepoint)
 
 
 class DBSession:
@@ -209,8 +212,8 @@ class DBDao:
 
     @classmethod
     def one(cls, *args, session: Session,
-            base: Union[Connection, ResourceName, ResourceVersion, ResourceTemplate], pk: int,
-            **kwargs) -> Union[Connection, ResourceName, ResourceVersion, ResourceTemplate]:
+            base: Type[DBT], pk: int,
+            **kwargs) -> DBT:
         return session.query(base).filter(base.id == pk).one()
 
     @classmethod
