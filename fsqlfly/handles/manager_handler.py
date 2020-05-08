@@ -8,7 +8,7 @@ from fsqlfly.connection_manager import ManagerHelper
 class ManagerHandler(BaseHandler):
     @safe_authenticated
     def post(self, model: str, mode: str, pk: str):
-        if ManagerHelper.is_support(mode):
+        if ManagerHelper.is_support(model, mode):
             self.write_res(ManagerHelper.update(model, pk))
         else:
             self.write_res(DBRes.api_error("{} not support now".format(mode)))

@@ -418,15 +418,37 @@ SUPPORT_MANAGER = {
 }
 
 
-class ManagerHelper:
+class ConnectorManager:
+    pass
+
+
+class CanalManager(ConnectorManager):
+    pass
+
+
+class BaseHelper:
     @classmethod
     def is_support(cls, mode: str) -> bool:
         return mode == 'update'
 
     @classmethod
     def update(cls, model: str, pk: str):
-        if model not in SUPPORT_MODELS:
-            return DBRes.api_error(msg='{} not support'.format(model))
+        raise NotImplementedError
+
+
+class ConnectorHelper(BaseHelper):
+    @classmethod
+    def update(cls, model: str, pk: str):
+        assert model == 'connector', 'Only support Connector Model'
+        session = DBSession.get_session()
+        obj = DBDao.one(base=SUPPORT_MODELS[model], pk=int(pk), session=session)
+        if obj.type.code == 'system':
+            pass
+
+
+class ConnectionHelper(BaseHelper):
+    @classmethod
+    def update(cls, model: str, pk: str):
         session = DBSession.get_session()
         try:
             obj = DBDao.one(base=SUPPORT_MODELS[model], pk=int(pk), session=session)
@@ -450,3 +472,22 @@ class ManagerHelper:
         finally:
             session.commit()
             session.close()
+
+
+class ManagerHelper:
+    @classmethod
+    def get_helper(cls, model) -> Union[Type[ConnectorHelper], Type[ConnectionHelper]]:
+        if model == 'connector':
+            return ConnectorHelper
+        else:
+            return ConnectionHelper
+
+    @classmethod
+    def is_support(cls, model: str, mode: str) -> bool:
+        return cls.get_helper(model).is_support(mode)
+
+    @classmethod
+    def update(cls, model: str, pk: str) -> DBRes:
+        if model not in SUPPORT_MODELS:
+            return DBRes.api_error(msg='{} not support'.format(model))
+        return cls.get_helper(model).update(model, pk)
