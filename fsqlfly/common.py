@@ -133,6 +133,8 @@ class SchemaField:
     comment: Optional[str] = attr.ib(default=None)
     nullable: Optional[bool] = attr.ib(default=True)
     autoincrement: Optional[bool] = attr.ib(default=None)
+    rowtime: Optional[Any] = attr.ib(default=None)
+    proctime: Optional[bool] = attr.ib(default=None)
 
 
 @attr.s
@@ -157,3 +159,38 @@ class VersionConfig:
     time_attribute: Optional[str] = attr.ib(default=None)
     format: Optional[Any] = attr.ib(default=None)
     schema: list = attr.ib(factory=list)
+
+
+class BlinkSQLType:
+    STRING = 'STRING'
+    BOOLEAN = 'BOOLEAN'
+    BYTES = 'BYTES'
+    DECIMAL = 'DECIMAL'
+    TINYINT = 'TINYINT'
+    SMALLINT = 'SMALLINT'
+    INTEGER = 'INTEGER'
+    BIGINT = 'BIGINT'
+    FLOAT = 'FLOAT'
+    DOUBLE = 'DOUBLE'
+    DATE = 'DATE'
+    TIME = 'TIME'
+    TIMESTAMP = 'TIMESTAMP'
+
+
+class BlinkHiveSQLType(BlinkSQLType):
+    INTERVAL = 'INTERVAL'
+    ARRAY = 'ARRAY'
+    MULTISET = 'MULTISET'
+    MAP = 'MAP'
+    RAW = 'RAW'
+
+
+class BlinkTableType:
+    sink = 'sink'
+    source = 'source'
+    both = 'both'
+
+
+class DBSupportType:
+    MySQL = 'MySQL'
+    PostgreSQL = 'PostgreSQL'

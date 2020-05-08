@@ -114,6 +114,9 @@ insert_primary_key = true
         connection = Connection(name='a', url='#', type='hive', connector='text', config=connection_config)
         schema = SchemaEvent(name='test', connection=connection)
         r_name = ResourceName(name='b', full_name='a.b', connection=connection, schema_version=schema, config=resource_name_config)
+        self.assertTrue(not r_name.get_config('add_read_partition_key', 'db', bool))
+        self.assertTrue(not r_name.get_config('add_read_partition_key', 'db', bool))
+        self.assertEqual(connection.get_config('read_partition_num', 'db', int), 50)
 
         with self.assertRaises(KeyError):
             r_name.get_config('example')

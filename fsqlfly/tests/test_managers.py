@@ -88,7 +88,11 @@ class ManagerTest(unittest.TestCase):
         session = DBSession.get_session()
         session.add_all([db, kafka])
         session.commit()
-        connector = Connector(name='example', type='canal', source_id=db.id, target_id=kafka.id)
+        config = """[canal]
+mode = insert,update
+        
+        """
+        connector = Connector(name='example', type='canal', source_id=db.id, target_id=kafka.id, config=config)
         session.add(connector)
         session.commit()
 
@@ -96,6 +100,7 @@ class ManagerTest(unittest.TestCase):
         self.assertTrue(res.success)
 
         self.assertTrue(session.query(SchemaEvent).count() > 0)
+
 
 
 if __name__ == '__main__':

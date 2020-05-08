@@ -1,54 +1,18 @@
 # -*- coding:utf-8 -*-
-import re
 import attr
 import logzero
-from functools import partial
+from copy import deepcopy
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.sql.sqltypes import TypeDecorator
 from typing import Optional, List, Type, Union, Any
 from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent
 from fsqlfly.utils.strings import load_yaml, dump_yaml, get_full_name
-from fsqlfly.common import DBRes, NameFilter, SchemaField, SchemaContent, VersionConfig
+from fsqlfly.common import DBRes, NameFilter, SchemaField, SchemaContent, VersionConfig, BlinkSQLType, BlinkHiveSQLType
 from fsqlfly.db_helper import DBSession, DBDao, Session, SUPPORT_MODELS, Connector, DBT
 
 
-class BlinkSQLType:
-    STRING = 'STRING'
-    BOOLEAN = 'BOOLEAN'
-    BYTES = 'BYTES'
-    DECIMAL = 'DECIMAL'
-    TINYINT = 'TINYINT'
-    SMALLINT = 'SMALLINT'
-    INTEGER = 'INTEGER'
-    BIGINT = 'BIGINT'
-    FLOAT = 'FLOAT'
-    DOUBLE = 'DOUBLE'
-    DATE = 'DATE'
-    TIME = 'TIME'
-    TIMESTAMP = 'TIMESTAMP'
-
-
-class BlinkHiveSQLType(BlinkSQLType):
-    INTERVAL = 'INTERVAL'
-    ARRAY = 'ARRAY'
-    MULTISET = 'MULTISET'
-    MAP = 'MAP'
-    RAW = 'RAW'
-
-
-class BlinkTableType:
-    sink = 'sink'
-    source = 'source'
-    both = 'both'
-
-
-class DBSupportType:
-    MySQL = 'MySQL'
-    PostgreSQL = 'PostgreSQL'
-
-
 class UpdateStatus:
-    def __init__(self):
+    def __init__(self, name: str = ''):
         self.schema_inserted = 0
         self.schema_updated = 0
         self.name_inserted = 0
@@ -57,6 +21,7 @@ class UpdateStatus:
         self.template_updated = 0
         self.version_inserted = 0
         self.version_updated = 0
+        self.name = name
 
     def update_schema(self, inserted: bool):
         self.schema_inserted += inserted
@@ -76,7 +41,8 @@ class UpdateStatus:
 
     @property
     def info(self) -> str:
-        return '\n'.join(['{}: {}'.format(x, getattr(self, x)) for x in dir(self) if x.endswith('ed')])
+        header = f"\n{self.name}\n\n\n:" if self.name else ''
+        return header + '\n'.join(['{}: {}'.format(x, getattr(self, x)) for x in dir(self) if x.endswith('ed')])
 
 
 class BaseManager:
@@ -440,18 +406,54 @@ class ConnectorManager:
 class CanalMode:
     upsert = 'upsert'
     update = 'update'
-    insert_delete = 'insert_delete'
-    both = 'both'
+    insert = 'insert'
+    delete = 'delete'
+    all = 'all'
 
 
 class CanalKafkaManager(DatabaseManager):
     renewable = True
 
-    def __init__(self, connection: Connection, mode: str, ):
-        super().__init__(connection.connection_url, NameFilter(), 'kafka')
+    def __init__(self, connection: Connection, connector: Connector, mode: str, cache: List[SchemaContent]):
+        super().__init__(connection.url, NameFilter(), 'kafka')
+        self._cache = cache
+        self._connector = connector
+        self._mode = mode
 
-    def update(self):
-        pass
+    def update(self) -> List[SchemaContent]:
+        res = []
+        row_field = self._connector.rowtime_field
+        process_field = self._connector.process_time_field
+        execute_time_field = self._connector.db_execute_time_field
+        binlog_field = self._connector.binlog_type_name_field
+        cnt = self._connector
+        for _content in self._cache:
+            content = deepcopy(_content)
+            fields = []
+            for schema in _content.fields:
+                if self._mode == CanalMode.update:
+                    for suffix, tp in zip([cnt.before_column_suffix, cnt.after_column_suffix, cnt.update_suffix],
+                                          [schema.type, schema.type, BlinkSQLType.BOOLEAN]):
+                        n_schema = deepcopy(schema)
+                        n_schema.type = tp
+                        n_schema.name = n_schema.name + suffix
+                        fields.append(n_schema)
+                else:
+                    fields.append(schema)
+
+            if row_field:
+                fields.append(row_field)
+            if process_field:
+                fields.append(process_field)
+
+            if self._mode == CanalMode.upsert:
+                fields.append(binlog_field)
+
+            fields.append(execute_time_field)
+            content.fields = fields
+            res.append(content)
+
+        return res
 
 
 class CanalManager:
@@ -463,47 +465,28 @@ class CanalManager:
         self.kafka = kafka
         self.session = session
         self.db_manager = DatabaseManager(db.url, NameFilter(db.include, db.exclude), db.type)
-        self.mode = self.connector.mode
-        assert hasattr(CanalMode, self.mode), 'Canal Config not support mode {}'.format(self.mode)
+        mode = self.connector.get_config('mode', typ=str)
+        if 'both' in mode:
+            mode = [CanalMode.update, CanalMode.insert, CanalMode.delete]
+        else:
+            mode = mode.split(',')
+        all_mode_support = all(map(lambda x: hasattr(CanalMode, x), mode))
+        assert all_mode_support, 'Canal Config not support mode {}'.format(mode)
+        self.mode = mode
 
     def run(self) -> DBRes:
         db, kafka, session, db_manager = self.db, self.kafka, self.session, self.db_manager
-        db_status = UpdateStatus()
-        kf_status = UpdateStatus()
-        for content in db_manager.update():
-            schema = db_manager.generate_schema_event(schema=content, connection=db)
-            schema, i = DBDao.upsert_schema_event(schema, session=session)
-            db_status.update_schema(i)
-            db_manager.update_resource_name(db_status, session, db, schema)
-            self.update_kafka(content, kafka, kf_status)
-        msg = "Kafka Status:\n\n\n{}\n\n\n MySQL Status:\n\n\n{}\n\n\n".format(kf_status.info, db_status.info)
-        return DBRes(msg=msg)
+        res = []
+        db_status = UpdateStatus('MySQL Status')
+        db_manager.update_connection(db_status, session, db)
+        res.append(db_status)
+        for mode in self.mode:
+            manager = CanalKafkaManager(kafka, self.connector, mode, db_manager.update())
+            status = UpdateStatus('Canal {} Status'.format(mode))
+            manager.update_connection(status, session, db)
+            res.append(status)
 
-    def update_kafka(self, content: SchemaContent, connection: Connection, status: UpdateStatus):
-        schema = self.generate_kafka_schema_event(schema=content, connection=self.kafka)
-        schema, i = DBDao.upsert_schema_event(schema, session=self.session)
-        status.update_schema(i)
-        self.update_kafka_resource_name(status, self.session, self.kafka, schema)
-
-    def generate_kafka_schema_event(self, schema: SchemaContent, connection: Connection) -> SchemaEvent:
-        pass
-
-    def update_kafka_resource_name(self, status: UpdateStatus, session: Session, connection: Connection,
-                                   schema: SchemaEvent):
-        pass
-
-    def update_kafka_template(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent,
-                              resource_name: ResourceName):
-        for template in self.generate_kafka_template(schema=schema, connection=connection, resource_name=resource_name):
-            template, i = DBDao.upsert_resource_template(template, session=session)
-            status.update_template(i)
-            self.db_manager.update_version(status, session, schema=schema, connection=connection,
-                                           resource_name=resource_name,
-                                           template=template)
-
-    def generate_kafka_template(self, schema: SchemaEvent, connection: Connection, resource_name: ResourceName) -> List[
-        ResourceTemplate]:
-        pass
+        return DBRes(msg='\n\n'.join(x.info for x in res))
 
 
 class CanalConnectorManager(ConnectorManager):

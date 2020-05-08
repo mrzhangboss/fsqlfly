@@ -6,7 +6,7 @@ from typing import Any, Optional, Union, Type, TypeVar
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
-from fsqlfly.common import SUPPORT_MANAGER, SUPPORT_TABLE_TYPE, NameFilter, SchemaField, CONNECTOR_TYPE, VersionConfig
+from fsqlfly.common import *
 
 from fsqlfly.utils.strings import load_yaml
 from fsqlfly.utils.template import generate_template_context
@@ -52,8 +52,13 @@ mode = upsert
 process_time_enable = true
 process_time_name = flink_process_time
 rowtime_enable = true
+rowtime_name = mysql_row_time
+rowtime_watermarks = 5000
 rowtime_from = MYSQL_DB_EXECUTE_TIME
 binlog_type_name = MYSQL_DB_EVENT_TYPE
+before_column_suffix = _before
+after_column_suffix = _after
+update_suffix = _updated
 """
 
 
@@ -75,9 +80,10 @@ class Base(_Base):
 
     @classmethod
     def get_default_config_parser(cls) -> ConfigParser:
-        config = ConfigParser()
-        config.read_string(_DEFAULT_CONFIG)
-        return config
+        default_config_parser = ConfigParser()
+
+        default_config_parser.read_string(_DEFAULT_CONFIG)
+        return default_config_parser
 
     def get_config_parser(self) -> ConfigParser:
         return self.get_default_config_parser()
@@ -156,42 +162,60 @@ class Connector(Base):
     cache = Column(Text)
 
     def get_config_parser(self) -> ConfigParser:
-        parser = self.get_config_parser()
+        parser = self.get_default_config_parser()
         if self.config and self.config.strip():
             parser.read_string(self.config)
 
         return parser
 
     def get_config(self, name: str, section: Optional[str] = None, typ: Optional[Type[CONFIG_T]] = None) -> CONFIG_T:
-        return super(Connector, self).get_config(name, section=section if section else self.type, typ=typ)
+        return super(Connector, self).get_config(name, section=section if section else self.type.code, typ=typ)
 
     @property
-    def mode(self) -> str:
-        return self.get_config('mode', typ=str)
-
-    @property
-    def process_time_enable(self) -> bool:
-        return self.get_config('process_time_enable', typ=bool)
-
-    @property
-    def process_time_name(self) -> str:
-        return self.get_config('process_time_enable', typ=str)
+    def process_time_field(self) -> Optional[SchemaField]:
+        if self.get_config('process_time_enable', typ=bool):
+            return SchemaField(name=self.get_config('process_time_enable', typ=str),
+                               type=BlinkSQLType.TIMESTAMP, proctime=True)
 
     @property
     def rowtime_enable(self) -> bool:
         return self.get_config('rowtime_enable', typ=bool)
 
     @property
-    def rowtime_name(self) -> str:
-        return self.get_config('rowtime_name', typ=str)
+    def rowtime_field(self) -> Optional[SchemaField]:
+        if self.get_config('rowtime_enable', typ=bool):
+            row_field = {
+                "timestamps": {"type": "from-field", "from": self.get_config('rowtime_from', typ=str)},
+                "watermarks": {"type": "periodic-bounded", "delay": self.get_config("rowtime_watermarks", typ=int)}
+            }
+            return SchemaField(name=self.get_config('rowtime_name', typ=str),
+                               type=BlinkSQLType.TIMESTAMP, rowtime=row_field)
 
     @property
-    def rowtime_from(self) -> str:
-        return self.get_config('rowtime_from', typ=str)
+    def binlog_type_name_field(self) -> SchemaField:
+        return SchemaField(name=self.get_config('binlog_type_name', typ=str),
+                           type=BlinkSQLType.INTEGER)
+
+    @property
+    def db_execute_time_field(self) -> SchemaField:
+        return SchemaField(name=self.get_config('rowtime_from', typ=str),
+                           type=BlinkSQLType.TIMESTAMP)
 
     @property
     def binlog_type_name(self) -> str:
         return self.get_config('binlog_type_name', typ=str)
+
+    @property
+    def before_column_suffix(self) -> str:
+        return self.get_config('before_column_suffix', typ=str)
+
+    @property
+    def after_column_suffix(self) -> str:
+        return self.get_config('after_column_suffix', typ=str)
+
+    @property
+    def update_suffix(self) -> str:
+        return self.get_config('update_suffix', typ=str)
 
 
 class ResourceName(Base):
@@ -331,9 +355,9 @@ class ResourceVersion(Base):
 
             res['connector'] = connector if connector else None
 
-            need_fields = NameFilter(config.include, config.exclude)
             fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema else []
-            field_names = [x.name for x in fields]
+            need_fields = [x for x in fields if x.name in NameFilter(config.include, config.exclude)]
+            field_names = [x.name for x in need_fields]
             schemas = []
 
             if config.schema:
@@ -341,12 +365,17 @@ class ResourceVersion(Base):
                     assert x['name'] not in field_names, "{} contain in origin field"
                 schemas.extend(config.schema)
 
-            for x in fields:
-                if x.name in need_fields:
-                    schemas.append({
-                        "name": x.name,
-                        "data-type": x.type
-                    })
+            for x in need_fields:
+                base = {
+                    "name": x.name,
+                    "data-type": x.type
+                }
+                if x.proctime:
+                    base['proctime'] = x.proctime
+                if x.rowtime:
+                    base['rowtime'] = x.rowtime
+
+                schemas.append(base)
 
             res['schema'] = schemas
 
