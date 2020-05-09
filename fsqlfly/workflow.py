@@ -16,8 +16,12 @@ from fsqlfly.utils.template import generate_template_context
 
 def _create_config(require: str, config: Optional[str], args: dict) -> str:
     tables = []
-    if require.strip():
-        tables.extend(DBDao.get_require_table(require.strip()))
+    catalogs = []
+    require = require.strip() if require and require.strip() else ''
+    if require:
+        tables.extend(DBDao.get_require_table(require))
+        catalogs.extend(DBDao.get_require_catalog(require))
+
     base_config = yaml.load(handle_template(config, args), yaml.FullLoader) if config else dict()
     if base_config is None:
         base_config = dict()
@@ -26,7 +30,10 @@ def _create_config(require: str, config: Optional[str], args: dict) -> str:
     else:
         base_config['tables'] = tables
     base_config['functions'] = DBDao.get_require_functions()
-    base_config['catalogs'] = DBDao.get_require_catalog()
+    if base_config.get('catalogs'):
+        base_config['catalogs'].extend(catalogs)
+    else:
+        base_config['catalogs'] = catalogs
     return dump_yaml(base_config)
 
 

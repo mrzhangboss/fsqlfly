@@ -46,6 +46,9 @@ process_time_name = flink_process_time
 rowtime_enable = true
 rowtime_from = MYSQL_DB_EXECUTE_TIME
 
+[hive]
+
+example = 1
 
 [canal]
 mode = upsert

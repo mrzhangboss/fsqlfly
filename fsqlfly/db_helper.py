@@ -198,11 +198,11 @@ class DBDao:
         res = []
         for full_name in require.split(','):
             if cls.is_hive_table(full_name):
-                hive = session.query(Connection.name).filter(Connection.is_active == True,
+                hive = session.query(Connection).filter(Connection.is_active == True,
                                                              Connection.type == 'hive',
                                                              Connection.name == full_name).one()
                 conn = hive.get_connection_connector()
-                conn['name'] = conn.name
+                conn['name'] = hive.name
                 if hive.name not in names:
                     res.append(conn)
                     names.add(hive.name)
