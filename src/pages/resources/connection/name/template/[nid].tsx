@@ -318,6 +318,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     const editAndDelete = (key: string, currentItem: ResourceTemplate) => {
       if (key === 'edit') this.showEditModal(currentItem);
       else if (key == 'update') this.showManageModal(currentItem, 'update');
+      else if (key == 'clean') this.showManageModal(currentItem, 'clean');
       else if (key == 'copy') this.showCopyCreateModal(currentItem);
       else if (key == 'upgrade') this.showManageModal(currentItem, 'upgrade');
       else if (key === 'delete') {
@@ -401,6 +402,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             {deletable && <Menu.Item key="delete">删除</Menu.Item>}
             <Menu.Item key="update">更新</Menu.Item>
             <Menu.Item key="copy">复制</Menu.Item>
+            <Menu.Item key="clean">清除</Menu.Item>
           </Menu>
         }
       >
