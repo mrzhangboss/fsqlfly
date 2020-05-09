@@ -275,6 +275,7 @@ class DatabaseManager(BaseManager):
 class HiveManager(DatabaseManager):
     use_comment = False
     use_primary = False
+    support_type = []
 
     hive_types = set(list(x for x in dir(BlinkHiveSQLType) if not x.startswith('__')))
 

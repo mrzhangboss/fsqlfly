@@ -150,7 +150,14 @@ class DBDao:
                  ResourceName.is_active == True,
                  ResourceTemplate.is_default == True)).all())
 
-        return DBRes(data=version_data + default_version_data + resource_data)
+        hive_data = [x[0] for x in session.query(Connection.name).filter(Connection.is_active == True,
+                                                                         Connection.type == 'hive').all()]
+
+        return DBRes(data=hive_data + version_data + default_version_data + resource_data)
+
+    @classmethod
+    def is_hive_table(cls, full_name: str) -> bool:
+        return '.' not in full_name
 
     @classmethod
     @session_add
@@ -158,6 +165,8 @@ class DBDao:
         names = set()
         res = []
         for full_name in require.split(','):
+            if cls.is_hive_table(full_name):
+                continue
             version = session.query(ResourceVersion).filter(ResourceVersion.full_name == full_name).first()
             if version is None:
                 version = session.query(ResourceVersion).join(ResourceVersion.template).filter(
@@ -180,6 +189,24 @@ class DBDao:
                     break
             assert 'name' in cache, 'Not generate suit name for version {}'.format(full_name)
             res.append(cache)
+        return res
+
+    @classmethod
+    @session_add
+    def get_require_catalog(cls, require: str, *args, session: Session, **kwargs) -> List[dict]:
+        names = set()
+        res = []
+        for full_name in require.split(','):
+            if cls.is_hive_table(full_name):
+                hive = session.query(Connection.name).filter(Connection.is_active == True,
+                                                             Connection.type == 'hive',
+                                                             Connection.name == full_name).one()
+                conn = hive.get_connection_connector()
+                conn['name'] = conn.name
+                if hive.name not in names:
+                    res.append(conn)
+                    names.add(hive.name)
+
         return res
 
     @classmethod

@@ -129,6 +129,12 @@ class Connection(Base):
 
         return parser
 
+    def get_connection_connector(self) -> dict:
+        config = self.get_config_parser()
+        context = generate_template_context(execution_date=datetime.now(), connection=self, **config[self.type])
+        output = Template(self.connector).render(**context)
+        return load_yaml(output)
+
 
 class SchemaEvent(Base):
     __tablename__ = 'schema_event'

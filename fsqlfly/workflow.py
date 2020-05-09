@@ -26,6 +26,7 @@ def _create_config(require: str, config: Optional[str], args: dict) -> str:
     else:
         base_config['tables'] = tables
     base_config['functions'] = DBDao.get_require_functions()
+    base_config['catalogs'] = DBDao.get_require_catalog()
     return dump_yaml(base_config)
 
 
