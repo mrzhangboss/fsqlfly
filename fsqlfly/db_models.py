@@ -35,6 +35,7 @@ _DEFAULT_CONFIG = """
 [db]
 insert_primary_key = false
 add_read_partition_key = false
+read_partition_key = id
 read_partition_fetch_size = 100
 read_partition_lower_bound = 0
 read_partition_upper_bound = 50000
@@ -362,7 +363,8 @@ class ResourceVersion(Base):
                 if resource_name.get_config('add_read_partition_key', typ=bool) and 'read' not in connector:
                     connector['read'] = {
                         "partition": {
-                            "column": schema.primary_key,
+                            "column": schema.primary_key if schema.primary_key else resource_name.get_config(
+                                'read_partition_key'),
                             "num": resource_name.get_config('read_partition_num', typ=int),
                             "lower-bound": resource_name.get_config('read_partition_lower_bound', typ=int),
                             "upper-bound": resource_name.get_config('read_partition_upper_bound', typ=int),
