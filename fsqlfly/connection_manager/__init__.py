@@ -504,10 +504,14 @@ class SystemConnectorManager(ConnectorManager):
 class BaseHelper:
     @classmethod
     def is_support(cls, mode: str) -> bool:
-        return mode == 'update'
+        return mode in ('update', 'clean')
 
     @classmethod
     def update(cls, model: str, pk: int):
+        raise NotImplementedError
+
+    @classmethod
+    def clean(cls, model: str, pk: int):
         raise NotImplementedError
 
 
@@ -519,6 +523,23 @@ class ConnectorHelper(BaseHelper):
         obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
         manager = CanalConnectorManager() if obj.type.code == 'canal' else SystemConnectorManager()
         return manager.run(obj, session)
+
+    @classmethod
+    def clean(cls, model: str, pk: int):
+        session = DBSession.get_session()
+        obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
+        back = obj.as_dict()
+        source_id, target_id = obj.source.id, obj.target.id
+        session.delete(obj)
+        session.commit()
+        session.close()
+        ConnectionHelper.clean('connection', target_id)
+        ConnectionHelper.clean('connection', source_id)
+        session = DBSession.get_session()
+        DBDao.save(SUPPORT_MODELS[model](**back), session=session)
+        session.close()
+        return DBRes()
+
 
 
 class ConnectionHelper(BaseHelper):
@@ -548,6 +569,18 @@ class ConnectionHelper(BaseHelper):
             session.commit()
             session.close()
 
+    @classmethod
+    def clean(cls, model: str, pk: int):
+        session = DBSession.get_session()
+        obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
+        session.close()
+        back = obj.as_dict()
+        DBDao.delete(model, pk)
+        session = DBSession.get_session()
+        DBDao.save(SUPPORT_MODELS[model](**back), session=session)
+        session.close()
+        return DBRes()
+
 
 class ManagerHelper:
     @classmethod
@@ -562,7 +595,7 @@ class ManagerHelper:
         return cls.get_helper(model).is_support(mode)
 
     @classmethod
-    def update(cls, model: str, pk: Union[str, int]) -> DBRes:
+    def run(cls, model: str, mode: str, pk: Union[str, int]) -> DBRes:
         if model not in SUPPORT_MODELS:
             return DBRes.api_error(msg='{} not support'.format(model))
-        return cls.get_helper(model).update(model, pk if isinstance(pk, int) else int(pk))
+        return getattr(cls.get_helper(model), mode)(model, pk if isinstance(pk, int) else int(pk))

@@ -9,11 +9,11 @@ class ManagerHandler(BaseHandler):
     @safe_authenticated
     def post(self, model: str, mode: str, pk: str):
         if ManagerHelper.is_support(model, mode):
-            self.write_res(ManagerHelper.update(model, pk))
+            self.write_res(ManagerHelper.run(model, mode, pk))
         else:
             self.write_res(DBRes.api_error("{} not support now".format(mode)))
 
 
 default_handlers = [
-    (r'/api/(?P<model>\w+)/(?P<mode>update)/(?P<pk>\d+)', ManagerHandler),
+    (r'/api/(?P<model>\w+)/(?P<mode>update|clean)/(?P<pk>\d+)', ManagerHandler),
 ]
