@@ -59,6 +59,7 @@ binlog_type_name = MYSQL_DB_EVENT_TYPE
 before_column_suffix = _before
 after_column_suffix = _after
 update_suffix = _updated
+table_filter = .*\..*
 """
 
 
@@ -167,6 +168,12 @@ class Connector(Base):
             parser.read_string(self.config)
 
         return parser
+
+    @property
+    def connector_mode(self) -> CanalMode:
+        config_mode = self.get_config('mode', typ=str)
+
+        return CanalMode(config_mode)
 
     def get_config(self, name: str, section: Optional[str] = None, typ: Optional[Type[CONFIG_T]] = None) -> CONFIG_T:
         return super(Connector, self).get_config(name, section=section if section else self.type.code, typ=typ)

@@ -69,6 +69,13 @@ binlog_type_name| mysql bin log type name  |MYSQL_DB_EVENT_TYPE
 before_column_suffix| if mode contain `update` then will add to the field suffix|_before
 after_column_suffix| if mode contain `update` then will add to the field suffix|_after
 update_suffix| if mode contain `update` then will add to the field suffix|_updated
+table_filter| use in canal filter table|.*\..*
+canal_host| canal http web host | localhost
+canal_port| canal http port | 11111
+canal_username| canal username in config|null
+canal_password| canal password in config|null
+canal_destination| canal destination|null
+canal_client_id| canal client id|null
  
 
 

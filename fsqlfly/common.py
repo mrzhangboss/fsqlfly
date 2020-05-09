@@ -194,3 +194,51 @@ class BlinkTableType:
 class DBSupportType:
     MySQL = 'MySQL'
     PostgreSQL = 'PostgreSQL'
+
+
+class CanalMode:
+    upsert = 'upsert'
+    update = 'update'
+    insert = 'insert'
+    delete = 'delete'
+    all = 'all'
+
+    @classmethod
+    def support_modes(cls) -> set:
+        return {cls.upsert, cls.insert, cls.update, cls.delete}
+
+    def __contains__(self, item) -> bool:
+        return item in self.support_modes
+
+    def __init__(self, config_mode: str):
+        if CanalMode.all in config_mode:
+            mode = [CanalMode.update, CanalMode.insert, CanalMode.delete]
+        else:
+            mode = config_mode.split(',')
+        all_mode_support = all(map(lambda x: x in CANAL_MODE, mode))
+        assert all_mode_support, 'Canal Config not support mode {}'.format(mode)
+        if CanalMode.upsert in mode:
+            assert len(mode) == 1, 'upsert only support run by itself'
+        self._mode = mode
+
+    def is_upsert(self):
+        return self.upsert in self._mode
+
+    def is_support(self, mode: str) -> bool:
+        if self.is_upsert():
+            return True
+        return mode in self._mode
+
+    def __iter__(self):
+        self._i = 0
+        return self
+
+    def __next__(self):
+        if self._i >= len(self._mode):
+            raise StopIteration
+        v = self._mode[self._i]
+        self._i += 1
+        return v
+
+
+CANAL_MODE = CanalMode.support_modes()

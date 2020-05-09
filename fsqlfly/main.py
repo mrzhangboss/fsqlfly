@@ -65,12 +65,18 @@ def run_db2hive(comands: list):
     DBToHive.run(comands)
 
 
+def run_canal(commands: list):
+    from fsqlfly.contrib.canal import Consumer
+    Consumer.build(commands[0]).run()
+
+
 def main():
     support_command = {
         "echoenv": run_echo_env,
         "webserver": run_webserver,
         "initdb": init_db,
         "resetdb": reset_db,
+        "runcanal": run_canal
     }
     args = sys.argv[1:]
     method = args[0] if len(args) > 0 else 'help'

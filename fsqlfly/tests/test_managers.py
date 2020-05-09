@@ -83,14 +83,31 @@ class ManagerTest(unittest.TestCase):
             session.close()
 
     def test_update_canal_connector(self):
-        db = Connection(name='db', url='sqlite:///test.sqlite3', type='db', connector='')
-        kafka = Connection(name='kafka', url='localhost:9092', type='kafka', connector='')
+        from fsqlfly.settings import FSQLFLY_DB_URL
+        db = Connection(name='db', url=FSQLFLY_DB_URL, type='db', connector='', include='sample.*')
+        k_connector = """
+type: kafka
+version: universal     # required: valid connector versions are    "0.8", "0.9", "0.10", "0.11", and "universal"
+properties:
+  zookeeper.connect: localhost:2181  # required: specify the ZooKeeper connection string
+  bootstrap.servers: localhost:9092  # required: specify the Kafka server connection string
+  group.id: testGroup                # optional: required in Kafka consumer, specify consumer group
+
+topic: {{ resource_name.database }}__{{ resource_name.name }}__{{ version.name }}        
+        """
+        kafka = Connection(name='kafka', url='localhost:9092', type='kafka', connector=k_connector)
         session = DBSession.get_session()
         session.add_all([db, kafka])
         session.commit()
         config = """[canal]
 mode = insert,update
-        
+canal_host: localhost
+canal_port: 11111
+canal_username: root
+canal_password: password
+canal_client_id: 11021
+canal_destination: example
+canal_filter: .*\..*        
         """
         connector = Connector(name='example', type='canal', source_id=db.id, target_id=kafka.id, config=config)
         session.add(connector)
@@ -103,6 +120,12 @@ mode = insert,update
         res = session.query(ResourceVersion.template_id, func.count(ResourceVersion.id)).filter(
             ResourceVersion.name != 'latest').group_by(ResourceVersion.template_id).all()
         self.assertTrue(all(map(lambda x: x[1] == 2, res)))
+
+        connector_id = connector.id
+        session.close()
+        from fsqlfly.contrib.canal import Consumer
+
+        Consumer.build(connector_id).run()
 
 
 if __name__ == '__main__':

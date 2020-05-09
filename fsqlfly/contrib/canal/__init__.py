@@ -1,116 +1,87 @@
-# -*- coding: utf-8 -*-
+from fsqlfly.common import *
 import time
 import os
 import logging
 import sys
 import json
 from logzero import logger
-from typing import Optional
+from typing import Optional, Dict, Tuple
 from collections import defaultdict
 from datetime import datetime
 from random import randint
+from configparser import ConfigParser, SectionProxy
 from argparse import ArgumentParser
-import fsqlfly.settings
+from fsqlfly.db_helper import DBSession, Connector, Connection, Session, ResourceVersion
 
 PRINT_EACH = 100
 WAIT_TIMES = 0.5
 
 
-class BaseCommand:
-    def execute(self):
-        parser = ArgumentParser()
-        self.add_arguments(parser)
-        print(sys.argv[2:])
-        options = parser.parse_args(sys.argv[2:])
-        cmd_options = vars(options)
-        # Move positional args out of options to mimic legacy optparse
-        args = cmd_options.pop('args', ())
-        output = self.handle(*args, **cmd_options)
-        return output
+class Consumer:
+    def __init__(self, canal_mode: CanalMode, bootstrap_servers: str, topics: Dict[Tuple[str, str, str], str], *args,
+                 table_filter: Optional[str], canal_host: str, canal_port: str, canal_username: str,
+                 canal_password: str, canal_destination: str, canal_client_id: str,
+                 binlog_type_name: str, rowtime_from: str, before_column_suffix: str, after_column_suffix: str,
+                 update_suffix: str, **kwargs):
+        self._mode = canal_mode
+        self.bootstrap_servers = bootstrap_servers
+        self.topics = topics
+        self.canal_execute_time_name = rowtime_from
+        self.canal_event_type_name = binlog_type_name
+        self.canal_before_column_suffix = before_column_suffix
+        self.canal_after_column_suffix = after_column_suffix
+        self.canal_update_suffix = update_suffix
 
-    def add_arguments(self, parser):
-        pass
+        self.canal_table_filter = table_filter if table_filter else ".*\\..*"
 
-    def handle(self, *args, **options):
-        pass
+        self.canal_host = canal_host
+        self.canal_port = int(canal_port)
+        self.canal_username = canal_username
+        self.canal_destination = canal_destination
+        self.canal_password = canal_password
+        self.canal_client_id = canal_client_id
 
+    @classmethod
+    def build_topics(cls, connection: Connection, session: Session) -> Dict[Tuple[str, str, str], str]:
+        topics = dict()
+        for version in session.query(ResourceVersion).filter(ResourceVersion.connection_id == connection.id).all():
+            if version.name in CANAL_MODE:
+                name = version.resource_name
+                conn = version.get_connection_connector()
+                assert isinstance(conn, dict)
+                w_str = f'please check connection {connection.name} config not found topic'
+                assert isinstance(conn, dict) and conn.get('topic') is not None, w_str
+                topics[name.database, name.name, version.name] = conn['topic']
+        return topics
 
-class CanalConsumer(BaseCommand):
-    help = 'Canal Consumer'
-    bootstrap_servers = "localhost:9092"
-    canal_execute_time_name = 'MYSQL_DB_EXECUTE_TIME'
-    canal_event_type_name = 'MYSQL_DB_EVENT_TYPE'
-    canal_before_column_suffix = '_before'
-    canal_after_column_suffix = '_after'
-    canal_update_suffix = '_updated'
-
-    canal_table_filter = ".*\\..*"
-
-    canal_host = 'localhost'
-    canal_port = 11111
-    canal_username = None
-    canal_destination = None
-    canal_password = None
-    canal_client_id = None
-
-    def add_arguments_for_canal_suffix(self, parser):
-        parser.add_argument('--canal_execute_time_name', action='store', type=str, help='mysql execute time name',
-                            default=None)
-        parser.add_argument('--canal_event_type_name', action='store', type=str, help='mysql event type name',
-                            default=None)
-        parser.add_argument('--canal_before-column-suffix', action='store', type=str, help='kafka before column suffix',
-                            default=None)
-        parser.add_argument('--canal_after_column_suffix', action='store', type=str, help='kafka after column suffix',
-                            default=None)
-        parser.add_argument('--canal_update_suffix', action='store', type=str, help='kafka update column suffix',
-                            default=None)
-
-    def add_arguments(self, parser):
-        parser.add_argument('--bootstrap_servers', action='store', help='kafka bootstrap servers split by ,',
-                            default=None)
-        parser.add_argument('--canal_host', action='store', help='canal server host you can set in .env file',
-                            default=None)
-        parser.add_argument('--canal_port', action='store', type=int, help='canal server port you can set in .env file',
-                            default=None)
-        parser.add_argument('--canal_destination', action='store', type=str,
-                            help='canal server destination you can set in .env file',
-                            default=None)
-
-        parser.add_argument('--canal_username', action='store', type=str, help='canal instance username', default=None)
-        parser.add_argument('--canal_password', action='store', type=str,
-                            help='canal instance password you can set in .env file ', default=None)
-        parser.add_argument('--canal_client_id', action='store', type=str,
-                            help='canal instance client-id you can set in .env file ', default=str(randint(1, 1000)))
-        parser.add_argument('--canal_table_filter', action='store', type=str,
-                            help='canal instance table filter like ".*\\\\..*" you can set in .env file ', default=None)
-        self.add_arguments_for_canal_suffix(parser)
-
-    def init_global_params(self, options: dict):
-        for k, v in options.items():
-            if not hasattr(self, k) or k.startswith('_'):
-                continue
-            if v is None:
-                # overwrite by default
-                env_value = os.environ.get(k)
-                if env_value is None:
-                    default_value = getattr(self, k)
-                    if default_value is None:
-                        print('please set ', k, ' in your env or by command line')
-                        exit(1)
-                    setattr(self, k, default_value)
-                else:
-                    if k == 'canal_port':
-                        env_value = int(env_value)
-                    setattr(self, k, env_value)
+    @classmethod
+    def build(cls, pk: Union[str, int]) -> 'Consumer':
+        session = DBSession.get_session()
+        try:
+            query = session.query(Connector)
+            if isinstance(pk, int) or pk.isdigit():
+                query = query.filter(Connector.id == pk)
             else:
-                setattr(self, k, v)
+                query = query.filter(Connector.name == pk)
+
+            connector = query.first()
+            assert connector, f"Not Found Connector {pk}"
+            c_type = connector.type.code
+            assert c_type == 'canal', f'connector  {pk} type must be canal current: {c_type}'
+            assert connector.target.type.code == 'kafka'
+            kafka = connector.target
+
+            topics = cls.build_topics(kafka, session)
+            return Consumer(connector.connector_mode, kafka.url, topics, **connector.get_config_parser()['canal'])
+        finally:
+            session.close()
 
     from canal.protocol.EntryProtocol_pb2 import RowData, EventType, Column
 
     SUPPORT_TYPE = {
-        EventType.INSERT: "kafka_dc",
-        EventType.DELETE: "kafka_dc",
-        EventType.UPDATE: "kafka_u",
+        EventType.INSERT: CanalMode.insert,
+        EventType.DELETE: CanalMode.delete,
+        EventType.UPDATE: CanalMode.update,
     }
 
     @classmethod
@@ -149,28 +120,33 @@ class CanalConsumer(BaseCommand):
         _cv = self._convert_type
         execute_time_name = self.canal_execute_time_name
         event_type_name = self.canal_event_type_name
-        if event_type == EventType.DELETE:
+        if self._mode.is_upsert():
             data = self._generate_by_columns(row.beforeColumns)
+            after_data = self._generate_by_columns(row.afterColumns)
+            data.update(after_data)
             data[event_type_name] = event_type
+            assert event_type in (EventType.DELETE, EventType.INSERT, EventType.UPDATE)
+        elif event_type == EventType.DELETE:
+            data = self._generate_by_columns(row.beforeColumns)
         elif event_type == EventType.INSERT:
             data = self._generate_by_columns(row.afterColumns)
-            data[event_type_name] = event_type
         elif event_type == EventType.UPDATE:
             update_suffix = self.canal_update_suffix
             data = {x.name + update_suffix: x.updated for x in row.afterColumns}
-            before_data = self._generate_by_columns(row.beforeColumns, self.canal_before_column_suffix)
+            data = self._generate_by_columns(row.beforeColumns, self.canal_before_column_suffix)
             after_data = self._generate_after_columns(row.afterColumns)
-            data.update(before_data)
+            data.update(data)
             data.update(after_data)
         else:
             raise Exception("Not support Now")
         assert execute_time not in data
         data[execute_time_name] = execute_time
-        return json.dumps(data).encode('utf-8')
+        return json.dumps(data, ensure_ascii=False).encode('utf-8')
 
-    def _generate_topic_name(self, database: str, table: str, event_type: int):
-        typ = self.SUPPORT_TYPE[event_type]
-        return f"{database}_{table}_{typ}"
+    def _generate_topic_name(self, database: str, table: str, event_type: str) -> Optional[str]:
+        name = database, table, event_type
+        if name in self.topics:
+            return self.topics[name]
 
     @classmethod
     def _convert_utc_time(cls, timestamp: int) -> str:
@@ -182,7 +158,6 @@ class CanalConsumer(BaseCommand):
         return s
 
     def run_forever(self, client, producer):
-
         from canal.protocol import EntryProtocol_pb2
         from canal.protocol.EntryProtocol_pb2 import EntryType
         print(datetime.now(), " start running")
@@ -223,7 +198,12 @@ class CanalConsumer(BaseCommand):
                                         add_million_seconds]))
                 for row in row_change.rowDatas:
                     msg = self._generate_notice(event_type, row, row_time)
-                    topic_name = self._generate_topic_name(database, table, event_type)
+                    event_type_name = self.SUPPORT_TYPE[event_type]
+                    topic_name = self._generate_topic_name(database, table, event_type_name)
+                    if topic_name is None or not self._mode.is_support(event_type_name):
+                        print('filter {} {} {} - topic{}'.format(database, table, event_type_name, topic_name))
+                        continue
+
                     if topic_name not in topics:
                         print(topic_name, 'get')
                     topics[topic_name] += 1
@@ -235,18 +215,18 @@ class CanalConsumer(BaseCommand):
                     for t, n in topics.items():
                         print(' Topic: ', t, ' send ', n)
                     topics = defaultdict(int)
-                    logger.debug("{} wait for in {} already send {}".format(datetime.now(), sleep_times, send_times))
+                    logger.debug(
+                        "{} wait for in {} already send {}".format(datetime.now(), sleep_times, send_times))
                 sleep_times += 1
 
-    def handle(self, *args, **options):
-        self.init_global_params(options)
+    def run(self):
         from kafka import KafkaProducer
-
         from canal.client import Client
-        try:
-            producer = KafkaProducer(bootstrap_servers=self.bootstrap_servers.split(','))
+        client = Client()
+        producer = KafkaProducer(bootstrap_servers=self.bootstrap_servers.split(','))
 
-            client = Client()
+        try:
+
             client.connect(host=self.canal_host, port=self.canal_port)
             client.check_valid(username=self.canal_username.encode(), password=self.canal_password.encode())
             client.subscribe(client_id=self.canal_client_id.encode(), destination=self.canal_destination.encode(),

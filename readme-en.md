@@ -46,7 +46,7 @@ ps: if you want daemon all flink sql job(need set publish and available), add `-
 
     pip install fsqlfly[canal]
 
-
+    fsqlfly runcanal [name or id]
 
 # settings
 

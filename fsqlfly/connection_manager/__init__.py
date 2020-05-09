@@ -1,13 +1,11 @@
 # -*- coding:utf-8 -*-
-import attr
+from fsqlfly.common import *
 import logzero
 from copy import deepcopy
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.sql.sqltypes import TypeDecorator
-from typing import Optional, List, Type, Union, Any
 from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent
 from fsqlfly.utils.strings import load_yaml, dump_yaml, get_full_name
-from fsqlfly.common import DBRes, NameFilter, SchemaField, SchemaContent, VersionConfig, BlinkSQLType, BlinkHiveSQLType
 from fsqlfly.db_helper import DBSession, DBDao, Session, SUPPORT_MODELS, Connector, DBT
 
 
@@ -403,14 +401,6 @@ class ConnectorManager:
             session.close()
 
 
-class CanalMode:
-    upsert = 'upsert'
-    update = 'update'
-    insert = 'insert'
-    delete = 'delete'
-    all = 'all'
-
-
 class CanalKafkaManager(DatabaseManager):
     support_type = ['source']
 
@@ -477,14 +467,7 @@ class CanalManager:
         self.kafka = kafka
         self.session = session
         self.db_manager = DatabaseManager(db.url, NameFilter(db.include, db.exclude), db.type)
-        mode = self.connector.get_config('mode', typ=str)
-        if CanalMode.all in mode:
-            mode = [CanalMode.update, CanalMode.insert, CanalMode.delete]
-        else:
-            mode = mode.split(',')
-        all_mode_support = all(map(lambda x: hasattr(CanalMode, x), mode))
-        assert all_mode_support, 'Canal Config not support mode {}'.format(mode)
-        self.mode = mode
+        self.mode = self.connector.connector_mode
 
     def run(self) -> DBRes:
         db, kafka, session, db_manager = self.db, self.kafka, self.session, self.db_manager
