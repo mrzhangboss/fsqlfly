@@ -204,7 +204,8 @@ class DatabaseManager(BaseManager):
         elif isinstance(typ, (M_DOUBLE, P_DOUBLE)):
             name = types.DOUBLE
         elif isinstance(typ, DECIMAL):
-            name = "{}({},{})".format(types.DECIMAL, typ.precision, typ.scale)
+            depress_name = "{}({},{})".format(types.DECIMAL, typ.precision, typ.scale)
+            name = types.DECIMAL
         elif isinstance(typ, DATETIME) or isinstance(typ, TIMESTAMP):
             name = types.TIMESTAMP
         elif isinstance(typ, DATE):
