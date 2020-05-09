@@ -174,7 +174,7 @@ class Connector(Base):
     @property
     def process_time_field(self) -> Optional[SchemaField]:
         if self.get_config('process_time_enable', typ=bool):
-            return SchemaField(name=self.get_config('process_time_enable', typ=str),
+            return SchemaField(name=self.get_config('process_time_name', typ=str),
                                type=BlinkSQLType.TIMESTAMP, proctime=True)
 
     @property
@@ -197,9 +197,10 @@ class Connector(Base):
                            type=BlinkSQLType.INTEGER)
 
     @property
-    def db_execute_time_field(self) -> SchemaField:
-        return SchemaField(name=self.get_config('rowtime_from', typ=str),
-                           type=BlinkSQLType.TIMESTAMP)
+    def db_execute_time_field(self) -> Optional[SchemaField]:
+        if not self.get_config('rowtime_enable', typ=bool):
+            return SchemaField(name=self.get_config('rowtime_from', typ=str),
+                               type=BlinkSQLType.TIMESTAMP)
 
     @property
     def binlog_type_name(self) -> str:
@@ -366,16 +367,7 @@ class ResourceVersion(Base):
                 schemas.extend(config.schema)
 
             for x in need_fields:
-                base = {
-                    "name": x.name,
-                    "data-type": x.type
-                }
-                if x.proctime:
-                    base['proctime'] = x.proctime
-                if x.rowtime:
-                    base['rowtime'] = x.rowtime
-
-                schemas.append(base)
+                schemas.append(self.field2schema(x))
 
             res['schema'] = schemas
 
@@ -383,6 +375,18 @@ class ResourceVersion(Base):
             raise NotImplementedError("Not Support {}".format(template.type))
 
         return res
+
+    @classmethod
+    def field2schema(cls, field: SchemaField) -> dict:
+        base = {
+            "name": field.name,
+            "data-type": field.type
+        }
+        if field.proctime:
+            base['proctime'] = field.proctime
+        if field.rowtime:
+            base['rowtime'] = field.rowtime
+        return base
 
 
 class Namespace(Base):

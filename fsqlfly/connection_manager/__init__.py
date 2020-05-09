@@ -41,7 +41,7 @@ class UpdateStatus:
 
     @property
     def info(self) -> str:
-        header = f"\n{self.name}\n\n\n:" if self.name else ''
+        header = f"{self.name}:\n\n\n" if self.name else ''
         return header + '\n'.join(['{}: {}'.format(x, getattr(self, x)) for x in dir(self) if x.endswith('ed')])
 
 
@@ -412,48 +412,60 @@ class CanalMode:
 
 
 class CanalKafkaManager(DatabaseManager):
+    support_type = ['source']
+
     renewable = True
 
-    def __init__(self, connection: Connection, connector: Connector, mode: str, cache: List[SchemaContent]):
-        super().__init__(connection.url, NameFilter(), 'kafka')
+    def __init__(self, connector: Connector, mode: str, cache: List[SchemaContent]):
+        super().__init__(connector.target.url, NameFilter(), 'kafka')
         self._cache = cache
         self._connector = connector
         self._mode = mode
 
     def update(self) -> List[SchemaContent]:
-        res = []
+        return self._cache
+
+    def generate_default_version(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
+                                 template: ResourceTemplate) -> ResourceVersion:
+        config = super(CanalKafkaManager, self).generate_default_version_config(connection, schema, name, template)
+        version = super(CanalKafkaManager, self).generate_default_version(connection, schema, name, template)
+        mode = self._mode
+        version.name = mode
+        version.full_name = get_full_name(template.full_name, mode)
+
+        schema_fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema else []
         row_field = self._connector.rowtime_field
         process_field = self._connector.process_time_field
         execute_time_field = self._connector.db_execute_time_field
         binlog_field = self._connector.binlog_type_name_field
         cnt = self._connector
-        for _content in self._cache:
-            content = deepcopy(_content)
-            fields = []
-            for schema in _content.fields:
-                if self._mode == CanalMode.update:
-                    for suffix, tp in zip([cnt.before_column_suffix, cnt.after_column_suffix, cnt.update_suffix],
-                                          [schema.type, schema.type, BlinkSQLType.BOOLEAN]):
-                        n_schema = deepcopy(schema)
-                        n_schema.type = tp
-                        n_schema.name = n_schema.name + suffix
-                        fields.append(n_schema)
-                else:
-                    fields.append(schema)
+        fields = []
 
-            if row_field:
-                fields.append(row_field)
-            if process_field:
-                fields.append(process_field)
+        if mode == CanalMode.update:
+            config.exclude = '.*'
+            for schema in schema_fields:
+                for suffix, tp in zip([cnt.before_column_suffix, cnt.after_column_suffix, cnt.update_suffix],
+                                      [schema.type, schema.type, BlinkSQLType.BOOLEAN]):
+                    n_schema = deepcopy(schema)
+                    n_schema.type = tp
+                    n_schema.name = n_schema.name + suffix
+                    fields.append(n_schema)
 
-            if self._mode == CanalMode.upsert:
-                fields.append(binlog_field)
+        if row_field:
+            fields.append(row_field)
+        if process_field:
+            fields.append(process_field)
 
+        if self._mode == CanalMode.upsert:
+            fields.append(binlog_field)
+
+        if execute_time_field:
             fields.append(execute_time_field)
-            content.fields = fields
-            res.append(content)
 
-        return res
+        config.schema = [ResourceVersion.field2schema(x) for x in fields]
+
+        version.config = dump_yaml(attr.asdict(config))
+        return version
 
 
 class CanalManager:
@@ -466,7 +478,7 @@ class CanalManager:
         self.session = session
         self.db_manager = DatabaseManager(db.url, NameFilter(db.include, db.exclude), db.type)
         mode = self.connector.get_config('mode', typ=str)
-        if 'both' in mode:
+        if CanalMode.all in mode:
             mode = [CanalMode.update, CanalMode.insert, CanalMode.delete]
         else:
             mode = mode.split(',')
@@ -481,9 +493,9 @@ class CanalManager:
         db_manager.update_connection(db_status, session, db)
         res.append(db_status)
         for mode in self.mode:
-            manager = CanalKafkaManager(kafka, self.connector, mode, db_manager.update())
+            manager = CanalKafkaManager(self.connector, mode, db_manager.update())
             status = UpdateStatus('Canal {} Status'.format(mode))
-            manager.update_connection(status, session, db)
+            manager.update_connection(status, session, kafka)
             res.append(status)
 
         return DBRes(msg='\n\n'.join(x.info for x in res))
@@ -491,8 +503,9 @@ class CanalManager:
 
 class CanalConnectorManager(ConnectorManager):
     def _run(self, connector: Connector, session: Session) -> DBRes:
-        assert connector.source.type.code == 'db', 'Canal Source Type must be db'
-        assert connector.target.type.code == 'kafka', 'Canal Target Type must be kafka'
+        s_type, t_type = connector.source.type.code, connector.target.type.code
+        assert s_type == 'db', 'Canal Source Type must be db current: {}'.format(s_type)
+        assert t_type == 'kafka', 'Canal Target Type must be kafka current: {}'.format(t_type)
 
         manager = CanalManager(connector, session)
 

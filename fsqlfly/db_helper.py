@@ -317,25 +317,25 @@ class DBDao:
     @classmethod
     def upsert_resource_version(cls, obj: ResourceVersion, *args, session: Session,
                                 **kwargs) -> (ResourceVersion, bool):
+        max_version_obj = session.query(ResourceVersion.version).filter(
+            ResourceVersion.template_id == obj.template_id).order_by(ResourceVersion.version.desc()).first()
+        max_version = max_version_obj[0] if max_version_obj else 0
         query = session.query(ResourceVersion).filter(and_(ResourceVersion.name == obj.name,
                                                            ResourceVersion.template_id == obj.template_id))
         inserted = True
         res = first = query.order_by(ResourceVersion.version.desc()).first()
         if first:
-            if first.config == obj.config:
-                res.config = obj.config
-                res.cache = obj.cache
-                res.info = obj.info
-                res.cache = obj.cache
-                res.schema_version_id = obj.schema_version_id
-                inserted = False
-            else:
-                res = obj
-                max_version = session.query(ResourceVersion.version).order_by(ResourceVersion.version.desc()).first()
-                res.version = max_version[0] + 1
+            if first.config != obj.config:
+                res.version = max_version + 1
+            res.config = obj.config
+            res.cache = obj.cache
+            res.info = obj.info
+            res.cache = obj.cache
+            res.schema_version_id = obj.schema_version_id
+            inserted = False
         else:
             res = obj
-
+            res.version = max_version + 1
         session.add(res)
         session.commit()
         return res, inserted

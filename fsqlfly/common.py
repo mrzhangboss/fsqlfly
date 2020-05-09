@@ -93,12 +93,12 @@ def safe_authenticated(
                 self.redirect(url)
                 return None
             raise HTTPError(403)
+        from fsqlfly import settings
+        if settings.FSQLFLY_DEBUG:
+            return method(self, *args, **kwargs)
         try:
             return method(self, *args, **kwargs)
-        except Exception as error:
-            from fsqlfly import settings
-            if settings.FSQLFLY_DEBUG:
-                raise error
+        except Exception:
             err = traceback.format_exc()
             logger.error(err)
             return DBRes.sever_error(msg=f'meet {err}')
@@ -174,7 +174,7 @@ class BlinkSQLType:
     DOUBLE = 'DOUBLE'
     DATE = 'DATE'
     TIME = 'TIME'
-    TIMESTAMP = 'TIMESTAMP'
+    TIMESTAMP = 'TIMESTAMP(3)'
 
 
 class BlinkHiveSQLType(BlinkSQLType):

@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch, Mock
 from fsqlfly.db_helper import Connector
 from fsqlfly.connection_manager import *
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, func
 
 
 class NameFilterTest(unittest.TestCase):
@@ -100,7 +100,9 @@ mode = insert,update
         self.assertTrue(res.success)
 
         self.assertTrue(session.query(SchemaEvent).count() > 0)
-
+        res = session.query(ResourceVersion.template_id, func.count(ResourceVersion.id)).filter(
+            ResourceVersion.name != 'latest').group_by(ResourceVersion.template_id).all()
+        self.assertTrue(all(map(lambda x: x[1] == 2, res)))
 
 
 if __name__ == '__main__':
