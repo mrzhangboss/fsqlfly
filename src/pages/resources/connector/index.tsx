@@ -523,7 +523,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
 
           <FormItem label="目标" {...this.formLayout}>
             {getFieldDecorator('targetId', {
-              initialValue: current.sourceId,
+              initialValue: current.targetId,
               rules: [
                 {
                   required: true,

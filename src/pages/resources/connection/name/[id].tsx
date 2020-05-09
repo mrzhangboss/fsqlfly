@@ -120,7 +120,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     dispatch({
       type: `${NAMESPACE}/fetch`,
       payload: {
-        connection_id: this.getCurrentConnectionId,
+        connection_id: this.getCurrentConnectionId(),
       },
     });
   };

@@ -39,8 +39,7 @@ const isAntDesignProOrDev = (): boolean => {
 // ['hive', 'db', 'kafka', 'hbase', 'elasticsearch', 'canal', 'file']
 
 const CONNECTION_TEMPLATE = {
-  hive: `name: myhive
-type: hive
+  hive: `type: hive
 hive-conf-dir: /opt/hive-conf  # contains hive-site.xml
 hive-version: 2.3.4`,
   kafka: `type: kafka
@@ -49,6 +48,7 @@ properties:
   zookeeper.connect: localhost:2181  # required: specify the ZooKeeper connection string
   bootstrap.servers: localhost:9092  # required: specify the Kafka server connection string
   group.id: testGroup                # optional: required in Kafka consumer, specify consumer group
+topic: {{ resource_name.database }}__{{ resource_name.name }}
 `,
   elasticsearch: `type: elasticsearch
 version: 7                                            # required: valid connector versions are "6" "7"
@@ -129,13 +129,13 @@ write: # sink options, optional, used when writing into table
   file: `type: filesystem
 path: "file:///path/to/whatever"`,
   canal: `[canal]
-host: localhost
-port: 11111
-username: root
-password: password
-client-id: 11021
-destination: example
-filter: .*\\..*`,
+canal_host: localhost
+canal_port: 11111
+canal_username: root
+canal_password: password
+canal_client_id: 11021
+canal_destination: example
+canal_filter: .*\\..*`,
 };
 const base = `include: .*\\.*
 exclude:
