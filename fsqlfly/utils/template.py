@@ -1,10 +1,13 @@
-from typing import Optional
+from typing import Optional, Union
 from datetime import timedelta, datetime
 from fsqlfly.utils import macros
 
 
-def generate_template_context(execution_date: Optional[datetime] = None, **kwargs):
+def generate_template_context(execution_date: Optional[Union[datetime, str]] = None, **kwargs):
     execution_date = execution_date if execution_date else datetime.now()
+    if isinstance(execution_date, str):
+        fmt = '%Y-%m-%d' if len(execution_date) == 10 else '%Y-%m-%d %H:%M:%S'
+        execution_date = datetime.strptime(execution_date, fmt)
     ds = execution_date.strftime('%Y-%m-%d')
     ts = execution_date.isoformat()
     yesterday_ds = (execution_date - timedelta(1)).strftime('%Y-%m-%d')

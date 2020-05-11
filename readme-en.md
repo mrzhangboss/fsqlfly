@@ -118,7 +118,7 @@ If you want kill all `pt` job add `kill_all_pt` in request json body.
 
 PS: `pt` only can contain '0-9a-zA-Z_-' 
 PS: `status` api if no `last_run_job_id` or multi running job , api will return `FAILED`  
-
+PS: we will generate a dt variable in your sql template, you can set `execution_date` in request body(json format), eg: (`2020-05-11 23:22:07` or `2020-05-11`)
 
 ## Airflow Support
 
