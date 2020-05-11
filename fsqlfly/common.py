@@ -242,3 +242,46 @@ class CanalMode:
 
 
 CANAL_MODE = CanalMode.support_modes()
+
+DEFAULT_CONFIG = """
+[db]
+insert_primary_key = false
+add_read_partition_key = false
+read_partition_key = id
+read_partition_fetch_size = 100
+read_partition_lower_bound = 0
+read_partition_upper_bound = 50000
+read_partition_num = 50
+
+[kafka]
+process_time_enable = true
+process_time_name = flink_process_time
+rowtime_enable = true
+rowtime_from = MYSQL_DB_EXECUTE_TIME
+
+[hive]
+
+example = 1
+
+[canal]
+mode = upsert
+process_time_enable = true
+process_time_name = flink_process_time
+rowtime_enable = true
+rowtime_name = mysql_row_time
+rowtime_watermarks = 5000
+rowtime_from = MYSQL_DB_EXECUTE_TIME
+binlog_type_name = MYSQL_DB_EVENT_TYPE
+before_column_suffix = _before
+after_column_suffix = _after
+update_suffix = _updated
+table_filter = .*\..*
+
+[system]
+source_include: .*
+source_exclude: ''
+run_parallelism: 0
+target_database_format: {{ resource_name.database }}
+target_table_format: {{ resource_name.name }}
+
+"""

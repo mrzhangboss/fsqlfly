@@ -31,42 +31,6 @@ class SaveDict(dict):
         return self.get('id')
 
 
-_DEFAULT_CONFIG = """
-[db]
-insert_primary_key = false
-add_read_partition_key = false
-read_partition_key = id
-read_partition_fetch_size = 100
-read_partition_lower_bound = 0
-read_partition_upper_bound = 50000
-read_partition_num = 50
-
-[kafka]
-process_time_enable = true
-process_time_name = flink_process_time
-rowtime_enable = true
-rowtime_from = MYSQL_DB_EXECUTE_TIME
-
-[hive]
-
-example = 1
-
-[canal]
-mode = upsert
-process_time_enable = true
-process_time_name = flink_process_time
-rowtime_enable = true
-rowtime_name = mysql_row_time
-rowtime_watermarks = 5000
-rowtime_from = MYSQL_DB_EXECUTE_TIME
-binlog_type_name = MYSQL_DB_EVENT_TYPE
-before_column_suffix = _before
-after_column_suffix = _after
-update_suffix = _updated
-table_filter = .*\..*
-"""
-
-
 class Base(_Base):
     __abstract__ = True
 
@@ -87,7 +51,7 @@ class Base(_Base):
     def get_default_config_parser(cls) -> ConfigParser:
         default_config_parser = ConfigParser()
 
-        default_config_parser.read_string(_DEFAULT_CONFIG)
+        default_config_parser.read_string(DEFAULT_CONFIG)
         return default_config_parser
 
     def get_config_parser(self) -> ConfigParser:
