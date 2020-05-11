@@ -55,6 +55,7 @@ source_exclude|the source exclude name from all connection resource name|''
 run_parallelism|the parallelism of all job if 0 then submit all job to flink| 0
 target_database_format|the target database | {{ resource_name.database }}
 target_table_format|the target tablename| {{ resource_name.name }}  
+transform_name_format|the generate transform name format| {{ source_type }}2{{ target_type }}__{{ connector.name }}\__{{ resource_name.database }}\__{{ resource_name.name }}  
 
 
 

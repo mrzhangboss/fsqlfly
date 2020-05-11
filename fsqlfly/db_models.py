@@ -199,6 +199,11 @@ class Connector(Base):
     def update_suffix(self) -> str:
         return self.get_config('update_suffix', typ=str)
 
+    @property
+    def need_tables(self) -> NameFilter:
+        assert self.type == 'system', 'only system has need tables '
+        return NameFilter(self.get_config('source_include'), self.get_config('source_exclude'))
+
 
 class ResourceName(Base):
     __tablename__ = 'resource_name'
@@ -231,6 +236,10 @@ class ResourceName(Base):
     def get_config(self, name: str, section: Optional[str] = None,
                    typ: Optional[Union[Type[CONFIG_T]]] = None) -> CONFIG_T:
         return super(ResourceName, self).get_config(name, section=section if section else self.connection.type, typ=typ)
+
+    @property
+    def db_name(self):
+        return self.database + '.' + self.name if self.database else self.name
 
 
 class ResourceTemplate(Base):
