@@ -3,6 +3,7 @@ import os
 import traceback
 import yaml
 from functools import wraps, partial
+from copy import deepcopy
 from typing import Callable, Type, Optional, List, Union, Any, TypeVar
 from sqlalchemy import and_, event
 from sqlalchemy.engine import Engine
@@ -181,14 +182,19 @@ class DBDao:
             assert version, "Not Found {} in database, try use full name".format(full_name)
             cache = version.generate_version_cache()
             r_name = version.resource_name
+            t_name = version.template
             cache['type'] = version.template.type.code
-            for name in [r_name.name, r_name.full_name, version.full_name]:
+            for name in [r_name.name, r_name.full_name, t_name.full_name]:
                 if name not in names:
                     cache['name'] = name.replace('.', '__')
                     names.add(name)
                     break
-            assert 'name' in cache, 'Not generate suit name for version {}'.format(full_name)
-            res.append(cache)
+            if 'name' in cache:
+                res.append(cache)
+            full_name_cache = deepcopy(cache)
+            full_name_cache['name'] = version.full_name.replace('.', '__')
+            res.append(full_name_cache)
+
         return res
 
     @classmethod
