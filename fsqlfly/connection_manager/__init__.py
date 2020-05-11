@@ -507,12 +507,12 @@ class BaseHelper:
         return mode in ('update', 'clean')
 
     @classmethod
-    def update(cls, model: str, pk: int):
+    def update(cls, model: str, pk: int) -> DBRes:
         raise NotImplementedError
 
     @classmethod
-    def clean(cls, model: str, pk: int):
-        raise NotImplementedError
+    def clean(cls, model: str, pk: int) -> DBRes:
+        return DBDao.clean(model, pk)
 
 
 class ConnectorHelper(BaseHelper):
@@ -523,23 +523,6 @@ class ConnectorHelper(BaseHelper):
         obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
         manager = CanalConnectorManager() if obj.type.code == 'canal' else SystemConnectorManager()
         return manager.run(obj, session)
-
-    @classmethod
-    def clean(cls, model: str, pk: int):
-        session = DBSession.get_session()
-        obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
-        back = obj.as_dict()
-        source_id, target_id = obj.source.id, obj.target.id
-        session.delete(obj)
-        session.commit()
-        session.close()
-        ConnectionHelper.clean('connection', target_id)
-        ConnectionHelper.clean('connection', source_id)
-        session = DBSession.get_session()
-        DBDao.save(SUPPORT_MODELS[model](**back), session=session)
-        session.close()
-        return DBRes()
-
 
 
 class ConnectionHelper(BaseHelper):
@@ -568,18 +551,6 @@ class ConnectionHelper(BaseHelper):
         finally:
             session.commit()
             session.close()
-
-    @classmethod
-    def clean(cls, model: str, pk: int):
-        session = DBSession.get_session()
-        obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
-        session.close()
-        back = obj.as_dict()
-        DBDao.delete(model, pk)
-        session = DBSession.get_session()
-        DBDao.save(SUPPORT_MODELS[model](**back), session=session)
-        session.close()
-        return DBRes()
 
 
 class ManagerHelper:

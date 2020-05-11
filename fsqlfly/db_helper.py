@@ -199,8 +199,8 @@ class DBDao:
         for full_name in require.split(','):
             if cls.is_hive_table(full_name):
                 hive = session.query(Connection).filter(Connection.is_active == True,
-                                                             Connection.type == 'hive',
-                                                             Connection.name == full_name).one()
+                                                        Connection.type == 'hive',
+                                                        Connection.name == full_name).one()
                 conn = hive.get_connection_connector()
                 conn['name'] = hive.name
                 if hive.name not in names:
@@ -253,6 +253,39 @@ class DBDao:
             return DBRes(data=obj.id)
         else:
             return DBRes.sever_error('Not Support Delete when FSQLFLY_SAVE_MODE_DISABLE not set')
+
+    @classmethod
+    def _clean(cls, obj: DBT, session: Session, base: Type[DBT]):
+        back = obj.as_dict()
+        session.delete(obj)
+        session.commit()
+        session.add(base(**back))
+        session.commit()
+
+    @classmethod
+    @session_add
+    @filter_not_support
+    def clean(cls, model: str, pk: int, *args, session: Session, base: Type[DBT], **kwargs) -> DBRes:
+        obj = session.query(base).get(pk)
+        if isinstance(obj, Connector):
+            back = obj.as_dict()
+            source, target = obj.source, obj.target
+            session.delete(obj)
+            session.commit()
+            cls._clean(source, session, Connection)
+            cls._clean(target, session, Connection)
+            session.add(Connector(**back))
+        else:
+            if isinstance(obj, Connection):
+                s_names = [x[0] for x in
+                           session.query(Connector.name).join(Connector.source).filter(Connection.id == pk).all()]
+                t_names = [x[0] for x in
+                           session.query(Connector.name).join(Connector.target).filter(Connection.id == pk).all()]
+                msg = "please clean connector source: {} target: {}".format(','.join(s_names), ','.join(t_names))
+                if s_names or t_names:
+                    return DBRes.api_error(msg)
+            cls._clean(obj, session, base)
+        return DBRes()
 
     @classmethod
     @session_add
