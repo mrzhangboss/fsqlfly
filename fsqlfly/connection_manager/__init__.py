@@ -4,6 +4,7 @@ import logzero
 from copy import deepcopy
 from typing import Tuple
 from sqlalchemy import create_engine, inspect
+from fsqlfly.common import BlinkSQLType
 from sqlalchemy.sql.sqltypes import TypeDecorator
 from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent, Transform
 from fsqlfly.utils.strings import load_yaml, dump_yaml, get_full_name
@@ -553,15 +554,59 @@ class SystemConnectorUpdateManager(ConnectorManager):
 
 
 class SystemConnectorInitManager(ConnectorManager):
+    def build_sql(self, target_database: str, target_table: str, schema: list, connector: Connector) -> List[str]:
+        res = []
+        drop_table = f'DROP TABLE IF EXISTS `{target_database}`.`{target_table}`'
+        create_header = f'CREATE TABLE `{target_database}`.`{target_table}` ('
+        cols = []
+        for x in schema:
+            typ = 'TIMESTAMP' if x['data-type'] == BlinkSQLType.TIMESTAMP else x['data-type']
+            col = '`{}` {}'.format(x['name'], typ)
+            cols.append(col)
+        res.extend([create_header])
+        res.append(','.join(cols))
+        if connector.use_partition:
+            key, _ = connector.partition_key_value
+            partition = f") PARTITIONED BY ({key} STRING )"
+            res.append(partition)
+        else:
+            res.append(')')
+        return [drop_table, '\n'.join(res)]
+
     def _run(self, connector: Connector, session: Session) -> DBRes:
         self.check_system(connector)
+        need_tables = connector.need_tables
+        source, target = connector.source, connector.target
+        source_type, target_type = source.type.code, target.type.code
+        if not connector.source.resource_names:
+            return DBRes.api_error("Not Found Any Resource Name in Connection {}".format(source.name))
+        updated = inserted = 0
+        engine = create_engine(target.url)
+
+        for resource_name in connector.source.resource_names:
+            if resource_name.db_name in need_tables:
+
+                name = connector.get_transform_name_format(source_type=source_type, target_type=target_type,
+                                                           resource_name=resource_name, connector=connector)
+                require_version = None
+                for version in resource_name.versions:
+                    if version.template.type == 'source':
+                        require_version = version
+                assert require_version, 'Not found require version Please check {}'.format(resource_name.full_name)
+                t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
+                                                                               connector=connector)
+                schemas = version.generate_version_cache()['schema']
+                for sql in self.build_sql(t_database, t_table, schemas, connector):
+                    print(sql)
+                    engine.execute(sql)
+
         return DBRes()
 
 
 class SystemConnectorRunManager(ConnectorManager):
     def _run(self, connector: Connector, session: Session) -> DBRes:
         self.check_system(connector)
-        return DBRes()
+        return DBRes.api_error("Current Not Support")
 
 
 class BaseHelper:
