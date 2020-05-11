@@ -150,6 +150,7 @@ example:
         dag=dag,
         method='start',  # support restart | start | stop  
         daemon=True,
+        parallelism=0,   # if parallelism set not zero then will control the max running job one time
         poke_interval=5,
     )
 
@@ -158,7 +159,7 @@ example:
 `HOST`: airflow connection id , see more in [detail](https://airflow.apache.org/docs/stable/howto/connection/index.html)
 `data`: args in flink job
 
-
+if you want control `connector` by airflow you can use `fsqlfly.airflow_plugins.FSQLFlyConnectorOperator` same usage as upper.
 
 
 
