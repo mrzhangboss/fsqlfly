@@ -69,6 +69,11 @@ FSQLFLY_JOB_DAEMON_MAX_TRY_ONE_DAY| each job maximum try times in one day       
 FSQLFLY_JOB_LOG_DIR| flink job damon log file            | /tmp/fsqlfly_job_log
 FSQLFLY_UPLOAD_DIR| upload dir            | ~/.fsqlfly_upload
 FSQLFLY_SAVE_MODE_DISABLE| if set then support delete or otherwise            | False 
+FSQLFLY_MAIL_HOST| smt email host|None
+FSQLFLY_MAIL_USER| smt email user|None
+FSQLFLY_MAIL_PASSWORD| smt email password |None
+FSQLFLY_MAIL_RECEIVERS| smt email receivers sep by ,|None
+
    
 
     
