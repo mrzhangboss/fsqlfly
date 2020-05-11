@@ -57,7 +57,9 @@ target_database_format|the target database | {{ resource_name.database }}
 target_table_format|the target tablename| {{ resource_name.name }}  
 transform_name_format|the generate transform name format| {{ source_type }}2{{ target_type }}__{{ connector.name }}\__{{ resource_name.database }}\__{{ resource_name.name }}  
 use_partition|if use partition |false
-partition_format|if use partition |{{ ds_nodash }}
+partition_name|if use partition |pt
+partition_value|if use partition |{{ ds_nodash }}
+
 
 
 

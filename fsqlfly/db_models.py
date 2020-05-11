@@ -2,7 +2,7 @@ import sqlalchemy as sa
 from jinja2 import Template
 from datetime import datetime
 from configparser import ConfigParser
-from typing import Any, Optional, Union, Type, TypeVar
+from typing import Tuple, TypeVar
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
@@ -217,9 +217,9 @@ class Connector(Base):
         return self.get_config('use_partition', typ=bool)
 
     @property
-    def partition_format(self) -> str:
+    def partition_key_value(self) -> Tuple[str, str]:
         self.check_system_type()
-        return self.get_config('partition_format')
+        return self.get_config('partition_name'), self.get_config('partition_value')
 
 
 class ResourceName(Base):
@@ -314,6 +314,10 @@ class ResourceVersion(Base):
     @classmethod
     def latest_name(cls):
         return 'latest'
+
+    @property
+    def db_full_name(self):
+        return self.full_name.replace('.', '__')
 
     def generate_version_cache(self) -> dict:
         template = self.template
