@@ -199,10 +199,27 @@ class Connector(Base):
     def update_suffix(self) -> str:
         return self.get_config('update_suffix', typ=str)
 
+    def check_system_type(self):
+        assert self.type == 'system', 'only system has need tables '
+
     @property
     def need_tables(self) -> NameFilter:
-        assert self.type == 'system', 'only system has need tables '
+        self.check_system_type()
         return NameFilter(self.get_config('source_include'), self.get_config('source_exclude'))
+
+    def get_transform_name_format(self, **kwargs) -> str:
+        self.check_system_type()
+        return Template(self.get_config('transform_name_format')).render(generate_template_context(**kwargs))
+
+    @property
+    def use_partition(self) -> bool:
+        self.check_system_type()
+        return self.get_config('use_partition', typ=bool)
+
+    @property
+    def partition_format(self) -> str:
+        self.check_system_type()
+        return self.get_config('partition_format')
 
 
 class ResourceName(Base):
