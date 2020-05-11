@@ -11,6 +11,7 @@ from datetime import datetime, date
 from fsqlfly.workflow import run_transform
 from fsqlfly.settings import FSQLFLY_DEBUG
 from fsqlfly.utils.job_manage import JobControlHandle
+from fsqlfly.db_helper import DBSession, DBDao
 
 
 def get_log_file(file: str):
@@ -49,9 +50,8 @@ class FlinkJobDaemon:
 
         today = str(date.today())
         start_time = time.time()
-        query = (Transform.is_publish == True, Transform.is_deleted == False, Transform.is_available == True)
-        job_names = {"{}_{}".format(x.id, x.name): x for x in
-                     Transform.select().where(*query).order_by(Transform.id.desc()).objects()}
+        session = DBSession.get_session()
+        job_names = DBDao.get_job_names(session=session)
 
         living_job = JobControlHandle.live_job_names
         for k, transform in job_names.items():
@@ -73,6 +73,7 @@ class FlinkJobDaemon:
 
         self.logger.debug(
             " ".join([str(datetime.now())[:19], ' damon cost ', '%.2f' % cost, ' second', ' will sleep ']))
+        session.close()
 
     def get_periodic_callback(self, period) -> Callable:
         def _warp():

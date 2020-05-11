@@ -5,7 +5,7 @@ import yaml
 from functools import wraps, partial
 from copy import deepcopy
 from typing import Callable, Type, Optional, List, Union, Any, TypeVar
-from sqlalchemy import and_, event
+from sqlalchemy import and_, event, or_, subquery
 from sqlalchemy.engine import Engine
 from fsqlfly import settings
 from fsqlfly.common import DBRes
@@ -106,7 +106,7 @@ class DBDao:
     @classmethod
     @session_add
     @filter_not_support
-    def create(cls, model: str, obj: dict, *args, session: Session, base: Type[Base], **kwargs) -> DBRes:
+    def create(cls, model: str, obj: dict, *args, session: Session, base: Type[DBT], **kwargs) -> DBRes:
         db_obj = base(**obj)
         session.add(db_obj)
         session.commit()
@@ -130,6 +130,17 @@ class DBDao:
         if filter_:
             query = cls.build_and(filter_, base, query)
         return DBRes(data=[x.as_dict() for x in query.all()])
+
+    @classmethod
+    def get_job_names(cls, *args, session: Session, **kwargs) -> dict:
+        res = dict()
+        query = session.query(Transform).join(Transform.namespace, isouter=True)
+        for q in (and_(Transform.is_daemon.is_(True), Namespace.is_daemon.is_(True)),
+                  and_(Transform.namespace_id.is_(None), Transform.is_daemon.is_(True))):
+            for x in query.filter(q).all():
+                res["{}_{}".format(x.id, x.name)] = x
+
+        return res
 
     @classmethod
     @session_add
