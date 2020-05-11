@@ -600,7 +600,7 @@ class SystemConnectorListManager(SystemConnectorManager):
         for resource_name in resource_names:
             name = connector.get_transform_name_format(resource_name=resource_name)
             res.append(name)
-        return DBRes(data=dict(names=res, parallelism=connector.system_run_parallelism))
+        return DBRes(data=res)
 
 
 class BaseHelper:

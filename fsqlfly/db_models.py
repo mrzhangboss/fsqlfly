@@ -225,11 +225,6 @@ class Connector(Base):
         return self.get_config('use_partition', typ=bool)
 
     @property
-    def system_run_parallelism(self) -> int:
-        self.check_system_type()
-        return self.get_config('run_parallelism', typ=int)
-
-    @property
     def partition_key_value(self) -> Tuple[str, str]:
         self.check_system_type()
         return self.get_config('partition_name'), self.get_config('partition_value')

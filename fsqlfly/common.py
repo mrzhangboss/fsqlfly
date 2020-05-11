@@ -280,7 +280,6 @@ table_filter = .*\..*
 [system]
 source_include: .*
 source_exclude: ''
-run_parallelism: 0
 target_database_format: {{ resource_name.database }}
 target_table_format: {{ resource_name.name }}
 transform_name_format: {{ source_type }}2{{ target_type }}__{{ connector.name }}__{{ resource_name.database }}__{{ resource_name.name }}  
