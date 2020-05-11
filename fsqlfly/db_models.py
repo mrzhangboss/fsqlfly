@@ -211,6 +211,11 @@ class Connector(Base):
         self.check_system_type()
         return Template(self.get_config('transform_name_format')).render(generate_template_context(**kwargs))
 
+    def get_transform_target_full_name(self, **kwargs) -> Tuple[str, str]:
+        database = Template(self.get_config('target_database_format')).render(**kwargs)
+        table = Template(self.get_config('target_table_format')).render(**kwargs)
+        return database, table
+
     @property
     def use_partition(self) -> bool:
         self.check_system_type()

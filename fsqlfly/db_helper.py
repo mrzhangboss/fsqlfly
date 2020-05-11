@@ -419,6 +419,27 @@ class DBDao:
         return res, inserted
 
     @classmethod
+    def upsert_transform(cls, obj: Transform, *args, session: Session,
+                                **kwargs) -> (Transform, bool):
+        query = session.query(Transform).filter(Transform.name == obj.name)
+        inserted = True
+        res = first = query.first()
+        if first:
+            first.sql = obj.sql
+            first.connector_id = obj.connector_id
+            first.info = obj.info
+            first.require = obj.require
+            first.yaml = obj.yaml
+            first.namespace_id = obj.namespace_id
+            first.is_daemon = obj.is_daemon
+            inserted = False
+        else:
+            res = obj
+        session.add(res)
+        session.commit()
+        return res, inserted
+
+    @classmethod
     def create_all_tables(cls):
         create_all_tables(DBSession.engine)
 
