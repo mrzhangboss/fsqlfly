@@ -55,7 +55,7 @@ canal_require = ['canal-python <= 0.4', 'kafka-python >= 1.3.4, <= 1.4.7', 'prot
 pg_require = ['psycopg2 <= 2.8.4']
 mysql_require = ['PyMySQL <= 0.9.3']
 airflow_require = ['apache-airflow']
-hive_require = ['PyHive<=0.6.2', 'thrift<=0.13.0', 'sasl<=0.2.1', 'thrift_sasl<0.4.2']
+hive_require = ['PyHive<=0.6.2', 'thrift<=0.13.0', 'sasl<=0.2.1', 'thrift_sasl>0.4.1,<=0.4.2']
 es_require = ['elasticsearch>=7.0.0,<8.0.0']
 hbase_require = ['happybase<=1.2.0']
 setup(
