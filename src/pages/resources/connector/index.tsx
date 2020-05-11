@@ -148,8 +148,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     this.setState({
       visible: true,
       submitted: false,
-      current: {},
-      config: '',
+      current: { config: CONNECTION_TEMPLATE['system'] },
+      config: CONNECTION_TEMPLATE['system'],
     });
   };
 
@@ -338,7 +338,15 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       if (key === 'edit') this.showEditModal(currentItem);
       else if (key == 'update') this.showManageModal(currentItem, 'update');
       else if (key == 'clean') this.showManageModal(currentItem, 'clean');
-      else if (key === 'delete') {
+      else if (key == 'init') {
+        Modal.confirm({
+          title: '初始化',
+          content: '确定初始化吗，会删掉所有数据？',
+          okText: '确认',
+          cancelText: '取消',
+          onOk: () => this.showManageModal(currentItem, 'init'),
+        });
+      } else if (key === 'delete') {
         Modal.confirm({
           title: '删除',
           content: '确定删除吗？',
@@ -427,6 +435,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         overlay={
           <Menu onClick={({ key }) => editAndDelete(key, item)}>
             {deletable && <Menu.Item key="delete">删除</Menu.Item>}
+            {currentType == 'system' && <Menu.Item key="init">初始化数据</Menu.Item>}
             <Menu.Item key="update">更新</Menu.Item>
             <Menu.Item key="clean">清除</Menu.Item>
           </Menu>

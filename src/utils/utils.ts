@@ -136,6 +136,17 @@ canal_password: password
 canal_client_id: 11021
 canal_destination: example
 canal_filter: .*\\..*`,
+  system: `[system]
+source_include: .*
+source_exclude: ''
+run_parallelism: 0
+target_database_format: {{ resource_name.database }}
+target_table_format: {{ resource_name.name }}
+transform_name_format: {{ source_type }}2{{ target_type }}__{{ connector.name }}__{{ resource_name.database }}__{{ resource_name.name }}
+use_partition: false
+partition_name: pt
+partition_value: {{ ds_nodash }}
+`,
 };
 const base = `include: .*\\.*
 exclude:

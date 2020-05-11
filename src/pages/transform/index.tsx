@@ -577,7 +577,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 onChange={this.handleChange}
                 tokenSeparators={[',']}
                 defaultValue={
-                  current === undefined || current.require === undefined
+                  current === undefined || current.require === null || current.require === undefined
                     ? undefined
                     : current.require.split(',')
                 }
