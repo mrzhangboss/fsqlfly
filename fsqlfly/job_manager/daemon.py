@@ -9,8 +9,9 @@ from typing import Callable, Optional
 from requests import Session
 from datetime import datetime, date
 from fsqlfly.workflow import run_transform
-from fsqlfly.settings import FSQLFLY_DEBUG
+from fsqlfly.settings import FSQLFLY_DEBUG, FSQLFLY_MAIL_ENABLE
 from fsqlfly.utils.job_manage import JobControlHandle
+from fsqlfly.contrib.mail import MailHelper
 from fsqlfly.db_helper import DBSession, DBDao
 
 
@@ -34,6 +35,7 @@ class FlinkJobDaemon:
         self.max_req_try = max_req_try
         self.session = Session()
         self.run_times = defaultdict(lambda: defaultdict(int))
+        self.started_jobs = set()
 
     def request(self, func: Callable, try_times: int = 0):
         try:
@@ -44,6 +46,11 @@ class FlinkJobDaemon:
                 raise err
             else:
                 return self.request(func, try_times + 1)
+
+    @classmethod
+    def send_email(cls, title: str = '', content: str = ''):
+        if FSQLFLY_MAIL_ENABLE:
+            print(MailHelper.send(title, content))
 
     def run(self):
         self.logger.debug('Start Running Flink Job Damon {}'.format(str(datetime.now())[:19]))
@@ -58,12 +65,19 @@ class FlinkJobDaemon:
             if k not in living_job:
                 if self.run_times[today][k] > self.max_try:
                     self.logger.error('job run too many times one day {}'.format(k))
+                    self.send_email('job run too many times one day {}'.format(k))
                 else:
                     self.run_times[today][k] += 1
                     self.logger.info('job {} begin run '.format(k))
                     is_ok, r = run_transform(transform)
                     if not is_ok:
+                        self.send_email('job start fail {}'.format(k), r)
                         self.logger.error(r)
+                    else:
+                        if k in self.started_jobs:
+                            self.send_email('try restart job {}, last fail'.format(k), r)
+                        else:
+                            self.started_jobs.add(k)
                     if self.stop_handle:
                         self.stop_handle(k)
 

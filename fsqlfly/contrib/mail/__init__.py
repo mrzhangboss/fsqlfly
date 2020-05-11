@@ -1,9 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, date, timedelta
-
-LAST_SEND_TIME = datetime.today() - timedelta(hours=2)
+from datetime import datetime, date
 
 
 class MailSender:
@@ -24,14 +22,10 @@ class MailSender:
         txt = MIMEText(content, 'plain', 'utf-8')
         message.attach(txt)
 
-        global LAST_SEND_TIME
-        if (datetime.now() - LAST_SEND_TIME).seconds < 60:
-            return "上次发送时间 太短: {}".format(str(LAST_SEND_TIME)[:19])
         try:
             smtp_obj = smtplib.SMTP_SSL(self.mail_host, 465)
             smtp_obj.login(self.mail_user, self.mail_password)
             smtp_obj.sendmail(self.mail_user, self.mail_receivers, message.as_string())
-            LAST_SEND_TIME = datetime.now()
             return "{} mail has been send successfully.".format(str(datetime.now())[:19])
         except smtplib.SMTPException as e:
             return str(e)
