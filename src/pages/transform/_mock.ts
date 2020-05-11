@@ -48,7 +48,7 @@ export default {
     },
   }),
   'GET /api/transform': mockjs.mock({
-    'data|5-9': [
+    'data|9-20': [
       {
         'id|+1': 1,
         name: '@word',
@@ -61,6 +61,7 @@ export default {
         require: 'sdfsdf.sdf,sdfe.sd',
         sql: 'select * from shit',
         config: '-name: jack\n-type:time',
+        'connectorId|1': [null, 1, 2, 3, 4, 5],
       },
     ],
     success: true,

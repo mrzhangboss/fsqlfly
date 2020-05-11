@@ -45,9 +45,16 @@ import 'brace/theme/github';
 import TextArea from 'antd/es/input/TextArea';
 import { cutStr } from '@/utils/utils';
 
+interface Connector {
+  id: number;
+  name: string;
+  info: string;
+}
+
 interface BasicListProps extends FormComponentProps {
   listBasicList: TransformInfo[];
   namespaces: Namespace[];
+  connectors: Connector[];
   resources: string[];
   dispatch: Dispatch<AnyAction>;
   loading: boolean;
@@ -66,6 +73,7 @@ interface BasicListState {
   submitted: boolean;
   searchResult: TransformInfo[];
   tag: number;
+  chooseConnectorId: null | number;
 }
 
 const NAMESPACE = 'transform';
@@ -84,6 +92,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     editVisible: false,
     edithDone: false,
     edithSubmit: false,
+    chooseConnectorId: null,
   };
 
   formLayout = {
@@ -276,7 +285,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   setTagValue = (v: number) => {
-    this.setState({ tag: v });
+    this.setState({ tag: v, chooseConnectorId: null });
   };
 
   getNamespaceAvatar = (item: TransformInfo) => {
@@ -292,6 +301,48 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       <Avatar src={namespace.avatar} alt={item.info} shape="square" size="large">
         {namespace.avatar === undefined || namespace.avatar === null ? namespace.name : ''}
       </Avatar>
+    );
+  };
+
+  getConnectorFilter = () => {
+    const { connectors = [], listBasicList = [] } = this.props;
+    console.info(connectors);
+    console.info(listBasicList, 'info');
+    const allConnector = Array.from(
+      new Set(
+        listBasicList
+          .filter(x => x.connectorId !== null)
+          .map(x => connectors.filter(cn => cn.id === x.connectorId)[0]),
+      ),
+    );
+    if (allConnector.length === 0 || listBasicList.length === 0 || connectors.length === 0) {
+      return <></>;
+    }
+    console.error(allConnector);
+    return (
+      <Dropdown
+        className={styles.namespaceButton}
+        overlay={
+          // @ts-ignore
+          <Menu onClick={({ key }) => this.setState({ chooseConnectorId: parseInt(key) })}>
+            {Array.isArray(allConnector) &&
+              allConnector.map((x: Connector) => {
+                return (
+                  <Menu.Item key={x.id}>
+                    <Tooltip title={x.name} placement="left">
+                      <span>{cutStr(x.info)}</span>
+                    </Tooltip>
+                  </Menu.Item>
+                );
+              })}
+          </Menu>
+        }
+      >
+        <Button>
+          连接器
+          <DownOutlined />
+        </Button>
+      </Dropdown>
     );
   };
 
@@ -360,6 +411,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               </Button>
             </Dropdown>
           )}
+          {this.getConnectorFilter()}
         </RadioGroup>
         <Search
           defaultValue={search}
@@ -485,7 +537,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               dataSource={listBasicList.filter(
                 x =>
                   x.name.indexOf(search) >= 0 &&
-                  (this.state.tag !== 0 ? x.namespaceId === this.state.tag : true),
+                  (this.state.tag !== 0 ? x.namespaceId === this.state.tag : true) &&
+                  x.connectorId === this.state.chooseConnectorId,
               )}
               renderItem={item => (
                 <List.Item
@@ -669,14 +722,20 @@ export default connect(
     transform,
     loading,
   }: {
-    transform: { list: TransformInfo[]; dependence: Namespace[]; dependence1: Resource[] };
+    transform: {
+      list: TransformInfo[];
+      dependence: Namespace[];
+      dependence1: Resource[];
+      dependence2: Connector[];
+    };
     loading: {
       models: { [key: string]: boolean };
     };
   }) => ({
     listBasicList: transform.list,
     namespaces: transform.dependence,
-    loading: loading.models.namespace,
+    connectors: transform.dependence2,
+    loading: loading.models.transform,
     resources: transform.dependence1,
   }),
 )(finalForm);

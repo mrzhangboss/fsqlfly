@@ -34,6 +34,7 @@ export interface TransformInfo {
   createAt: string;
   updateAt: string;
   require: string;
+  connectorId: null | number;
   sql: string;
   yaml: string;
 }
