@@ -198,6 +198,23 @@ class MyTestCase(unittest.TestCase):
 
         session.close()
 
+    def test_clean(self):
+        session = DBSession.get_session()
+
+        connection1 = Connection(name='example1', type='hive', url='xx', is_locked=True, connector='')
+        connection2 = Connection(name='example2', type='db', url='xx', is_locked=True, connector='')
+        session.add_all([connection1, connection2])
+        session.commit()
+        connector = Connector(name='example', type='canal', source_id=connection1.id, target_id=connection2.id,
+                              config='')
+        session.add(connector)
+        session.commit()
+        transform = Transform(name='a', sql='', require='', connector_id=connector.id)
+        session.add(transform)
+        session.commit()
+        res = DBDao.clean('connector', connector.id, session=session)
+        self.assertTrue(res.success)
+        self.assertEqual(session.query(Transform).count(), 0)
 
 if __name__ == '__main__':
     unittest.main()

@@ -403,6 +403,12 @@ class ConnectorManager:
         finally:
             session.close()
 
+    @classmethod
+    def check_system(cls, connector: Connector):
+        s_type, t_type = connector.source.type.code, connector.target.type.code
+        msg = 'system only support db -> hive: current {}->{}'.format(s_type, t_type)
+        assert s_type == 'db' and t_type == 'hive', msg
+
 
 class CanalKafkaManager(DatabaseManager):
     support_type = ['source']
@@ -500,16 +506,19 @@ class CanalConnectorManager(ConnectorManager):
 
 class SystemConnectorUpdateManager(ConnectorManager):
     def _run(self, connector: Connector, session: Session) -> DBRes:
+        self.check_system(connector)
         return DBRes()
 
 
 class SystemConnectorInitManager(ConnectorManager):
     def _run(self, connector: Connector, session: Session) -> DBRes:
+        self.check_system(connector)
         return DBRes()
 
 
 class SystemConnectorRunManager(ConnectorManager):
     def _run(self, connector: Connector, session: Session) -> DBRes:
+        self.check_system(connector)
         return DBRes()
 
 

@@ -52,8 +52,9 @@ def session_add(func: Callable) -> Callable:
     @wraps(func)
     def _add_session(*args, **kwargs):
         session = kwargs['session'] if 'session' in kwargs else DBSession.get_session()
+        new_kwargs = {k: v for k, v in kwargs.items() if k != 'session'}
         try:
-            res = func(*args, session=session, **kwargs)
+            res = func(*args, session=session, **new_kwargs)
             session.commit()
             return res
         except Exception as error:

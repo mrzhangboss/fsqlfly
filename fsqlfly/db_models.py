@@ -409,6 +409,8 @@ class Transform(Base):
     yaml = Column(Text)
     namespace_id = Column(Integer, ForeignKey('namespace.id'), nullable=True)
     namespace = relationship(Namespace, backref=_b('transforms'))
+    connector_id = Column(Integer, ForeignKey('connector.id'), nullable=True)
+    connector = relationship(Connector, backref=_b('transforms'))
     is_daemon = Column(Boolean, default=False)
 
     class Meta:
