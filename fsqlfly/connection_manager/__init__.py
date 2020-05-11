@@ -505,8 +505,18 @@ class CanalConnectorManager(ConnectorManager):
         return manager.run()
 
 
-class SystemConnectorUpdateManager(ConnectorManager):
+class SystemConnectorManager(ConnectorManager):
+    def _run(self, connector: Connector, session: Session) -> DBRes:
+        self.check_system(connector)
+        need_tables = connector.need_tables
+        source, target = connector.source, connector.target
+        if not connector.source.resource_names:
+            return DBRes.api_error("Not Found Any Resource Name in Connection {}".format(source.name))
+        resource_names = [x for x in connector.source.resource_names if x.db_name in need_tables]
+        return self.handle(resource_names, connector, session)
 
+
+class SystemConnectorUpdateManager(SystemConnectorManager):
     @classmethod
     def build_sql(cls, target_database: str, target_table: str, version: ResourceVersion, connector: Connector) -> str:
         schemas = version.generate_version_cache()['schema']
@@ -520,41 +530,34 @@ class SystemConnectorUpdateManager(ConnectorManager):
 
         return sql
 
-    def _run(self, connector: Connector, session: Session) -> DBRes:
-        self.check_system(connector)
-        need_tables = connector.need_tables
-        source, target = connector.source, connector.target
-        source_type, target_type = source.type.code, target.type.code
-        if not connector.source.resource_names:
-            return DBRes.api_error("Not Found Any Resource Name in Connection {}".format(source.name))
+    def handle(self, resource_names: List[ResourceName], connector: Connector, session: Session) -> DBRes:
         updated = inserted = 0
-        for resource_name in connector.source.resource_names:
-            if resource_name.db_name in need_tables:
 
-                name = connector.get_transform_name_format(source_type=source_type, target_type=target_type,
-                                                           resource_name=resource_name, connector=connector)
-                require_version = None
-                for version in resource_name.versions:
-                    if version.template.type == 'source':
-                        require_version = version
-                assert require_version, 'Not found require version Please check {}'.format(resource_name.full_name)
-                require = require_version.full_name + ',' + target.name
-                t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
-                                                                               connector=connector)
+        for resource_name in resource_names:
+            name = connector.get_transform_name_format(resource_name=resource_name)
+            require_version = None
+            for version in resource_name.versions:
+                if version.template.type == 'source':
+                    require_version = version
+            assert require_version, 'Not found require version Please check {}'.format(resource_name.full_name)
+            require = require_version.full_name + ',' + connector.target.name
+            t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
+                                                                           connector=connector)
 
-                transform = Transform(name=name, sql=self.build_sql(t_database, t_table, require_version, connector),
-                                      require=require, connector_id=connector.id,
-                                      yaml=dump_yaml(dict(execution=dict(planner='blink', type='batch'))))
-                transform, i = DBDao.upsert_transform(transform, session=session)
-                inserted += i
-                updated += not i
+            transform = Transform(name=name, sql=self.build_sql(t_database, t_table, require_version, connector),
+                                  require=require, connector_id=connector.id,
+                                  yaml=dump_yaml(dict(execution=dict(planner='blink', type='batch'))))
+            transform, i = DBDao.upsert_transform(transform, session=session)
+            inserted += i
+            updated += not i
 
         msg = 'update: {}\ninserted: {}'.format(updated, inserted)
         return DBRes(msg=msg)
 
 
-class SystemConnectorInitManager(ConnectorManager):
-    def build_sql(self, target_database: str, target_table: str, schema: list, connector: Connector) -> List[str]:
+class SystemConnectorInitManager(SystemConnectorManager):
+    @classmethod
+    def build_sql(cls, target_database: str, target_table: str, schema: list, connector: Connector) -> List[str]:
         res = []
         drop_table = f'DROP TABLE IF EXISTS `{target_database}`.`{target_table}`'
         create_header = f'CREATE TABLE `{target_database}`.`{target_table}` ('
@@ -573,34 +576,31 @@ class SystemConnectorInitManager(ConnectorManager):
             res.append(')')
         return [drop_table, '\n'.join(res)]
 
-    def _run(self, connector: Connector, session: Session) -> DBRes:
-        # TODO: delete duplicate code
-        self.check_system(connector)
-        need_tables = connector.need_tables
-        source, target = connector.source, connector.target
-        source_type, target_type = source.type.code, target.type.code
-        if not connector.source.resource_names:
-            return DBRes.api_error("Not Found Any Resource Name in Connection {}".format(source.name))
-        engine = create_engine(target.url)
-
-        for resource_name in connector.source.resource_names:
-            if resource_name.db_name in need_tables:
-
-                name = connector.get_transform_name_format(source_type=source_type, target_type=target_type,
-                                                           resource_name=resource_name, connector=connector)
-                require_version = None
-                for version in resource_name.versions:
-                    if version.template.type == 'source':
-                        require_version = version
-                assert require_version, 'Not found require version Please check {}'.format(resource_name.full_name)
-                t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
-                                                                               connector=connector)
-                schemas = version.generate_version_cache()['schema']
-                for sql in self.build_sql(t_database, t_table, schemas, connector):
-                    print(sql)
-                    engine.execute(sql)
+    def handle(self, resource_names: List[ResourceName], connector: Connector, session: Session) -> DBRes:
+        engine = create_engine(connector.target.url)
+        for resource_name in resource_names:
+            require_version = None
+            for version in resource_name.versions:
+                if version.template.type == 'source':
+                    require_version = version
+            assert require_version, 'Not found require version Please check {}'.format(resource_name.full_name)
+            t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
+                                                                           connector=connector)
+            schemas = version.generate_version_cache()['schema']
+            for sql in self.build_sql(t_database, t_table, schemas, connector):
+                print(sql)
+                engine.execute(sql)
 
         return DBRes()
+
+
+class SystemConnectorListManager(SystemConnectorManager):
+    def handle(self, resource_names: List[ResourceName], connector: Connector, session: Session) -> DBRes:
+        res = []
+        for resource_name in resource_names:
+            name = connector.get_transform_name_format(resource_name=resource_name)
+            res.append(name)
+        return DBRes(data=dict(names=res, parallelism=connector.system_run_parallelism))
 
 
 class BaseHelper:
@@ -620,7 +620,7 @@ class BaseHelper:
 class ConnectorHelper(BaseHelper):
     @classmethod
     def is_support(cls, mode: str) -> bool:
-        return mode in ('update', 'clean', 'init', 'run')
+        return mode in ('update', 'clean', 'init', 'list')
 
     @classmethod
     def get_object_from_db(cls, model: str, pk: int) -> Tuple[Session, DBT]:
@@ -638,6 +638,8 @@ class ConnectorHelper(BaseHelper):
                 return SystemConnectorUpdateManager()
             elif method == 'init':
                 return SystemConnectorInitManager()
+            elif method == 'list':
+                return SystemConnectorListManager()
             raise NotImplementedError("Not Support {}".format(method))
 
     @classmethod

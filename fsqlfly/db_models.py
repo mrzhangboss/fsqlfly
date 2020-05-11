@@ -207,9 +207,12 @@ class Connector(Base):
         self.check_system_type()
         return NameFilter(self.get_config('source_include'), self.get_config('source_exclude'))
 
-    def get_transform_name_format(self, **kwargs) -> str:
+    def get_transform_name_format(self, resource_name: 'ResourceName', **kwargs) -> str:
         self.check_system_type()
-        return Template(self.get_config('transform_name_format')).render(generate_template_context(**kwargs))
+        source_type, target_type = self.source.type.code, self.target.type.code
+        return Template(self.get_config('transform_name_format')).render(
+            generate_template_context(source_type=source_type, target_type=target_type,
+                                      resource_name=resource_name, connector=self, **kwargs))
 
     def get_transform_target_full_name(self, **kwargs) -> Tuple[str, str]:
         database = Template(self.get_config('target_database_format')).render(**kwargs)
@@ -220,6 +223,11 @@ class Connector(Base):
     def use_partition(self) -> bool:
         self.check_system_type()
         return self.get_config('use_partition', typ=bool)
+
+    @property
+    def system_run_parallelism(self) -> int:
+        self.check_system_type()
+        return self.get_config('run_parallelism', typ=int)
 
     @property
     def partition_key_value(self) -> Tuple[str, str]:
