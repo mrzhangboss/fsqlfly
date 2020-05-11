@@ -707,4 +707,6 @@ class ManagerHelper:
     def run(cls, model: str, mode: str, pk: Union[str, int]) -> DBRes:
         if model not in SUPPORT_MODELS:
             return DBRes.api_error(msg='{} not support'.format(model))
+        if isinstance(pk, str) and not pk.isnumeric():
+            pk = DBDao.name2pk(model, name=pk)
         return getattr(cls.get_helper(model), mode)(model, pk if isinstance(pk, int) else int(pk))
