@@ -574,13 +574,13 @@ class SystemConnectorInitManager(ConnectorManager):
         return [drop_table, '\n'.join(res)]
 
     def _run(self, connector: Connector, session: Session) -> DBRes:
+        # TODO: delete duplicate code
         self.check_system(connector)
         need_tables = connector.need_tables
         source, target = connector.source, connector.target
         source_type, target_type = source.type.code, target.type.code
         if not connector.source.resource_names:
             return DBRes.api_error("Not Found Any Resource Name in Connection {}".format(source.name))
-        updated = inserted = 0
         engine = create_engine(target.url)
 
         for resource_name in connector.source.resource_names:

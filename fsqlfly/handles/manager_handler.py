@@ -15,5 +15,5 @@ class ManagerHandler(BaseHandler):
 
 
 default_handlers = [
-    (r'/api/(?P<model>\w+)/(?P<mode>update|clean)/(?P<pk>\d+)', ManagerHandler),
+    (r'/api/(?P<model>\w+)/(?P<mode>update|clean|init)/(?P<pk>\d+)', ManagerHandler),
 ]
