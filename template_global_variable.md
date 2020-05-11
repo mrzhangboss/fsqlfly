@@ -45,12 +45,16 @@ read_partition_lower_bound| the smallest value of the first partition | 0
 read_partition_upper_bound| the largest value of the last partition. | 50000
 
 
-#### Section: kafka
+#### Section: system
 
 
 Variable | Description | Default
 ---- | --- | ---
-
+source_include|the source need load from all connection resource name|.*
+source_exclude|the source exclude name from all connection resource name|''
+run_parallelism|the parallelism of all job if 0 then submit all job to flink| 0
+target_database_format|the target database | {{ resource_name.database }}
+target_table_format|the target tablename| {{ resource_name.name }}  
 
 
 
