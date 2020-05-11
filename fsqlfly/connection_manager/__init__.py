@@ -2,6 +2,7 @@
 from fsqlfly.common import *
 import logzero
 from copy import deepcopy
+from typing import Tuple
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.sql.sqltypes import TypeDecorator
 from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent
@@ -108,7 +109,8 @@ class BaseManager:
         version.cache = dump_yaml(version.generate_version_cache())
         DBDao.save(version, session=session)
 
-    def update_version_cache(self, status: UpdateStatus, session: Session, version: ResourceVersion):
+    @classmethod
+    def update_version_cache(cls, status: UpdateStatus, session: Session, version: ResourceVersion):
         version.cache = dump_yaml(version.generate_version_cache())
         DBDao.save(version, session=session)
         status.update_version(False)
@@ -204,7 +206,6 @@ class DatabaseManager(BaseManager):
         elif isinstance(typ, (M_DOUBLE, P_DOUBLE)):
             name = types.DOUBLE
         elif isinstance(typ, DECIMAL):
-            depress_name = "{}({},{})".format(types.DECIMAL, typ.precision, typ.scale)
             name = types.DECIMAL
         elif isinstance(typ, DATETIME) or isinstance(typ, TIMESTAMP):
             name = types.TIMESTAMP
@@ -497,8 +498,19 @@ class CanalConnectorManager(ConnectorManager):
         return manager.run()
 
 
-class SystemConnectorManager(ConnectorManager):
-    pass
+class SystemConnectorUpdateManager(ConnectorManager):
+    def _run(self, connector: Connector, session: Session) -> DBRes:
+        return DBRes()
+
+
+class SystemConnectorInitManager(ConnectorManager):
+    def _run(self, connector: Connector, session: Session) -> DBRes:
+        return DBRes()
+
+
+class SystemConnectorRunManager(ConnectorManager):
+    def _run(self, connector: Connector, session: Session) -> DBRes:
+        return DBRes()
 
 
 class BaseHelper:
@@ -517,12 +529,48 @@ class BaseHelper:
 
 class ConnectorHelper(BaseHelper):
     @classmethod
-    def update(cls, model: str, pk: int):
-        assert model == 'connector', 'Only support Connector Model'
+    def is_support(cls, mode: str) -> bool:
+        return mode in ('update', 'clean', 'init', 'run')
+
+    @classmethod
+    def get_object_from_db(cls, model: str, pk: int) -> Tuple[Session, DBT]:
         session = DBSession.get_session()
         obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
-        manager = CanalConnectorManager() if obj.type.code == 'canal' else SystemConnectorManager()
+        return session, obj
+
+    @classmethod
+    def get_manager(cls, type_name: str, method: str = 'update') -> ConnectorManager:
+        if method == 'update' and type_name == 'canal':
+            return CanalConnectorManager()
+        else:
+            assert type_name == 'system', 'only system support {}'.format(method)
+            if method == 'update':
+                return SystemConnectorUpdateManager()
+            elif method == 'init':
+                return SystemConnectorInitManager()
+            elif method == 'run':
+                return SystemConnectorRunManager()
+            raise NotImplementedError("Not Support {}".format(method))
+
+    @classmethod
+    def _real_run(cls, model: str, pk: int, method: str) -> DBRes:
+        session = DBSession.get_session()
+        obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
+        manager = cls.get_manager(obj.type.code, method)
         return manager.run(obj, session)
+
+    @classmethod
+    def update(cls, model: str, pk: int) -> DBRes:
+        assert model == 'connector', 'Only support Connector Model'
+        return cls._real_run(model, pk, 'update')
+
+    @classmethod
+    def init(cls, model: str, pk: int) -> DBRes:
+        return cls._real_run(model, pk, 'init')
+
+    @classmethod
+    def run(cls, model: str, pk: int) -> DBRes:
+        return cls._real_run(model, pk, 'run')
 
 
 class ConnectionHelper(BaseHelper):
