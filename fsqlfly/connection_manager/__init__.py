@@ -603,12 +603,6 @@ class SystemConnectorInitManager(ConnectorManager):
         return DBRes()
 
 
-class SystemConnectorRunManager(ConnectorManager):
-    def _run(self, connector: Connector, session: Session) -> DBRes:
-        self.check_system(connector)
-        return DBRes.api_error("Current Not Support")
-
-
 class BaseHelper:
     @classmethod
     def is_support(cls, mode: str) -> bool:
@@ -644,8 +638,6 @@ class ConnectorHelper(BaseHelper):
                 return SystemConnectorUpdateManager()
             elif method == 'init':
                 return SystemConnectorInitManager()
-            elif method == 'run':
-                return SystemConnectorRunManager()
             raise NotImplementedError("Not Support {}".format(method))
 
     @classmethod
