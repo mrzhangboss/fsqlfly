@@ -84,6 +84,12 @@ def filter_not_support(func: Callable) -> Callable:
 
 class DBDao:
     @classmethod
+    @session_add
+    @filter_not_support
+    def name2pk(cls, model: str, name: str, *args, session: Session, base: Type[DBT], **kwargs) -> int:
+        return session.query(base.id).filter(base.name == name).one()[0]
+
+    @classmethod
     def is_null_foreign_key(cls, k: str, v: Any) -> bool:
         return k.endswith('_id') and v == 0
 
@@ -420,7 +426,7 @@ class DBDao:
 
     @classmethod
     def upsert_transform(cls, obj: Transform, *args, session: Session,
-                                **kwargs) -> (Transform, bool):
+                         **kwargs) -> (Transform, bool):
         query = session.query(Transform).filter(Transform.name == obj.name)
         inserted = True
         res = first = query.first()

@@ -216,5 +216,16 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(res.success)
         self.assertEqual(session.query(Transform).count(), 0)
 
+    def test_name2pk(self):
+        session = DBSession.get_session()
+        name = 'example1'
+        connection1 = Connection(name=name, type='hive', url='xx', is_locked=True, connector='')
+        session.add(connection1)
+        session.commit()
+
+        self.assertEqual(DBDao.name2pk('connection', name='example1'), connection1.id)
+        with self.assertRaises(Exception):
+            DBDao.name2pk('connection', name='example2')
+
 if __name__ == '__main__':
     unittest.main()
