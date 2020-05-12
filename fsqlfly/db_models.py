@@ -70,7 +70,7 @@ class Base(_Base):
                 return secret.getint(name)
             elif typ is bool:
                 return secret.getboolean(name)
-        return secret[name]
+        return secret.get(name)
 
 
 class Connection(Base):
@@ -331,8 +331,10 @@ class ResourceVersion(Base):
         template = self.template
         version = self
         resource_name = self.resource_name
-        schema = self.schema_version if self.schema_version else resource_name.schema_version
         connection = self.connection
+        schema = self.schema_version if self.schema_version else SchemaContent(name=resource_name.name,
+                                                                               type=connection.type.code,
+                                                                               database=resource_name.database)
         base = load_yaml(template.config) if template.config else dict()
         version_config = load_yaml(version.config) if version.config else dict()
         base.update(**version_config)
@@ -373,10 +375,13 @@ class ResourceVersion(Base):
                         },
                         "fetch-size": resource_name.get_config('read_partition_fetch_size', typ=int)
                     }
+            if connector and connection.type == 'kafka':
+                if resource_name.get_config('topic'):
+                    connector['topic'] = resource_name.get_config('topic')
 
             res['connector'] = connector if connector else None
 
-            fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema else []
+            fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema.fields else []
             need_fields = [x for x in fields if x.name in NameFilter(config.include, config.exclude)]
             field_names = [x.name for x in need_fields]
             schemas = []
