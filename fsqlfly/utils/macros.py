@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
-import dateutil
-from random import random
-import time
-import uuid
 
 
 def ds_add(ds, days):

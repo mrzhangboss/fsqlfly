@@ -26,16 +26,6 @@ def run_webserver(commands: list):
         logzero.logger.info("Stop Web...")
 
 
-def run_canal(commands: list):
-    from fsqlfly.canal_manager.canal_consumer import CanalConsumer
-    CanalConsumer().execute()
-
-
-def run_load_mysql_resource(commands: list):
-    from fsqlfly.canal_manager.load_mysql_resource import LoadMySQLResource
-    LoadMySQLResource().execute()
-
-
 def init_db(commands: list):
     from fsqlfly.db_helper import DBDao
 
