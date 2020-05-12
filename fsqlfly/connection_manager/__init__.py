@@ -541,10 +541,9 @@ class SystemConnectorUpdateManager(SystemConnectorManager):
             require = require_version.full_name + ',' + connector.target.name
             t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
                                                                            connector=connector)
-
+            execution = dict(planner='blink', type='batch', parallelism=connector.system_execution_parallelism)
             transform = Transform(name=name, sql=self.build_sql(t_database, t_table, require_version, connector),
-                                  require=require, connector_id=connector.id,
-                                  yaml=dump_yaml(dict(execution=dict(planner='blink', type='batch'))))
+                                  require=require, connector_id=connector.id, yaml=dump_yaml(dict(execution=execution)))
             transform, i = DBDao.upsert_transform(transform, session=session)
             inserted += i
             updated += not i

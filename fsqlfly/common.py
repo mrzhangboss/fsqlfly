@@ -275,14 +275,15 @@ update_suffix = _updated
 table_filter = .*\..*
 
 [system]
-source_include: .*
-source_exclude: ''
-target_database_format: {{ resource_name.database }}
-target_table_format: {{ resource_name.name }}
-transform_name_format: {{ source_type }}2{{ target_type }}__{{ connector.name }}__{{ resource_name.database }}__{{ resource_name.name }}  
-use_partition: false
-partition_name: pt
-partition_value: {{ ds_nodash }}
-overwrite: false
+execution_parallelism =  1
+source_include =  .*
+source_exclude =  ''
+target_database_format =  {{ resource_name.database }}
+target_table_format =  {{ resource_name.name }}
+transform_name_format =  {{ source_type }}2{{ target_type }}__{{ connector.name }}__{{ resource_name.database }}__{{ resource_name.name }}  
+use_partition =  false
+partition_name =  pt
+partition_value =  {{ ds_nodash }}
+overwrite =  false
 
 """
