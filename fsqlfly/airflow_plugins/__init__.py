@@ -87,7 +87,7 @@ class _BaseJobOperator(BaseSensorOperator):
         super(_BaseJobOperator, self).execute(context)
 
     def get_job_status(self, job_name):
-        res = self.http.run(self.get_start_endpoint(job_name), data=self.get_req_data(job_name),
+        res = self.http.run(self.get_status_endpoint(job_name), data=self.get_req_data(job_name),
                             headers=self.headers).json()
         full_msg = "req: {} code: {} msg: {}".format(job_name, res['code'], res['msg'])
         if not res['success']:
