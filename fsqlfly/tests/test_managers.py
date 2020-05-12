@@ -66,7 +66,7 @@ class ManagerTest(unittest.TestCase):
 
     def test_run_with_connection(self):
         connection_args = [
-            (self.sqlite_url, 'db', '')
+            (self.sqlite_url, 'jdbc', '')
         ]
         for url, typ, connector in connection_args:
             connection = Connection(name='a', url=url, type=typ, connector=connector)
@@ -84,7 +84,7 @@ class ManagerTest(unittest.TestCase):
 
     def test_update_canal_connector(self):
         from fsqlfly.settings import FSQLFLY_DB_URL
-        db = Connection(name='db', url=FSQLFLY_DB_URL, type='db', connector='', include='sample.*')
+        db = Connection(name='db', url=FSQLFLY_DB_URL, type='jdbc', connector='', include='sample.*')
         k_connector = """
 type: kafka
 version: universal     # required: valid connector versions are    "0.8", "0.9", "0.10", "0.11", and "universal"

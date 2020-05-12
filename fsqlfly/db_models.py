@@ -358,12 +358,12 @@ class ResourceVersion(Base):
                 res['update-mode'] = config.update_mode
             if config.format:
                 res['format'] = config.format
-            elif connection.type.code not in ['hbase', 'db']:
+            elif connection.type.code not in ['hbase', 'jdbc']:
                 res['format'] = {"type": 'json', "derive-schema": True}
 
             connector = version.get_connection_connector()
 
-            if connector and template.type in ('source', 'both') and schema.primary_key and connection.type == 'db':
+            if connector and template.type in ('source', 'both') and schema.primary_key and connection.type == 'jdbc':
                 if resource_name.get_config('add_read_partition_key', typ=bool) and 'read' not in connector:
                     connector['read'] = {
                         "partition": {
@@ -378,6 +378,9 @@ class ResourceVersion(Base):
             if connector and connection.type == 'kafka':
                 if resource_name.get_config('topic'):
                     connector['topic'] = resource_name.get_config('topic')
+
+            if connector:
+                connector['type'] = connection.type.code
 
             res['connector'] = connector if connector else None
 

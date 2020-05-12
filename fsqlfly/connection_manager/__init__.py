@@ -408,7 +408,7 @@ class ConnectorManager:
     def check_system(cls, connector: Connector):
         s_type, t_type = connector.source.type.code, connector.target.type.code
         msg = 'system only support db -> hive: current {}->{}'.format(s_type, t_type)
-        assert s_type == 'db' and t_type == 'hive', msg
+        assert s_type == 'jdbc' and t_type == 'hive', msg
 
 
 class CanalKafkaManager(DatabaseManager):
@@ -497,7 +497,7 @@ class CanalManager:
 class CanalConnectorManager(ConnectorManager):
     def _run(self, connector: Connector, session: Session) -> DBRes:
         s_type, t_type = connector.source.type.code, connector.target.type.code
-        assert s_type == 'db', 'Canal Source Type must be db current: {}'.format(s_type)
+        assert s_type == 'jdbc', 'Canal Source Type must be db current: {}'.format(s_type)
         assert t_type == 'kafka', 'Canal Target Type must be kafka current: {}'.format(t_type)
 
         manager = CanalManager(connector, session)
