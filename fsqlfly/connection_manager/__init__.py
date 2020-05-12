@@ -575,10 +575,11 @@ class SystemConnectorInitManager(SystemConnectorManager):
         res.append(','.join(cols))
         if connector.use_partition:
             key, _ = connector.partition_key_value
-            partition = f") PARTITIONED BY ({key} STRING )"
+            partition = f") PARTITIONED BY ({key} STRING"
             res.append(partition)
-        else:
-            res.append(')')
+        if connector.get_config('hive_row_format'):
+            res.append(connector.get_config('hive_row_format'))
+        res.append(')')
         return [drop_table, '\n'.join(res)]
 
     def handle(self, resource_names: List[ResourceName], connector: Connector, session: Session) -> DBRes:
