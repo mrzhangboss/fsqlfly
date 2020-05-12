@@ -192,7 +192,7 @@ class JobControl:
                 logger.debug('{} job finished too fast'.format(header))
                 return self.FINISHED_STATUS
             else:
-                logger.error('{} job not found latest finished job}'.format(header))
+                logger.error('{} job not found latest finished job'.format(header))
                 return self.FAIL_STATUS
 
         logger.error('{} job create job success but not found any job info in flink'.format(header))
