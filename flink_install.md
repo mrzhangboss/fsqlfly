@@ -49,3 +49,13 @@
 请参考下面这个项目 
 
 [flink-hive-dependence](https://github.com/mrzhangboss/flink-hive-dependence)
+
+HiveServer2依赖
+
+CentOS:
+
+`sudo yum install cyrus-sasl-devel cyrus-sasl-gssapi cyrus-sasl-md5 cyrus-sasl-plain`
+
+Ubuntu:
+
+`sudo apt-get install sasl2-bin libsasl2-2 libsasl2-dev libsasl2-modules`
