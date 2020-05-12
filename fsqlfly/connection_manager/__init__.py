@@ -657,8 +657,8 @@ class ConnectorHelper(BaseHelper):
         return cls._real_run(model, pk, 'init')
 
     @classmethod
-    def run(cls, model: str, pk: int) -> DBRes:
-        return cls._real_run(model, pk, 'run')
+    def list(cls, model: str, pk: int) -> DBRes:
+        return cls._real_run(model, pk, 'list')
 
 
 class ConnectionHelper(BaseHelper):
