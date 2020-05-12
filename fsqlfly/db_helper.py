@@ -240,7 +240,7 @@ class DBDao:
         for f in session.query(Functions).filter(Functions.is_active == True).all():
             fc = {
                 'name': f.name,
-                'from': f.function_from,
+                'from': 'class',
                 'class': f.class_name
             }
             if f.constructor_config.strip():
