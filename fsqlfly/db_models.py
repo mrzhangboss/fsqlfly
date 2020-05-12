@@ -225,6 +225,11 @@ class Connector(Base):
         return self.get_config('use_partition', typ=bool)
 
     @property
+    def system_overwrite(self) -> bool:
+        self.check_system_type()
+        return self.get_config('overwrite', typ=bool)
+
+    @property
     def partition_key_value(self) -> Tuple[str, str]:
         self.check_system_type()
         return self.get_config('partition_name'), self.get_config('partition_value')

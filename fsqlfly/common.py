@@ -283,5 +283,6 @@ transform_name_format: {{ source_type }}2{{ target_type }}__{{ connector.name }}
 use_partition: false
 partition_name: pt
 partition_value: {{ ds_nodash }}
+overwrite: false
 
 """

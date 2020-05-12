@@ -523,8 +523,8 @@ class SystemConnectorUpdateManager(SystemConnectorManager):
         fields = ','.join("`{}`".format(x['name']) for x in schemas)
         key, value = connector.partition_key_value
         partition = f"PARTITION ( {key} = '{value}' ) " if connector.use_partition else ''
-
-        sql = f"INSERT OVERWRITE {table} {partition} select {fields} from {source};"
+        way = 'OVERWRITE' if connector.system_overwrite else 'INTO'
+        sql = f"INSERT {way} {table} {partition} select {fields} from {source};"
 
         return sql
 

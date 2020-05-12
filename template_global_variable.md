@@ -58,6 +58,7 @@ transform_name_format|the generate transform name format| {{ source_type }}2{{ t
 use_partition|if use partition |false
 partition_name|if use partition |pt
 partition_value|if use partition |{{ ds_nodash }}
+overwrite|if overwrite |false
 
 
 
