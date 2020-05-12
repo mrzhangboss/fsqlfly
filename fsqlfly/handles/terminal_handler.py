@@ -25,8 +25,8 @@ class TransformControlHandler(BaseHandler):
             self.write_res(DBRes({"url": '/terminal/{}'.format(term)}))
         else:
             if not pk.isdigit():
-                transform = DBDao.get_transform(pk=pk)
-                pk = str(transform.id)
+                pk = str(DBDao.name2pk(model='transform', name=pk))
+
             return self.write_res(handle_job(mode, pk, self.json_body))
 
 

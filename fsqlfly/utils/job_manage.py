@@ -11,7 +11,7 @@ from fsqlfly.settings import FSQLFLY_FINK_HOST
 from fsqlfly.workflow import run_transform
 from fsqlfly.utils.strings import get_job_short_name
 from fsqlfly.common import DBRes
-from fsqlfly.db_helper import DBDao, Transform
+from fsqlfly.db_helper import DBDao, Transform, DBSession
 
 JobStatus = namedtuple('JobStatus', ['name', 'job_id', 'status', 'full_name',
                                      'start_time', 'end_time', 'duration', 'pt'])
@@ -221,11 +221,12 @@ class JobControl:
 JobControlHandle = JobControl(FSQLFLY_FINK_HOST)
 
 
-def handle_job(mode: str, pk: str, json_body: dict) -> DBRes:
+def _handle_job(mode: str, pk: str, json_body: dict, session: Session) -> DBRes:
     handle_name = 'handle_' + mode
+
     if mode in JobControlHandle and handle_name in JobControlHandle:
         if pk.isdigit():
-            transform = DBDao.get_transform(pk)
+            transform = DBDao.get_transform(pk, session=session)
             if transform is None:
                 return DBRes.api_error(msg='job id {} not found!!!'.format(pk))
         else:
@@ -235,3 +236,11 @@ def handle_job(mode: str, pk: str, json_body: dict) -> DBRes:
         return DBRes(code=500 if run_res.startswith(FAIL_HEADER) else 200, msg=run_res)
     else:
         return DBRes.api_error(msg=' {} not support!!!'.format(mode))
+
+
+def handle_job(mode: str, pk: str, json_body: dict) -> DBRes:
+    session = DBSession.get_session()
+    try:
+        return _handle_job(mode, pk, json_body, session)
+    finally:
+        session.close()
