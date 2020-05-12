@@ -427,7 +427,7 @@ class ResourceVersion(Base):
                 schemas.extend(config.schema)
 
             for x in need_fields:
-                if x.autoincrement and connection_type == 'jdbc' and template_type == 'sink':
+                if x.autoincrement and connection_type == 'jdbc' and template_type == 'sink' and resource_name.get_config('insert_primary_key', typ=bool):
                     continue
                 schemas.append(self.field2schema(x))
 
