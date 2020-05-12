@@ -121,8 +121,9 @@ class _BaseJobOperator(BaseSensorOperator):
                     logging.debug("Wait For :" + msg)
                     self.job_pools.append(job_name)
                 else:
-                    logging.error("Job {} Fail With Other Exception".format(job_name))
-                    raise Exception(msg)
+                    err_info = "Job {} Fail With Other Exception: {}".format(job_name, msg)
+                    logging.error(err_info)
+                    raise Exception(err_info)
             else:
                 self.finished_jobs.append(job_name)
 
