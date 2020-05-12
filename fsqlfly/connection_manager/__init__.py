@@ -581,7 +581,6 @@ class SystemConnectorInitManager(SystemConnectorManager):
 
         if connector.get_config('hive_row_format'):
             res.append(connector.get_config('hive_row_format'))
-        res.append(')')
         return [drop_table, '\n'.join(res)]
 
     def handle(self, resource_names: List[ResourceName], connector: Connector, session: Session) -> DBRes:
