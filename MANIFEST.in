@@ -1,4 +1,2 @@
 recursive-include fsqlfly/static *
 include fsqlfly/env.template
-prune fsqlfly/tests
-prune fsqlfly/upload
