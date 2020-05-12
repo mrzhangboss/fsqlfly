@@ -17,7 +17,7 @@ class _BaseJobOperator(BaseSensorOperator):
         return f'/api/transform/{method}/{job_name}'
 
     def get_connector_job_list(self, job_name):
-        url = f'/api/connector/{job_name}/list'
+        url = f'/api/connector/list/{job_name}'
         return self.http.run(url, headers=self.headers).json()['data']
 
     def get_all_job_names(self):
