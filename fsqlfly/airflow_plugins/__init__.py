@@ -134,7 +134,7 @@ class _BaseJobOperator(BaseSensorOperator):
 
     def poke(self, context):
         run_jobs = self.get_job_list()
-        while len(self.job_pools) < self.parallelism or self.parallelism == 0:
+        while (len(self.job_pools) < self.parallelism or self.parallelism == 0) and run_jobs:
             job_name = run_jobs.pop()
             self.add_job_to_pool(job_name)
         return self.job_pool_finished()
