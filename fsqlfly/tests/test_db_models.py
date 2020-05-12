@@ -79,27 +79,25 @@ class MyTestCase(FSQLFlyTestCase):
 
     def test_get_connection_and_resource_name_config(self):
         connection_config = """
-[db]
+[jdbc]
 insert_primary_key = false
 
         """
         resource_name_config = """
-[db]
+[jdbc]
 insert_primary_key = true
         """
         connection = Connection(name='a', url='#', type='hive', connector='text', config=connection_config)
         schema = SchemaEvent(name='test', connection=connection)
         r_name = ResourceName(name='b', full_name='a.b', connection=connection, schema_version=schema,
                               config=resource_name_config)
-        self.assertTrue(not r_name.get_config('add_read_partition_key', 'db', bool))
-        self.assertTrue(not r_name.get_config('add_read_partition_key', 'db', bool))
-        self.assertEqual(connection.get_config('read_partition_num', 'db', int), 50)
+        self.assertTrue(not r_name.get_config('add_read_partition_key', 'jdbc', bool))
+        self.assertTrue(not r_name.get_config('add_read_partition_key', 'jdbc', bool))
+        self.assertEqual(connection.get_config('read_partition_num', 'jdbc', int), 50)
+        self.assertTrue(r_name.get_config('example11') is None)
 
-        with self.assertRaises(KeyError):
-            r_name.get_config('example11')
-
-        self.assertTrue(r_name.get_config('insert_primary_key', 'db', bool))
-        self.assertTrue(not connection.get_config('insert_primary_key', 'db', bool))
+        self.assertTrue(r_name.get_config('insert_primary_key', 'jdbc', bool))
+        self.assertTrue(not connection.get_config('insert_primary_key', 'jdbc', bool))
 
 
 if __name__ == '__main__':

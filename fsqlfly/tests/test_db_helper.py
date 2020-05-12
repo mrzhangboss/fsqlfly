@@ -195,7 +195,7 @@ class MyTestCase(FSQLFlyTestCase):
         session = DBSession.get_session()
 
         connection1 = Connection(name='example1', type='hive', url='xx', is_locked=True, connector='')
-        connection2 = Connection(name='example2', type='db', url='xx', is_locked=True, connector='')
+        connection2 = Connection(name='example2', type='jdbc', url='xx', is_locked=True, connector='')
         session.add_all([connection1, connection2])
         session.commit()
         connector = Connector(name='example', type='canal', source_id=connection1.id, target_id=connection2.id,

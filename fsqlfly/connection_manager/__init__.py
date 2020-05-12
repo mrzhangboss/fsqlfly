@@ -385,11 +385,11 @@ class KafkaManger(BaseManager):
 
 SUPPORT_MANAGER = {
     'hive': HiveManager,
-    'db': DatabaseManager,
+    'jdbc': DatabaseManager,
     'kafka': KafkaManger,
     'hbase': HBaseManager,
     'elasticsearch': ElasticSearchManager,
-    'file': FileManger
+    'filesystem': FileManger
 }
 
 

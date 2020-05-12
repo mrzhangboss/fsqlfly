@@ -11,7 +11,7 @@ from tornado.web import RequestHandler, HTTPError
 from logzero import logger
 
 SUPPORT_TABLE_TYPE = {'sink', 'source', 'both', 'view', 'temporal-table'}
-SUPPORT_MANAGER = {'hive', 'db', 'kafka', 'hbase', 'elasticsearch', 'file'}
+SUPPORT_MANAGER = {'hive', 'jdbc', 'kafka', 'hbase', 'elasticsearch', 'filesystem'}
 CONNECTOR_TYPE = {'canal', 'system'}
 
 
@@ -244,7 +244,7 @@ class CanalMode:
 CANAL_MODE = CanalMode.support_modes()
 
 DEFAULT_CONFIG = """
-[db]
+[jdbc]
 insert_primary_key = false
 add_read_partition_key = false
 read_partition_key = id

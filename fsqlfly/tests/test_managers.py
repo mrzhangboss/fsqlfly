@@ -125,7 +125,7 @@ canal_filter: .*\..*
         session.close()
         from fsqlfly.contrib.canal import Consumer
 
-        Consumer.build(connector_id).run()
+        # Consumer.build(connector_id).run()
 
 
 if __name__ == '__main__':
