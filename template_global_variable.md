@@ -61,6 +61,7 @@ use_partition|if use partition |false
 partition_name|if use partition |pt
 partition_value|if use partition |{{ ds_nodash }}
 overwrite|if overwrite |false
+hive_row_format|if have then add to the table create eg: `ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' STORED AS RCFile`|None
 
 
 
