@@ -555,13 +555,21 @@ class SystemConnectorUpdateManager(SystemConnectorManager):
 
 class SystemConnectorInitManager(SystemConnectorManager):
     @classmethod
+    def flink2hive(cls, typ: str) -> str:
+        if typ == BlinkSQLType.TIMESTAMP:
+            return 'TIMESTAMP'
+        if typ == BlinkSQLType.BYTES:
+            return BlinkSQLType.STRING
+        return typ
+
+    @classmethod
     def build_sql(cls, target_database: str, target_table: str, schema: list, connector: Connector) -> List[str]:
         res = []
         drop_table = f'DROP TABLE IF EXISTS `{target_database}`.`{target_table}`'
         create_header = f'CREATE TABLE `{target_database}`.`{target_table}` ('
         cols = []
         for x in schema:
-            typ = 'TIMESTAMP' if x['data-type'] == BlinkSQLType.TIMESTAMP else x['data-type']
+            typ = cls.flink2hive(x['data-type'])
             col = '`{}` {}'.format(x['name'], typ)
             cols.append(col)
         res.extend([create_header])
