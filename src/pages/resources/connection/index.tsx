@@ -286,7 +286,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   render() {
-    const supportConnectionType = ['hive', 'db', 'kafka', 'hbase', 'elasticsearch', 'file'];
+    const supportConnectionType = ['hive', 'jdbc', 'kafka', 'hbase', 'elasticsearch', 'filesystem'];
     const { loading } = this.props;
     const {
       form: { getFieldDecorator },

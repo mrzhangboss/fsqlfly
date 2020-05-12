@@ -42,16 +42,14 @@ const CONNECTION_TEMPLATE = {
   hive: `type: hive
 hive-conf-dir: /opt/hive-conf  # contains hive-site.xml
 hive-version: 2.3.4`,
-  kafka: `type: kafka
-version: universal     # required: valid connector versions are    "0.8", "0.9", "0.10", "0.11", and "universal"
+  kafka: `version: universal     # required: valid connector versions are    "0.8", "0.9", "0.10", "0.11", and "universal"
 properties:
   zookeeper.connect: localhost:2181  # required: specify the ZooKeeper connection string
   bootstrap.servers: localhost:9092  # required: specify the Kafka server connection string
   group.id: testGroup                # optional: required in Kafka consumer, specify consumer group
 topic: {{ resource_name.database }}__{{ resource_name.name }}
 `,
-  elasticsearch: `type: elasticsearch
-version: 7                                            # required: valid connector versions are "6" "7"
+  elasticsearch: `version: 7                                            # required: valid connector versions are "6" "7"
 hosts: http://host_name:9092;http://host_name:9093  # required: one or more Elasticsearch hosts to connect to
 key-delimiter: "$"      # optional: delimiter for composite keys ("_" by default)    e.g., "$" would result in IDs "KEY1$KEY2$KEY3"
 key-null-literal: "n/a" # optional: representation for null fields in keys ("null" by default)
@@ -75,9 +73,7 @@ bulk-flush:
     max-retries: 3          # optional: maximum number of retries
     delay: 30000            # optional: delay between each backoff attempt (in milliseconds)
 `,
-  hbase: `type: hbase
-version: "1.4.3"               # required: currently only support "1.4.3"
-
+  hbase: `version: "1.4.3"               # required: currently only support "1.4.3"
 table-name: "hbase_table_name" # required: HBase table name
 
 zookeeper:
@@ -95,8 +91,7 @@ write.buffer-flush:
   interval: "2s"               # optional: writing option, sets a flush interval flushing buffered requesting
                                # if the interval passes, in milliseconds. Default value is "0s", which means
                                # no asynchronous flush thread will be scheduled.`,
-  db: `type: jdbc
-url: "jdbc:mysql://localhost:3306/{{ resource_name.database }}"     # required: JDBC DB url
+  jdbc: `url: "jdbc:mysql://localhost:3306/{{ resource_name.database }}"     # required: JDBC DB url
 driver: "com.mysql.jdbc.Driver" # optional: the class name of the JDBC driver to use to connect to this URL.
                                 # If not set, it will automatically be derived from the URL.
 username: "name"                # optional: jdbc user name and password
@@ -126,16 +121,16 @@ write: # sink options, optional, used when writing into table
 
 `,
 
-  file: `type: filesystem
-path: "file:///path/to/whatever"`,
+  filesystem: `path: "file:///path/to/whatever"`,
   canal: `[canal]
+mode: all
 canal_host: localhost
 canal_port: 11111
 canal_username: root
 canal_password: password
 canal_client_id: 11021
 canal_destination: example
-canal_filter: .*\\..*`,
+table_filter: .*\\..*`,
   system: `[system]
 source_include: .*
 source_exclude: ''
@@ -146,6 +141,7 @@ transform_name_format: {{ source_type }}2{{ target_type }}__{{ connector.name }}
 use_partition: false
 partition_name: pt
 partition_value: {{ ds_nodash }}
+overwrite: false
 `,
 };
 const base = `include: .*\\.*
