@@ -67,7 +67,9 @@ class _BaseJobOperator(BaseSensorOperator):
                 return str(d)
 
         send_data = deepcopy(self.data)
-        send_data['last_run_job_id'] = self.job_last_run_id[job_name]
+        last_run_job_id = self.job_last_run_id.get(job_name)
+        if last_run_job_id:
+            send_data['last_run_job_id'] = last_run_job_id
         return json.dumps(send_data, ensure_ascii=True, default=_parse_date_time)
 
     def run_other_mode(self):
