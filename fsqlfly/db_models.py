@@ -10,6 +10,7 @@ from fsqlfly.common import *
 
 from fsqlfly.utils.strings import load_yaml
 from fsqlfly.utils.template import generate_template_context
+from fsqlfly.utils.db_execute import execute
 from sqlalchemy_utils import ChoiceType, Choice
 from logzero import logger
 
@@ -332,6 +333,21 @@ class ResourceVersion(Base):
     def db_full_name(self):
         return self.full_name.replace('.', '__')
 
+    def get_db_bound(self, key: str) -> Tuple[int, int]:
+        resource_name = self.resource_name
+        connection = self.connection
+
+        def _get_int(name: str):
+            return resource_name.get_config(name, typ=int)
+
+        if resource_name.get_config('auto_partition_bound', typ=bool):
+            sql = f'select min(`{key}`), max(`{key}`) from `{resource_name.database}`.`{resource_name.name}`'
+            data = execute(sql, connection.url)
+            l, u = data[0]
+        else:
+            l, u = _get_int('read_partition_lower_bound'), _get_int('read_partition_upper_bound')
+        return l, u
+
     def generate_version_cache(self) -> dict:
         template = self.template
         version = self
@@ -370,18 +386,22 @@ class ResourceVersion(Base):
 
             connector = version.get_connection_connector()
 
-            if connector and template.type in ('source', 'both') and schema.primary_key and connection.type == 'jdbc':
+            if connector and template.type in ('source', 'both') and schema.primary_key and connection_type == 'jdbc':
                 if resource_name.get_config('add_read_partition_key', typ=bool) and 'read' not in connector:
-                    connector['read'] = {
-                        "partition": {
-                            "column": schema.primary_key if schema.primary_key else resource_name.get_config(
-                                'read_partition_key'),
-                            "num": resource_name.get_config('read_partition_num', typ=int),
-                            "lower-bound": resource_name.get_config('read_partition_lower_bound', typ=int),
-                            "upper-bound": resource_name.get_config('read_partition_upper_bound', typ=int),
-                        },
-                        "fetch-size": resource_name.get_config('read_partition_fetch_size', typ=int)
-                    }
+                    key = resource_name.get_config('read_partition_key')
+                    if key is None and schema.primary_key:
+                        key = schema.primary_key
+                    if key:
+                        low, upper = self.get_db_bound(key)
+                        connector['read'] = {
+                            "partition": {
+                                "column": key,
+                                "num": resource_name.get_config('read_partition_num', typ=int),
+                                "lower-bound": low,
+                                "upper-bound": upper,
+                            },
+                            "fetch-size": resource_name.get_config('read_partition_fetch_size', typ=int)
+                        }
             if connector and connection_type == 'kafka':
                 if resource_name.get_config('topic'):
                     connector['topic'] = resource_name.get_config('topic')

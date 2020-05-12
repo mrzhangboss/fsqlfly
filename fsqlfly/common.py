@@ -247,7 +247,7 @@ DEFAULT_CONFIG = """
 [jdbc]
 insert_primary_key = false
 add_read_partition_key = false
-read_partition_key = id
+auto_partition_bound = false
 read_partition_fetch_size = 100
 read_partition_lower_bound = 0
 read_partition_upper_bound = 50000
