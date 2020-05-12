@@ -265,8 +265,6 @@ class DatabaseManager(BaseManager):
                 else:
                     fields.append(field)
 
-            fields.sort(key=lambda x: x.name)
-
             schema.fields.extend(fields)
 
             # print(schema)

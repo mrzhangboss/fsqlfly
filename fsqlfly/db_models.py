@@ -332,6 +332,8 @@ class ResourceVersion(Base):
         version = self
         resource_name = self.resource_name
         connection = self.connection
+        connection_type = connection.type.code
+        template_type = template.type.code
         schema = self.schema_version if self.schema_version else SchemaContent(name=resource_name.name,
                                                                                type=connection.type.code,
                                                                                database=resource_name.database)
@@ -375,7 +377,7 @@ class ResourceVersion(Base):
                         },
                         "fetch-size": resource_name.get_config('read_partition_fetch_size', typ=int)
                     }
-            if connector and connection.type == 'kafka':
+            if connector and connection_type == 'kafka':
                 if resource_name.get_config('topic'):
                     connector['topic'] = resource_name.get_config('topic')
 
@@ -395,6 +397,8 @@ class ResourceVersion(Base):
                 schemas.extend(config.schema)
 
             for x in need_fields:
+                if x.autoincrement and connection_type == 'jdbc' and template_type == 'sink':
+                    continue
                 schemas.append(self.field2schema(x))
 
             res['schema'] = schemas
