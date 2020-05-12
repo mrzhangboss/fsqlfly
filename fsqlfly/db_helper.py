@@ -102,7 +102,7 @@ class DBDao:
         if first is None:
             return DBRes.not_found()
 
-        if first.is_locked and obj.get('is_locked') is False:
+        if first.is_locked and obj.get('is_locked') is True:
             return DBRes.resource_locked()
 
         for k, v in obj.items():

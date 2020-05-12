@@ -67,6 +67,7 @@ partition_value|if use partition |{{ ds_nodash }}
 Variable | Description | Default
 ---- | --- | ---
 startup_mode|the kafka topic start up mode support (`earliest-offset`,`latest-offset`,`group-offsets` or `specific-offsets`)|latest-offset
+topic|if set will overwrite the kafka connect topic|None
 
 
 

@@ -6,21 +6,10 @@ import unittest
 from unittest.mock import patch, Mock
 from fsqlfly.common import RespCode, DBRes
 from sqlalchemy import event
+from fsqlfly.tests.base_test import FSQLFlyTestCase
 
 
-class MyTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        engine = sa.create_engine('sqlite://', echo=True)
-        event.listen(engine, 'connect', lambda con, _: con.execute('pragma foreign_keys=ON'))
-        DBSession.init_engine(engine)
-        delete_all_tables(engine, True)
-        create_all_tables(engine)
-
-        self.engine = engine
-
-    def tearDown(self) -> None:
-        delete_all_tables(self.engine, True)
-
+class MyTestCase(FSQLFlyTestCase):
     def test_not_support(self):
         s_m = 'connection'
 
@@ -49,9 +38,12 @@ class MyTestCase(unittest.TestCase):
         session.commit()
         c = 'connection'
         self.assertEqual(DBDao.update(model=c, pk=obj.id, obj=obj.as_dict()).success, False)
-        obj.is_locked = False
-        session.commit()
-        self.assertEqual(DBDao.update(model=c, pk=obj.id, obj=obj.as_dict()).success, True)
+        d = obj.as_dict()
+        d['is_locked'] = False
+        self.assertEqual(DBDao.update(model=c, pk=obj.id, obj=d).success, True)
+
+        d['info'] = 'change'
+        self.assertEqual(DBDao.update(model=c, pk=obj.id, obj=d).success, True)
 
     def test_crud(self):
         obj = dict(name='example', type='hive', url='xx', is_locked=False, connector='')
@@ -188,13 +180,14 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(DBDao.get('version').data), 1)
 
         version2 = ResourceVersion(name='xxxx', connection_id=connection.id, full_name='xxxaaa',
-                                   config='xxx', template_id=template.id,
+                                   config='xxxxxzx', template_id=template.id,
                                    schema_version_id=scheme2.id,
                                    resource_name_id=resource_name.id)
 
         new_version, inserted = DBDao.upsert_resource_version(version2, session=session)
-        self.assertTrue(inserted)
-        self.assertTrue(new_version.version > version.version)
+        self.assertTrue(not inserted)
+        self.assertTrue(new_version.version == version.version,
+                        "new :{} , old: {}".format(new_version.version, version.version))
 
         session.close()
 
@@ -226,6 +219,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(DBDao.name2pk('connection', name='example1'), connection1.id)
         with self.assertRaises(Exception):
             DBDao.name2pk('connection', name='example2')
+
 
 if __name__ == '__main__':
     unittest.main()

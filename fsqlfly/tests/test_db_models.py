@@ -1,34 +1,10 @@
 import unittest
-import random
-import sqlalchemy as sa
 from unittest.mock import patch
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import event
 from fsqlfly.db_helper import *
+from fsqlfly.tests.base_test import FSQLFlyTestCase
 
 
-class MyTestCase(unittest.TestCase):
-    def _fk_pragma_on_connect(self, dbapi_con, con_record):
-        dbapi_con.execute('pragma foreign_keys=ON')
-
-    def setUp(self) -> None:
-        engine = sa.create_engine('sqlite://', echo=True)
-        event.listen(engine, 'connect', self._fk_pragma_on_connect)
-
-        DBSession = sessionmaker(bind=engine)
-
-        delete_all_tables(engine, force=True)
-        create_all_tables(engine)
-        self.DBSession = DBSession
-        self.session = self.get_session()
-        self.engine = engine
-
-    def get_session(self):
-        return self.DBSession()
-
-    def tearDown(self) -> None:
-        self.session.commit()
-        self.session.close()
+class MyTestCase(FSQLFlyTestCase):
 
     def test_positive_delete(self):
         namespace = Namespace(name='iii')
@@ -113,19 +89,17 @@ insert_primary_key = true
         """
         connection = Connection(name='a', url='#', type='hive', connector='text', config=connection_config)
         schema = SchemaEvent(name='test', connection=connection)
-        r_name = ResourceName(name='b', full_name='a.b', connection=connection, schema_version=schema, config=resource_name_config)
+        r_name = ResourceName(name='b', full_name='a.b', connection=connection, schema_version=schema,
+                              config=resource_name_config)
         self.assertTrue(not r_name.get_config('add_read_partition_key', 'db', bool))
         self.assertTrue(not r_name.get_config('add_read_partition_key', 'db', bool))
         self.assertEqual(connection.get_config('read_partition_num', 'db', int), 50)
 
         with self.assertRaises(KeyError):
-            r_name.get_config('example')
-        with self.assertRaises(KeyError):
-            self.assertTrue(r_name.get_config('insert_primary_key', typ=bool))
+            r_name.get_config('example11')
+
         self.assertTrue(r_name.get_config('insert_primary_key', 'db', bool))
         self.assertTrue(not connection.get_config('insert_primary_key', 'db', bool))
-
-
 
 
 if __name__ == '__main__':
