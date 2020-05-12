@@ -254,10 +254,7 @@ read_partition_upper_bound = 50000
 read_partition_num = 50
 
 [kafka]
-process_time_enable = true
-process_time_name = flink_process_time
-rowtime_enable = true
-rowtime_from = MYSQL_DB_EXECUTE_TIME
+startup_mode = latest-offset
 
 [hive]
 
