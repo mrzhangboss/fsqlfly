@@ -329,8 +329,8 @@ class BasicList extends Component<BasicListProps, BasicListState> {
               allConnector.map((x: Connector) => {
                 return (
                   <Menu.Item key={x.id}>
-                    <Tooltip title={x.name} placement="left">
-                      <span>{cutStr(x.info)}</span>
+                    <Tooltip title={x.info} placement="left">
+                      <span>{cutStr(x.name)}</span>
                     </Tooltip>
                   </Menu.Item>
                 );
