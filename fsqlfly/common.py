@@ -248,10 +248,8 @@ DEFAULT_CONFIG = """
 [jdbc]
 insert_primary_key = false
 add_read_partition_key = false
-auto_partition_bound = false
+auto_partition_bound = true
 read_partition_fetch_size = 100
-read_partition_lower_bound = 0
-read_partition_upper_bound = 50000
 read_partition_num = 50
 
 [kafka]

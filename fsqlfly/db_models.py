@@ -363,6 +363,7 @@ class ResourceVersion(Base):
                 real_upper = u
         info = f'{self.name} must need db bound if you add partition key'
         assert real_low is not None and real_upper is not None, info
+        assert real_low <= real_upper, 'generate low upper bind is not equal'
         return real_low, real_upper
 
     def generate_version_cache(self) -> dict:
