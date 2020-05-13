@@ -351,13 +351,19 @@ class ResourceVersion(Base):
         def _get_int(name: str):
             return resource_name.get_config(name, typ=int)
 
+        real_low, real_upper = _get_int('read_partition_lower_bound'), _get_int('read_partition_upper_bound')
+
         if resource_name.get_config('auto_partition_bound', typ=bool):
             sql = f'select min(`{key}`), max(`{key}`) from `{resource_name.database}`.`{resource_name.name}`'
             data = execute(sql, connection.url)
             l, u = data[0]
-        else:
-            l, u = _get_int('read_partition_lower_bound'), _get_int('read_partition_upper_bound')
-        return l, u
+            if real_low is None:
+                real_low = l
+            if real_upper is None:
+                real_upper = u
+        info = f'{self.name} must need db bound if you add partition key'
+        assert real_low is not None and real_upper is not None, info
+        return real_low, real_upper
 
     def generate_version_cache(self) -> dict:
         template = self.template
@@ -433,7 +439,8 @@ class ResourceVersion(Base):
                 schemas.extend(config.schema)
 
             for x in need_fields:
-                if x.autoincrement and connection_type == 'jdbc' and template_type == 'sink' and resource_name.get_config('insert_primary_key', typ=bool):
+                if x.autoincrement and connection_type == 'jdbc' and template_type == 'sink' and resource_name.get_config(
+                        'insert_primary_key', typ=bool):
                     continue
                 schemas.append(self.field2schema(x))
 

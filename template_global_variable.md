@@ -42,8 +42,8 @@ read_partition_key| the read partition key if not have the primary key | None
 auto_partition_bound| if true then get the read_partition_lower_bound and  read_partition_upper_bound from db | true
 read_partition_num| partition num | 50
 read_partition_fetch_size| Gives the reader a hint as to the number of rows that should be fetched if 0 then ignore | 0
-read_partition_lower_bound| the smallest value of the first partition | 0
-read_partition_upper_bound| the largest value of the last partition. | 50000
+read_partition_lower_bound| the smallest value of the first partition if none and set auto_partition_bound will get from db  | None
+read_partition_upper_bound| the largest value of the last partition if none and set auto_partition_bound will get from db . | None
 
 
 #### Section: system
