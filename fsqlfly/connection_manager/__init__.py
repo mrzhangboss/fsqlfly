@@ -528,16 +528,26 @@ class SystemConnectorUpdateManager(SystemConnectorManager):
 
         return sql
 
+    @classmethod
+    def get_resource_name_default_version(cls, resource_name: ResourceName) -> ResourceVersion:
+        require_version = None
+        default_version = None
+        for version in resource_name.versions:
+            if version.template.type == 'source':
+                if version.is_default:
+                    default_version = version
+                require_version = version
+        msg = 'Not found require version Please check {}'.format(resource_name.full_name)
+        assert require_version or default_version, msg
+        return default_version if default_version else require_version
+
     def handle(self, resource_names: List[ResourceName], connector: Connector, session: Session) -> DBRes:
         updated = inserted = 0
 
         for resource_name in resource_names:
             name = connector.get_transform_name_format(resource_name=resource_name)
-            require_version = None
-            for version in resource_name.versions:
-                if version.template.type == 'source':
-                    require_version = version
-            assert require_version, 'Not found require version Please check {}'.format(resource_name.full_name)
+            require_version = self.get_resource_name_default_version(resource_name)
+
             require = require_version.full_name + ',' + connector.target.name
             t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
                                                                            connector=connector)
