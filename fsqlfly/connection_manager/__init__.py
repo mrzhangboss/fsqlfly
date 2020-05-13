@@ -576,7 +576,7 @@ class SystemConnectorInitManager(SystemConnectorManager):
         res.append(')')
         if connector.use_partition:
             key, _ = connector.partition_key_value
-            partition = f") PARTITIONED BY ({key} STRING)"
+            partition = f"PARTITIONED BY ({key} STRING)"
             res.append(partition)
 
         if connector.get_config('hive_row_format'):
