@@ -361,7 +361,15 @@ class ResourceVersion(Base):
                 real_low = l
             if real_upper is None:
                 real_upper = u
-        info = f'{self.name} must need db bound if you add partition key'
+
+        if real_low is None and real_upper is not None:
+            real_low = real_upper - 1
+        elif real_low is not None and real_upper is None:
+            real_upper = real_low + 1
+        elif real_low is None and real_upper is None:
+            real_low, real_upper = 0, 1
+
+        info = f'{self.full_name} must need db bound if you add partition key'
         assert real_low is not None and real_upper is not None, info
         assert real_low <= real_upper, 'generate low upper bind is not equal'
         return real_low, real_upper
