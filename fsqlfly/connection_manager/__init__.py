@@ -190,16 +190,12 @@ class DatabaseManager(BaseManager):
             name = types.BYTES
         elif isinstance(typ, BOOLEAN):
             name = types.BOOLEAN
-        elif isinstance(typ, TINYINT):
+        elif isinstance(typ, (TINYINT, SMALLINT, INTEGER)):
             name = types.INTEGER
             if typ.display_width == 1:
                 name = types.BOOLEAN
-        elif isinstance(typ, SMALLINT):
-            name = types.SMALLINT
         elif isinstance(typ, (P_BIT, M_BIT)):
             name = types.TINYINT
-        elif isinstance(typ, INTEGER):
-            name = types.INTEGER
         elif isinstance(typ, BIGINT):
             name = types.BIGINT
         elif isinstance(typ, FLOAT):
