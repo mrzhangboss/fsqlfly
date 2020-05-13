@@ -183,6 +183,7 @@ class BlinkHiveSQLType(BlinkSQLType):
     MULTISET = 'MULTISET'
     MAP = 'MAP'
     RAW = 'RAW'
+    BINARY = 'BINARY'
 
 
 class BlinkTableType:

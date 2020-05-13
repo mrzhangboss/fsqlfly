@@ -558,7 +558,7 @@ class SystemConnectorInitManager(SystemConnectorManager):
         if typ == BlinkSQLType.TIMESTAMP:
             return 'TIMESTAMP'
         if typ == BlinkSQLType.BYTES:
-            return BlinkSQLType.STRING
+            return BlinkHiveSQLType.BINARY
         return typ
 
     @classmethod
