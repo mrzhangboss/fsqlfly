@@ -277,7 +277,7 @@ table_filter = .*\..*
 
 [system]
 execution_parallelism =  1
-execution_restart_strategy = {"type":"restart-strategy", "attempts": 3, "delay": 1000}
+execution_restart_strategy = {"type":"fixed-delay", "attempts": 3, "delay": 1000}
 source_include =  .*
 source_exclude =  ''
 target_database_format =  {{ resource_name.database }}

@@ -52,7 +52,7 @@ read_partition_upper_bound| the largest value of the last partition. | 50000
 Variable | Description | Default
 ---- | --- | ---
 execution_parallelism|the default parallelism when run flink|1
-execution_restart_strategy| if has will set in execution restart-strategy format json:eg{"type": "none"} {"type":"restart-strategy", "attempts": 3, "delay": 10000}|{"type":"restart-strategy", "attempts": 3, "delay": 1000}
+execution_restart_strategy| if has will set in execution restart-strategy format json:eg{"type": "none"} {"type":"fixed-delay", "attempts": 3, "delay": 10000}|{"type":"fixed-delay", "attempts": 3, "delay": 1000}
 source_include|the source need load from all connection resource name|.*
 source_exclude|the source exclude name from all connection resource name|''
 target_database_format|the target database | {{ resource_name.database }}
