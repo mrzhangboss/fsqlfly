@@ -1,3 +1,4 @@
+import json
 import sqlalchemy as sa
 from jinja2 import Template
 from datetime import datetime
@@ -234,6 +235,11 @@ class Connector(Base):
     def system_execution_parallelism(self) -> int:
         self.check_system_type()
         return self.get_config('execution_parallelism', typ=int)
+
+    @property
+    def system_execution_restart_strategy(self) -> dict:
+        self.check_system_type()
+        return json.loads(self.get_config('execution_restart_strategy', typ=str))
 
     @property
     def partition_key_value(self) -> Tuple[str, str]:

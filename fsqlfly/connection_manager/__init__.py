@@ -542,6 +542,7 @@ class SystemConnectorUpdateManager(SystemConnectorManager):
             t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
                                                                            connector=connector)
             execution = dict(planner='blink', type='batch', parallelism=connector.system_execution_parallelism)
+            execution['restart-strategy'] = connector.system_execution_restart_strategy
             transform = Transform(name=name, sql=self.build_sql(t_database, t_table, require_version, connector),
                                   require=require, connector_id=connector.id, yaml=dump_yaml(dict(execution=execution)))
             transform, i = DBDao.upsert_transform(transform, session=session)
