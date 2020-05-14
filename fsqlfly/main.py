@@ -4,7 +4,7 @@ import argparse
 import logzero
 from os.path import join, dirname, abspath
 
-
+# TODO: to object
 def run_webserver(commands: list):
     extend_command = None
     if '--jobdaemon' in commands:
@@ -48,11 +48,6 @@ def run_echo_env(commands: list):
 
     lib_path = dirname(abspath(__file__))
     print(open(join(lib_path, 'env.template'), 'r').read(), file=out)
-
-
-def run_db2hive(comands: list):
-    from fsqlfly.helper import DBToHive
-    DBToHive.run(comands)
 
 
 def run_canal(commands: list):

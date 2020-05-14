@@ -81,6 +81,7 @@ class BaseManager:
             raise NotImplementedError("Not Support {}".format(type(target)))
         return DBRes(data=status.info)
 
+    # TODO: Long Parameter List
     def update_connection(self, status: UpdateStatus, session: Session, connection: Connection):
         for content in self.update():
             schema = self.generate_schema_event(schema=content, connection=connection)
@@ -88,12 +89,15 @@ class BaseManager:
             status.update_schema(i)
             self.update_resource_name(status, session, connection, schema)
 
+    # TODO: Long Parameter List
+
     def update_resource_name(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent):
         resource_name = self.generate_resource_name(connection, schema)
         resource_name, i = DBDao.upsert_resource_name(resource_name, session=session)
         status.update_resource_name(i)
         self.update_template(status, session, schema=schema, connection=connection, resource_name=resource_name)
 
+    # TODO: Long Parameter List
     def update_template(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent,
                         resource_name: ResourceName):
         for template in self.generate_template(schema=schema, connection=connection, resource_name=resource_name):
@@ -101,6 +105,8 @@ class BaseManager:
             status.update_template(i)
             self.update_version(status, session, schema=schema, connection=connection, resource_name=resource_name,
                                 template=template)
+
+    # TODO: Long Parameter List
 
     def update_version(self, status: UpdateStatus, session: Session, connection: Connection, schema: SchemaEvent,
                        resource_name: ResourceName, template: ResourceTemplate):
@@ -110,12 +116,15 @@ class BaseManager:
         version.cache = dump_yaml(version.generate_version_cache())
         DBDao.save(version, session=session)
 
+    # TODO: Long Parameter List
+
     @classmethod
     def update_version_cache(cls, status: UpdateStatus, session: Session, version: ResourceVersion):
         version.cache = dump_yaml(version.generate_version_cache())
         DBDao.save(version, session=session)
         status.update_version(False)
 
+    # TODO: Long Parameter List
     @classmethod
     def generate_schema_event(cls, schema: SchemaContent, connection: Connection) -> SchemaEvent:
         return SchemaEvent(name=schema.name, info=schema.comment, database=schema.database,
@@ -145,10 +154,12 @@ class BaseManager:
             res.append(temp)
         return res
 
+    # TODO: Long Parameter List
     def generate_default_version_config(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
                                         template: ResourceTemplate) -> VersionConfig:
         raise NotImplementedError
 
+    # TODO: Long Parameter List
     def generate_default_version(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
                                  template: ResourceTemplate) -> ResourceVersion:
         config = self.generate_default_version_config(connection, schema, name, template)
@@ -175,6 +186,7 @@ class DatabaseManager(BaseManager):
     use_comment = True
     use_primary = True
 
+    # TODO: Decompose Conditional
     def _get_flink_type(self, typ: TypeDecorator) -> Optional[str]:
         from sqlalchemy.dialects.mysql.types import _StringType as M_STRING, BIT as M_BIT, TINYINT, DOUBLE as M_DOUBLE
         from sqlalchemy.dialects.postgresql import (DOUBLE_PRECISION as P_DOUBLE, BIT as P_BIT, VARCHAR, CHAR, TEXT,
@@ -216,6 +228,7 @@ class DatabaseManager(BaseManager):
             return None
         return name
 
+    # TODO: Large Method
     def update(self):
         update_cache_name = '__update_cache_name'
         if hasattr(self, update_cache_name):
@@ -296,6 +309,8 @@ class HiveManager(DatabaseManager):
 
 
 class ElasticSearchManager(DatabaseManager):
+
+    # TODO: Decompose Conditional
     def _es2flink(self, typ: str) -> Optional[str]:
         types = BlinkSQLType
         if typ in ("text", "keyword"):
@@ -419,6 +434,7 @@ class CanalKafkaManager(DatabaseManager):
     def update(self) -> List[SchemaContent]:
         return self._cache
 
+    # TODO: Large Method, Long Parameter List
     def generate_default_version(self, connection: Connection, schema: SchemaEvent, name: ResourceName,
                                  template: ResourceTemplate) -> ResourceVersion:
         config = super(CanalKafkaManager, self).generate_default_version_config(connection, schema, name, template)
@@ -489,6 +505,7 @@ class CanalManager:
 
 
 class CanalConnectorManager(ConnectorManager):
+    # TODO: Lazy Class
     def _run(self, connector: Connector, session: Session) -> DBRes:
         s_type, t_type = connector.source.type.code, connector.target.type.code
         assert s_type == 'jdbc', 'Canal Source Type must be db current: {}'.format(s_type)
@@ -504,6 +521,7 @@ class SystemConnectorManager(ConnectorManager):
         self.check_system(connector)
         need_tables = connector.need_tables
         source, target = connector.source, connector.target
+        # TODO: Message Chains
         if not connector.source.resource_names:
             return DBRes.api_error("Not Found Any Resource Name in Connection {}".format(source.name))
         resource_names = [x for x in connector.source.resource_names if x.db_name in need_tables]
@@ -511,6 +529,7 @@ class SystemConnectorManager(ConnectorManager):
 
 
 class SystemConnectorUpdateManager(SystemConnectorManager):
+    # TODO: Long Parameter
     @classmethod
     def build_sql(cls, target_database: str, target_table: str, version: ResourceVersion, connector: Connector) -> str:
         schemas = version.generate_version_cache()['schema']
@@ -524,6 +543,7 @@ class SystemConnectorUpdateManager(SystemConnectorManager):
 
         return sql
 
+    # TODO: Remove Control Flag
     @classmethod
     def get_resource_name_default_version(cls, resource_name: ResourceName) -> ResourceVersion:
         require_version = None
@@ -537,6 +557,7 @@ class SystemConnectorUpdateManager(SystemConnectorManager):
         assert require_version or default_version, msg
         return default_version if default_version else require_version
 
+    # TODO: Long Parameter
     def handle(self, resource_names: List[ResourceName], connector: Connector, session: Session) -> DBRes:
         updated = inserted = 0
 
@@ -568,6 +589,7 @@ class SystemConnectorInitManager(SystemConnectorManager):
             return BlinkHiveSQLType.BINARY
         return typ
 
+    # TODO: Long Parameter
     @classmethod
     def build_sql(cls, target_database: str, target_table: str, schema: list, connector: Connector) -> List[str]:
         res = []
@@ -581,6 +603,7 @@ class SystemConnectorInitManager(SystemConnectorManager):
         res.extend([create_header])
         res.append(','.join(cols))
         res.append(')')
+        # TODO: Inappropriate Intimacy
         if connector.use_partition:
             key, _ = connector.partition_key_value
             partition = f"PARTITIONED BY ({key} STRING)"
@@ -590,16 +613,19 @@ class SystemConnectorInitManager(SystemConnectorManager):
             res.append(connector.get_config('hive_row_format'))
         return [drop_table, '\n'.join(res)]
 
+    # TODO: Long Parameter
     def handle(self, resource_names: List[ResourceName], connector: Connector, session: Session) -> DBRes:
         engine = create_engine(connector.target.url)
         for resource_name in resource_names:
             require_version = None
+            # TODO: Inappropriate Intimacy
             for version in resource_name.versions:
                 if version.template.type == 'source':
                     require_version = version
             assert require_version, 'Not found require version Please check {}'.format(resource_name.full_name)
             t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
                                                                            connector=connector)
+            # TODO: message chains
             schemas = version.generate_version_cache()['schema']
             for sql in self.build_sql(t_database, t_table, schemas, connector):
                 print(sql)
@@ -609,6 +635,7 @@ class SystemConnectorInitManager(SystemConnectorManager):
 
 
 class SystemConnectorListManager(SystemConnectorManager):
+    # TODO: Long parameter, useless parameter
     def handle(self, resource_names: List[ResourceName], connector: Connector, session: Session) -> DBRes:
         res = []
         for resource_name in resource_names:
@@ -631,6 +658,7 @@ class BaseHelper:
         return DBDao.clean(model, pk)
 
 
+# TODO: rename helper to factory
 class ConnectorHelper(BaseHelper):
     @classmethod
     def is_support(cls, mode: str) -> bool:
@@ -663,6 +691,7 @@ class ConnectorHelper(BaseHelper):
         manager = cls.get_manager(obj.type.code, method)
         return manager.run(obj, session)
 
+    # TODO: duplicated code
     @classmethod
     def update(cls, model: str, pk: int) -> DBRes:
         assert model == 'connector', 'Only support Connector Model'
@@ -683,6 +712,7 @@ class ConnectionHelper(BaseHelper):
         session = DBSession.get_session()
         try:
             obj = DBDao.one(base=SUPPORT_MODELS[model], pk=pk, session=session)
+            # TODO: long Decompose Conditional
             if isinstance(obj, Connection):
                 name_filter = NameFilter(obj.include, obj.exclude)
                 manager = SUPPORT_MANAGER[obj.type](obj.url, name_filter, obj.type)
@@ -705,6 +735,7 @@ class ConnectionHelper(BaseHelper):
             session.close()
 
 
+# TODO: rename to factory
 class ManagerHelper:
     @classmethod
     def get_helper(cls, model) -> Union[Type[ConnectorHelper], Type[ConnectionHelper]]:

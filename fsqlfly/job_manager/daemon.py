@@ -52,6 +52,7 @@ class FlinkJobDaemon:
         if FSQLFLY_MAIL_ENABLE:
             print(MailHelper.send(title, content))
 
+    # TODO: Large Method
     def run(self):
         self.logger.debug('Start Running Flink Job Damon {}'.format(str(datetime.now())[:19]))
 

@@ -14,6 +14,7 @@ from fsqlfly.utils.strings import get_job_header, dump_yaml
 from fsqlfly.utils.template import generate_template_context
 
 
+# TODO: Long Method
 def _create_config(require: str, config: Optional[str], args: dict) -> str:
     tables = []
     catalogs = []
@@ -44,6 +45,8 @@ def _clean(s: str) -> str:
 def handle_template(text: Optional[str], args: dict) -> str:
     return Template(text).render(**generate_template_context(**args)) if text else ''
 
+
+# TODO: Long Method
 
 def run_transform(transform: Transform, **kwargs) -> (bool, str):
     _, yaml_f = tempfile.mkstemp(suffix='.yaml')
@@ -80,6 +83,8 @@ def run_transform(transform: Transform, **kwargs) -> (bool, str):
     print(out_w)
     return True, out_w
 
+
+# TODO: Long Method
 
 def run_debug_transform(data: dict, manager: NamedTermManager) -> (str, str):
     _, yaml_f = tempfile.mkstemp(suffix='.yaml')

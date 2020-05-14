@@ -66,6 +66,7 @@ class JobControl:
         self.session = Session()
         self.cache = Cache()
 
+    # TODO: Large Method
     def _get_job_status(self, job_id: str) -> JobStatus:
         def p_time(t: int) -> str:
             return str(datetime.fromtimestamp(t / 1000))[:19] if t > 0 else '-'
@@ -151,6 +152,7 @@ class JobControl:
         self.stop_flink_jobs([jid])
         return 'kill {} '.format(jid)
 
+    # TODO: Large Method
     def handle_status(self, transform: Transform, **kwargs) -> str:
         header = get_job_short_name(transform)
         job_status = self.job_status
@@ -232,6 +234,7 @@ def _handle_job(mode: str, pk: str, json_body: dict, session: Session) -> DBRes:
         else:
             transform = pk
         data = json_body
+        # TODO: replace with factory
         run_res = getattr(JobControlHandle, handle_name)(transform, **data)
         return DBRes(code=500 if run_res.startswith(FAIL_HEADER) else 200, msg=run_res)
     else:

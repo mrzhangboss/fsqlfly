@@ -83,7 +83,7 @@ class Consumer:
         EventType.DELETE: CanalMode.delete,
         EventType.UPDATE: CanalMode.update,
     }
-
+    # TODO: long comments, Decompose Conditional
     @classmethod
     def _convert_type(cls, v: Column) -> any:
         val = v.value
@@ -120,6 +120,7 @@ class Consumer:
         _cv = self._convert_type
         execute_time_name = self.canal_execute_time_name
         event_type_name = self.canal_event_type_name
+        # TODO: Decompose Conditional
         if self._mode.is_upsert():
             data = self._generate_by_columns(row.beforeColumns)
             after_data = self._generate_by_columns(row.afterColumns)
@@ -131,8 +132,6 @@ class Consumer:
         elif event_type == EventType.INSERT:
             data = self._generate_by_columns(row.afterColumns)
         elif event_type == EventType.UPDATE:
-            update_suffix = self.canal_update_suffix
-            data = {x.name + update_suffix: x.updated for x in row.afterColumns}
             data = self._generate_by_columns(row.beforeColumns, self.canal_before_column_suffix)
             after_data = self._generate_after_columns(row.afterColumns)
             data.update(data)
@@ -157,6 +156,7 @@ class Consumer:
         s = date.strftime("%FT%H:%M:%S.%f") + "Z"
         return s
 
+    # TODO: Large Method
     def run_forever(self, client, producer):
         from canal.protocol import EntryProtocol_pb2
         from canal.protocol.EntryProtocol_pb2 import EntryType

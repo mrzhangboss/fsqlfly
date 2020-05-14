@@ -145,6 +145,8 @@ class Connector(Base):
 
         return parser
 
+    # TODO: Large Class , Duplicated Code
+
     @property
     def connector_mode(self) -> CanalMode:
         config_mode = self.get_config('mode', typ=str)
@@ -344,6 +346,7 @@ class ResourceVersion(Base):
     def db_full_name(self):
         return self.full_name.replace('.', '__')
 
+    # TODO: Long Method, Decompose Conditional
     def get_db_bound(self, key: str) -> Tuple[int, int]:
         resource_name = self.resource_name
         connection = self.connection
@@ -374,6 +377,7 @@ class ResourceVersion(Base):
         assert real_low <= real_upper, 'generate low upper bind is not equal'
         return real_low, real_upper
 
+    # TODO: Long Method, Shotgun Surgery, Decompose Conditional
     def generate_version_cache(self) -> dict:
         template = self.template
         version = self
