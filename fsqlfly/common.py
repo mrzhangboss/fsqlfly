@@ -9,10 +9,10 @@ from re import _pattern_type
 from typing import Any, Optional, NamedTuple, Callable, Awaitable, Union, List, Type
 from tornado.web import RequestHandler, HTTPError
 from logzero import logger
-
-SUPPORT_TABLE_TYPE = {'sink', 'source', 'both', 'view', 'temporal-table'}
-SUPPORT_MANAGER = {'hive', 'jdbc', 'kafka', 'hbase', 'elasticsearch', 'filesystem'}
-CONNECTOR_TYPE = {'canal', 'system'}
+# TODO: Replace Global Args to Class
+FlinkTableType = {'sink', 'source', 'both', 'view', 'temporal-table'}
+FlinkConnectorType = {'hive', 'jdbc', 'kafka', 'hbase', 'elasticsearch', 'filesystem'}
+ConnectorType = {'canal', 'system'}
 
 
 class CodeMsg(NamedTuple):
