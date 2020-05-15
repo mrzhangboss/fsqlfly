@@ -745,12 +745,6 @@ class BaseManager:
 
 # TODO: rename to factory
 class ManagerFactory:
-    connector = 'connector'
-
-    @classmethod
-    def is_support(cls, model: str, mode: str) -> bool:
-        return cls.get_helper(model).is_support(mode)
-
     @classmethod
     def get_manager(cls, model: str, mode) -> BaseManager:
         raise NotImplementedError

@@ -14,7 +14,7 @@ from logzero import logger
 class _BaseArg:
     @classmethod
     def keys(cls):
-        return list(filter(lambda x: isinstance(getattr(cls, x), str) and not x.startswith('_'), dir(cls)))
+        return set(filter(lambda x: isinstance(getattr(cls, x), str) and not x.startswith('_'), dir(cls)))
 
     @classmethod
     def regex(cls):
