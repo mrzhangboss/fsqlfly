@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 from fsqlfly.common import safe_authenticated
 from fsqlfly.base_handle import BaseHandler
-from fsqlfly.common import DBRes
+from fsqlfly.common import DBRes, PageModelMode, PageModel
 from fsqlfly.connection_manager import ManagerFactory
 
 
@@ -16,5 +16,5 @@ class ManagerHandler(BaseHandler):
 
 
 default_handlers = [
-    (r'/api/(?P<model>\w+)/(?P<mode>update|clean|init|list)/(?P<pk>[a-zA-Z_0-9]+)', ManagerHandler),
+    (r'/api/(?P<model>{})/(?P<mode>{})/(?P<pk>[a-zA-Z_0-9]+)'.format(PageModel.regex(), PageModelMode.regex()), ManagerHandler),
 ]

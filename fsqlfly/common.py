@@ -14,7 +14,18 @@ from logzero import logger
 class _BaseArg:
     @classmethod
     def keys(cls):
-        return [x for x in dir(cls) if not x.endswith('_')]
+        return list(filter(lambda x: isinstance(getattr(cls, x), str) and not x.startswith('_'), dir(cls)))
+
+    @classmethod
+    def regex(cls):
+        return '|'.join(cls.keys())
+
+
+class PageModelMode(_BaseArg):
+    update = 'update'
+    delete = 'delete'
+    init = 'init'
+    clean = 'clean'
 
 
 class FlinkTableType(_BaseArg):
@@ -39,7 +50,7 @@ class FlinkConnectorType(_BaseArg):
     filesystem = "filesystem"
 
 
-class PageModel:
+class PageModel(_BaseArg):
     connection = "connection"
     connector = "connector"
     schema = "schema"
