@@ -2,19 +2,16 @@
 from fsqlfly.common import safe_authenticated
 from fsqlfly.base_handle import BaseHandler
 from fsqlfly.common import DBRes, PageModelMode, PageModel
-from fsqlfly.connection_manager import ManagerFactory
+from fsqlfly.version_manager.helper import ManagerHelper
 
 
 class ManagerHandler(BaseHandler):
     @safe_authenticated
-    def post(self, model: str, mode: str, pk: str):
-        manager = ManagerFactory.get_manager(model, mode)
-        if manager.is_support(pk):
-            self.write_res(manager.run(pk))
-        else:
-            self.write_res(DBRes.api_error("{} {} not support now".format(model, mode)))
+    def post(self, model: str, mode: str, pk: str) -> DBRes:
+        return ManagerHelper.run(model, mode, pk)
 
 
 default_handlers = [
-    (r'/api/(?P<model>{})/(?P<mode>{})/(?P<pk>[a-zA-Z_0-9]+)'.format(PageModel.regex(), PageModelMode.regex()), ManagerHandler),
+    (r'/api/(?P<model>{})/(?P<mode>{})/(?P<pk>[a-zA-Z_0-9]+)'.format(PageModel.regex(), PageModelMode.regex()),
+     ManagerHandler),
 ]

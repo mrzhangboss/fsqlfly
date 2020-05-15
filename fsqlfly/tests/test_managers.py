@@ -1,10 +1,11 @@
 # -*- coding:utf-8 -*-
 from __future__ import absolute_import, unicode_literals, print_function
+import random
 import unittest
-from unittest.mock import patch, Mock
-from fsqlfly.db_helper import Connector
-from fsqlfly.connection_manager import *
+from fsqlfly.version_manager import *
 from sqlalchemy import create_engine, event, func
+from fsqlfly.version_manager import BaseManager
+from fsqlfly.version_manager.helper import ManagerHelper
 
 
 class NameFilterTest(unittest.TestCase):
@@ -33,8 +34,10 @@ class NameFilterTest(unittest.TestCase):
 class ManagerTest(unittest.TestCase):
     def test_manager_factory_support(self):
         with self.assertRaises(NotImplementedError):
-            ManagerFactory.get_manager(ManagerFactory.connector, 'fake-mode')
-        self.assertTrue(isinstance(ManagerFactory.get_manager(ManagerFactory.connector, ), BaseManager))
+            ManagerHelper.get_manager(PageModel.connector, 'fake-mode')
+        self.assertTrue(
+            isinstance(ManagerHelper.get_manager(PageModel.connector, random.choice(PageModelMode.keys())),
+                       BaseManager))
 
     def test_db_manager(self):
         name_filter = NameFilter('.*\.alltypes')
@@ -78,7 +81,7 @@ class ManagerTest(unittest.TestCase):
             session = DBSession.get_session()
             session.add(connection)
             session.commit()
-            res = ManagerFactory.update('connection', str(connection.id))
+            res = ManagerHelper.update('connection', str(connection.id))
             self.assertTrue(res.success)
             self.assertTrue(session.query(SchemaEvent).count() > 0)
             self.assertTrue(session.query(ResourceName).count() > 0)
@@ -118,7 +121,7 @@ canal_filter: .*\..*
         session.add(connector)
         session.commit()
 
-        res = ManagerFactory.update('connector', connector.id)
+        res = ManagerHelper.update('connector', connector.id)
         self.assertTrue(res.success)
 
         self.assertTrue(session.query(SchemaEvent).count() > 0)
@@ -128,7 +131,6 @@ canal_filter: .*\..*
 
         connector_id = connector.id
         session.close()
-        from fsqlfly.contrib.canal import Consumer
 
         # Consumer.build(connector_id).run()
 

@@ -9,6 +9,7 @@ from sqlalchemy.sql.sqltypes import TypeDecorator
 from fsqlfly.db_helper import ResourceName, ResourceTemplate, ResourceVersion, Connection, SchemaEvent, Transform
 from fsqlfly.utils.strings import load_yaml, dump_yaml, get_full_name
 from fsqlfly.db_helper import DBSession, DBDao, Session, SUPPORT_MODELS, Connector, DBT
+from fsqlfly.version_manager.base import BaseVersionManager
 
 
 class UpdateStatus:
@@ -733,28 +734,3 @@ class ConnectionHelper(BaseHelper):
         finally:
             session.commit()
             session.close()
-
-
-class BaseManager:
-    def is_support(self, pk: str) -> bool:
-        raise NotImplementedError
-
-    def run(self, pk: str):
-        raise NotImplementedError
-
-
-# TODO: rename to factory
-class ManagerFactory:
-    @classmethod
-    def get_manager(cls, model: str, mode) -> BaseManager:
-        raise NotImplementedError
-
-    @classmethod
-    def run(cls, model: str, mode: str, pk: Union[str, int]) -> DBRes:
-        if model not in SUPPORT_MODELS:
-            return DBRes.api_error(msg='{} not support'.format(model))
-        if isinstance(pk, str) and not pk.isnumeric():
-            pk = DBDao.name2pk(model, name=pk)
-        manager = cls.get_manager(model)
-
-        return getattr(manager, mode)(model, pk if isinstance(pk, int) else int(pk))
