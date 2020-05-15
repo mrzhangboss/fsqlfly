@@ -715,15 +715,15 @@ class ConnectionHelper(BaseHelper):
             # TODO: long Decompose Conditional
             if isinstance(obj, Connection):
                 name_filter = NameFilter(obj.include, obj.exclude)
-                manager = SUPPORT_MANAGER[obj.type](obj.url, name_filter, obj.type)
+                manager = FlinkConnectorType[obj.type](obj.url, name_filter, obj.type)
             elif isinstance(obj, ResourceName):
                 name_filter = NameFilter(obj.get_include())
                 typ = obj.connection.type
-                manager = SUPPORT_MANAGER[typ](obj.connection.url, name_filter, typ)
+                manager = FlinkConnectorType[typ](obj.connection.url, name_filter, typ)
             else:
                 name_filter = NameFilter()
                 typ = obj.connection.type
-                manager = SUPPORT_MANAGER[typ](
+                manager = FlinkConnectorType[typ](
                     obj.connection.url,
                     name_filter,
                     typ
@@ -735,18 +735,25 @@ class ConnectionHelper(BaseHelper):
             session.close()
 
 
+class BaseManager:
+    def is_support(self, pk: str) -> bool:
+        raise NotImplementedError
+
+    def run(self, pk: str):
+        raise NotImplementedError
+
+
 # TODO: rename to factory
-class ManagerHelper:
-    @classmethod
-    def get_helper(cls, model) -> Union[Type[ConnectorHelper], Type[ConnectionHelper]]:
-        if model == 'connector':
-            return ConnectorHelper
-        else:
-            return ConnectionHelper
+class ManagerFactory:
+    connector = 'connector'
 
     @classmethod
     def is_support(cls, model: str, mode: str) -> bool:
         return cls.get_helper(model).is_support(mode)
+
+    @classmethod
+    def get_manager(cls, model: str, mode) -> BaseManager:
+        raise NotImplementedError
 
     @classmethod
     def run(cls, model: str, mode: str, pk: Union[str, int]) -> DBRes:
@@ -754,4 +761,6 @@ class ManagerHelper:
             return DBRes.api_error(msg='{} not support'.format(model))
         if isinstance(pk, str) and not pk.isnumeric():
             pk = DBDao.name2pk(model, name=pk)
-        return getattr(cls.get_helper(model), mode)(model, pk if isinstance(pk, int) else int(pk))
+        manager = cls.get_manager(model)
+
+        return getattr(manager, mode)(model, pk if isinstance(pk, int) else int(pk))

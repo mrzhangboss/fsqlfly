@@ -9,10 +9,48 @@ from re import _pattern_type
 from typing import Any, Optional, NamedTuple, Callable, Awaitable, Union, List, Type
 from tornado.web import RequestHandler, HTTPError
 from logzero import logger
-# TODO: Replace Global Args to Class
-FlinkTableType = {'sink', 'source', 'both', 'view', 'temporal-table'}
-FlinkConnectorType = {'hive', 'jdbc', 'kafka', 'hbase', 'elasticsearch', 'filesystem'}
-ConnectorType = {'canal', 'system'}
+
+
+class _BaseArg:
+    @classmethod
+    def keys(cls):
+        return [x for x in dir(cls) if not x.endswith('_')]
+
+
+class FlinkTableType(_BaseArg):
+    sink = "sink"
+    view = "view"
+    source = "source"
+    temporal_table = "temporal-table"
+    both = "both"
+
+
+class ConnectorType(_BaseArg):
+    canal = 'canal'
+    system = 'system'
+
+
+class FlinkConnectorType(_BaseArg):
+    hive = "hive"
+    jdbc = "jdbc"
+    kafka = "kafka"
+    hbase = "hbase"
+    elasticsearch = "elasticsearch"
+    filesystem = "filesystem"
+
+
+class PageModel:
+    connection = "connection"
+    connector = "connector"
+    schema = "schema"
+    name = "name"
+    template = "template"
+    version = "version"
+    file = "file"
+    functions = "functions"
+    transform = "transform"
+    namespace = "namespace"
+    savepoint = "savepoint"
 
 
 class CodeMsg(NamedTuple):

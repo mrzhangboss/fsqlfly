@@ -2,16 +2,17 @@
 from fsqlfly.common import safe_authenticated
 from fsqlfly.base_handle import BaseHandler
 from fsqlfly.common import DBRes
-from fsqlfly.connection_manager import ManagerHelper
+from fsqlfly.connection_manager import ManagerFactory
 
 
 class ManagerHandler(BaseHandler):
     @safe_authenticated
     def post(self, model: str, mode: str, pk: str):
-        if ManagerHelper.is_support(model, mode):
-            self.write_res(ManagerHelper.run(model, mode, pk))
+        manager = ManagerFactory.get_manager(model, mode)
+        if manager.is_support(pk):
+            self.write_res(manager.run(pk))
         else:
-            self.write_res(DBRes.api_error("{} not support now".format(mode)))
+            self.write_res(DBRes.api_error("{} {} not support now".format(model, mode)))
 
 
 default_handlers = [

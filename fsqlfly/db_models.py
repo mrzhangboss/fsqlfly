@@ -17,9 +17,9 @@ from logzero import logger
 
 _Base = declarative_base()
 
-CONNECTION_TYPE = ChoiceType([(k, k) for k in SUPPORT_MANAGER], impl=String(16))
-TABLE_TYPE = ChoiceType([(k, k) for k in SUPPORT_TABLE_TYPE], impl=String(8))
-CONNECTOR_CHOICE_TYPE = ChoiceType([(k, k) for k in CONNECTOR_TYPE], impl=String(8))
+CONNECTION_TYPE = ChoiceType([(k, k) for k in FlinkConnectorType.keys()], impl=String(16))
+TABLE_TYPE = ChoiceType([(k, k) for k in FlinkTableType.keys()], impl=String(8))
+CONNECTOR_CHOICE_TYPE = ChoiceType([(k, k) for k in ConnectorType.keys()], impl=String(8))
 CONFIG_T = TypeVar('CONFIG_T', int, str, bool, float)
 
 

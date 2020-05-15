@@ -31,6 +31,11 @@ class NameFilterTest(unittest.TestCase):
 
 
 class ManagerTest(unittest.TestCase):
+    def test_manager_factory_support(self):
+        with self.assertRaises(NotImplementedError):
+            ManagerFactory.get_manager(ManagerFactory.connector, 'fake-mode')
+        self.assertTrue(isinstance(ManagerFactory.get_manager(ManagerFactory.connector, ), BaseManager))
+
     def test_db_manager(self):
         name_filter = NameFilter('.*\.alltypes')
 
@@ -73,7 +78,7 @@ class ManagerTest(unittest.TestCase):
             session = DBSession.get_session()
             session.add(connection)
             session.commit()
-            res = ManagerHelper.update('connection', str(connection.id))
+            res = ManagerFactory.update('connection', str(connection.id))
             self.assertTrue(res.success)
             self.assertTrue(session.query(SchemaEvent).count() > 0)
             self.assertTrue(session.query(ResourceName).count() > 0)
@@ -113,7 +118,7 @@ canal_filter: .*\..*
         session.add(connector)
         session.commit()
 
-        res = ManagerHelper.update('connector', connector.id)
+        res = ManagerFactory.update('connector', connector.id)
         self.assertTrue(res.success)
 
         self.assertTrue(session.query(SchemaEvent).count() > 0)
