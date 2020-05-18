@@ -1,7 +1,7 @@
-from typing import Union
+from typing import Union, List
 
-from fsqlfly.common import PageModel, DBRes
-from fsqlfly.db_helper import SUPPORT_MODELS, DBDao
+from fsqlfly.common import PageModel, DBRes, SchemaContent, NameFilter
+from fsqlfly.db_helper import SUPPORT_MODELS, DBDao, Connection
 from fsqlfly.version_manager.factory import ManagerFactory
 
 
@@ -17,3 +17,9 @@ class ManagerHelper:
         manager = ManagerFactory.get_manager(model, mode)
 
         return getattr(manager, mode)(model, pk if isinstance(pk, int) else int(pk))
+
+
+class SynchronizationHelper:
+    @classmethod
+    def synchronize(cls, connection: Connection, name_filter: NameFilter) -> List[SchemaContent]:
+        pass
