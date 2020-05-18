@@ -1,27 +1,143 @@
-from abc import ABC
-from typing import Any
-from fsqlfly.db_helper import DBSession
+from fsqlfly.db_helper import *
+from fsqlfly.common import *
 
 
 class BaseDao:
-    def __init__(self):
-        self.session = DBSession.get_session()
+    def __init__(self, session: Optional[Session]):
+        self._session = session
+        self.cache_session = None
+
+    @property
+    def session(self) -> Session:
+        if self._session:
+            return self._session
+        if self.cache_session is None:
+            self.cache_session = DBSession.get_session()
+        return self.cache_session
 
     def finished(self):
-        self.session.close()
+        if self.cache_session:
+            self.cache_session.close()
 
-    def _run(self, *args, **kwargs) -> Any:
-        raise NotImplementedError
 
-    def run(self, *args, **kwargs) -> Any:
+def auto_commit(func: Callable):
+    def _real_auto_commit(self: BaseDao, *args, **kwargs) -> Any:
         try:
-            res = self._run(*args, **kwargs)
+            res = func(self, *args, **kwargs)
             self.session.commit()
             return res
         except Exception as err:
             self.session.rollback()
             raise err
 
+    return _real_auto_commit
 
-class Dao(BaseDao, ABC):
-    pass
+
+class Dao(BaseDao):
+    @auto_commit
+    def upsert_schema_event(self, obj: SchemaEvent) -> (SchemaEvent, bool):
+        session = self.session
+        inserted = True
+        query = session.query(SchemaEvent).filter(and_(SchemaEvent.database == obj.database,
+                                                       SchemaEvent.name == obj.name,
+                                                       SchemaEvent.connection_id == obj.connection_id))
+        res = first = query.order_by(SchemaEvent.version.desc()).first()
+        if first:
+            if first.fields != obj.fields or first.primary_key != obj.primary_key or obj.partitionable != obj.partitionable:
+                obj.version = first.version + 1
+                obj.father = first
+                res = obj
+            else:
+                inserted = False
+                res.info = obj.info
+                res.comment = obj.comment
+        else:
+            res = obj
+        session.add(res)
+        session.commit()
+        return res, inserted
+
+    @auto_commit
+    def upsert_resource_name(self, obj: ResourceName) -> (ResourceName, bool):
+        session = self.session
+        inserted = False
+        query = session.query(ResourceName).filter(and_(ResourceName.full_name == obj.full_name,
+                                                        ResourceName.connection_id == obj.connection_id))
+        res = first = query.first()
+        if first:
+            res.latest_schema_id = obj.latest_schema_id
+            res.info = obj.info
+            res.is_latest = True
+            res.schema_version_id = obj.schema_version_id
+        else:
+            inserted = True
+            res = obj
+        session.add(res)
+        session.commit()
+        return res, inserted
+
+    def upsert_resource_template(self, obj: ResourceTemplate) -> (ResourceTemplate, bool):
+        session = self.session
+        query = session.query(ResourceTemplate).filter(and_(ResourceTemplate.name == obj.name,
+                                                            ResourceTemplate.connection_id == obj.connection_id,
+                                                            ResourceTemplate.resource_name_id == obj.resource_name_id))
+        inserted = False
+        res = first = query.first()
+        if first:
+            res.config = obj.config
+            res.info = obj.info
+            res.is_system = obj.is_system
+            res.is_default = obj.is_default
+            res.full_name = obj.full_name
+            res.schema_version_id = obj.schema_version_id
+        else:
+            inserted = True
+            res = obj
+        session.add(res)
+        session.commit()
+        return res, inserted
+
+    def upsert_resource_version(self, obj: ResourceVersion) -> (ResourceVersion, bool):
+        session = self.session
+        max_version_obj = session.query(ResourceVersion.version).filter(
+            ResourceVersion.template_id == obj.template_id).order_by(ResourceVersion.version.desc()).first()
+        max_version = max_version_obj[0] if max_version_obj else 0
+        query = session.query(ResourceVersion).filter(and_(ResourceVersion.name == obj.name,
+                                                           ResourceVersion.template_id == obj.template_id))
+        inserted = True
+        res = first = query.order_by(ResourceVersion.version.desc()).first()
+        if first:
+            if first.config != obj.config:
+                res.version = max_version + 1
+            res.config = obj.config
+            res.cache = obj.cache
+            res.info = obj.info
+            res.cache = obj.cache
+            res.schema_version_id = obj.schema_version_id
+            inserted = False
+        else:
+            res = obj
+            res.version = max_version + 1
+        session.add(res)
+        session.commit()
+        return res, inserted
+
+    def upsert_transform(self, obj: Transform) -> (Transform, bool):
+        session = self.session
+        query = session.query(Transform).filter(Transform.name == obj.name)
+        inserted = True
+        res = first = query.first()
+        if first:
+            first.sql = obj.sql
+            first.connector_id = obj.connector_id
+            first.info = obj.info
+            first.require = obj.require
+            first.yaml = obj.yaml
+            first.namespace_id = obj.namespace_id
+            first.is_daemon = obj.is_daemon
+            inserted = False
+        else:
+            res = obj
+        session.add(res)
+        session.commit()
+        return res, inserted

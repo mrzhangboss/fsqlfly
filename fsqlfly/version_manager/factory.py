@@ -8,10 +8,6 @@ class ManagerFactory:
         raise NotImplementedError("current not support {} - {} ".format(model, mode))
 
 
-class DaoFactory:
-    pass
-
-
 class ResourceGeneratorFactor:
     pass
 
