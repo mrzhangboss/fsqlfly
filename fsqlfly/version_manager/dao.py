@@ -159,3 +159,19 @@ class Dao(BaseDao):
         self.session.add(obj)
         self.session.commit()
         return obj
+
+    def clean_connection(self, obj: Connection) -> DBRes:
+        num = 0
+        for x in self.session.query(ResourceName).join(ResourceName.connection).filter(Connection.id == obj.id).all():
+            self.session.delete(x)
+            num += 1
+        msg = 'clean {} resource name'.format(num)
+        return DBRes(msg=msg)
+
+    def clean_connector(self, obj: Connector) -> DBRes:
+        num = 0
+        for x in self.session.query(Transform).join(Transform.connector).filter(Connector.id == obj.id).all():
+            self.session.delete(x)
+            num += 1
+        msg = 'clean {} transform'.format(num)
+        return DBRes(msg=msg)

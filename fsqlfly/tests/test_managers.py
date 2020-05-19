@@ -54,8 +54,27 @@ class ManagerTest(FSQLFlyTestCase):
         res = ManagerHelper.run(PageModel.connector, PageModelMode.update, connector.id)
         print(res.msg)
         self.assertEqual(res.success, True)
-        c = self.session.query(ResourceVersion).join(ResourceVersion.connection).filter(Connection.id == connector.target.id).count()
+        c = self.session.query(ResourceVersion).join(ResourceVersion.connection).filter(
+            Connection.id == connector.target.id).count()
         self.assertTrue(c > 0)
+
+    def test_manager_connection_clean(self):
+        self.test_manager_update_connection()
+        res = ManagerHelper.run(PageModel.connection, PageModelMode.clean, 1)
+        self.assertEqual(res.success, True)
+        c = self.session.query(ResourceName).count()
+        self.assertEqual(c, 0)
+
+    def test_manager_connector_clean(self):
+        self.test_manager_update_connector()
+        res = ManagerHelper.run(PageModel.connection, PageModelMode.clean, 1)
+        self.assertEqual(res.success, True)
+        res = ManagerHelper.run(PageModel.connection, PageModelMode.clean, 2)
+        self.assertEqual(res.success, True)
+        c = self.session.query(Transform).count()
+        self.assertEqual(c, 0)
+
+
 
     def init_test_connection(self):
         from fsqlfly.settings import FSQLFLY_DB_URL

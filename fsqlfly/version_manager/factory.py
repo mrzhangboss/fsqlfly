@@ -3,8 +3,9 @@ from fsqlfly.common import PageModelMode, PageModel, FlinkConnectorType, Connect
 from fsqlfly.db_helper import DBT, Connection, ResourceName, ResourceTemplate, ResourceVersion, Connector
 from fsqlfly.version_manager.base import BaseVersionManager
 from fsqlfly.version_manager.dao import Dao
-from fsqlfly.version_manager.resource import (ResourceVersionUpdateManager, ResourceNameUpdateManager,
-                                              ResourceTemplateUpdateManager, ConnectionUpdateManager)
+from fsqlfly.version_manager.update_manager import (ResourceVersionUpdateManager, ResourceNameUpdateManager,
+                                                    ResourceTemplateUpdateManager, ConnectionUpdateManager)
+from fsqlfly.version_manager.clean_manager import (ConnectionCleanManager, ConnectorCleanManager)
 from fsqlfly.version_manager.generator import (BaseResourceGenerator, SourceResourceGenerator, SinkResourceGenerator,
                                                CanalResourceGenerator)
 
@@ -82,13 +83,26 @@ class UpdateManagerFactory(BaseManagerFactory):
         return model in PageModel.renewable()
 
 
+class CleanManagerFactory(BaseManagerFactory):
+    @classmethod
+    def is_support(cls, model: str, obj: DBT) -> bool:
+        return model in (PageModel.connector, PageModel.connection)
+
+    @classmethod
+    def build(cls, obj: DBT, dao: Dao) -> BaseVersionManager:
+        if isinstance(obj, Connection):
+            return ConnectionCleanManager(obj, dao)
+        elif isinstance(obj, Connector):
+            return ConnectorCleanManager(obj, dao)
+
+        raise NotImplementedError("Not Support {} in CleanManagerFactory".format(obj.as_dict()))
+
+
 class ManagerFactory:
     @classmethod
     def get_manager(cls, model: str, mode: str, obj: DBT, dao: Dao) -> BaseVersionManager:
         if mode == PageModelMode.update:
             return UpdateManagerFactory.get_manager(model, obj, dao)
+        elif mode == PageModelMode.clean:
+            return CleanManagerFactory.get_manager(model, obj, dao)
         raise NotImplementedError("current not support {} - {} ".format(model, mode))
-
-
-class ResourceGeneratorFactor:
-    pass

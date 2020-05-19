@@ -47,11 +47,7 @@ class UpdateStatus:
         return header + '\n'.join(['{}: {}'.format(x, getattr(self, x)) for x in dir(self) if x.endswith('ed')])
 
 
-class BaseResourceManager(BaseVersionManager, ABC):
-    pass
-
-
-class UpdateManager(BaseResourceManager, ABC):
+class UpdateManager(BaseVersionManager, ABC):
     def is_support(self) -> bool:
         return True
 
