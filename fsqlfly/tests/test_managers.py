@@ -4,8 +4,11 @@ import random
 import unittest
 from fsqlfly.version_manager import *
 from sqlalchemy import create_engine, event, func
+from fsqlfly.common import *
 from fsqlfly.version_manager import BaseManager
 from fsqlfly.version_manager.helper import ManagerHelper
+from fsqlfly.version_manager.factory import ManagerFactory
+from fsqlfly.tests.base_test import FSQLFlyTestCase
 
 
 class NameFilterTest(unittest.TestCase):
@@ -31,13 +34,51 @@ class NameFilterTest(unittest.TestCase):
         self.assertTrue('abc.alltype' not in flt)
 
 
-class ManagerTest(unittest.TestCase):
-    def test_manager_factory_support(self):
+class ManagerTest(FSQLFlyTestCase):
+    def test_manager_helper_with_api_error(self):
+        self.assertEqual(ManagerHelper.run(PageModel.connector, 'fake-mode', '1').success, False)
+
+    def test_manager_helper_mode_not_support(self):
+        con = self.init_test_connection()
         with self.assertRaises(NotImplementedError):
-            ManagerHelper.get_manager(PageModel.connector, 'fake-mode')
-        self.assertTrue(
-            isinstance(ManagerHelper.get_manager(PageModel.connector, random.choice(PageModelMode.keys())),
-                       BaseManager))
+            self.assertEqual(ManagerHelper.run(PageModel.connection, 'fake-mode', con.id).success, False)
+
+    def test_manager_update_connection(self):
+        con = self.init_test_connection()
+        res = ManagerHelper.run(PageModel.connection, PageModelMode.update, con.id)
+        print(res.msg)
+        self.assertEqual(res.success, True)
+
+    def test_manager_update_connector(self):
+        connector = self.init_test_connector()
+        res = ManagerHelper.run(PageModel.connector, PageModelMode.update, connector.id)
+        print(res.msg)
+        self.assertEqual(res.success, True)
+
+    def init_test_connection(self):
+        from fsqlfly.settings import FSQLFLY_DB_URL
+        con = Connection(name='fake', url=FSQLFLY_DB_URL, type=FlinkConnectorType.jdbc, connector='')
+        self.session.add(con)
+        self.session.commit()
+        return con
+
+    def init_test_connector(self):
+        con = self.init_test_connection()
+        k_connector = """
+        type: kafka
+        version: universal     # required: valid connector versions are    "0.8", "0.9", "0.10", "0.11", and "universal"
+        properties:
+          zookeeper.connect: localhost:2181  # required: specify the ZooKeeper connection string
+          bootstrap.servers: localhost:9092  # required: specify the Kafka server connection string
+          group.id: testGroup                # optional: required in Kafka consumer, specify consumer group
+
+        topic: {{ resource_name.database }}__{{ resource_name.name }}__{{ version.name }}        
+                """
+        sink = Connection(name='sink', url='xxx', type=FlinkConnectorType.kafka, connector=k_connector)
+        connector = Connector(name='connector', type=ConnectorType.canal, source=con, target=sink)
+        self.session.add_all([sink, connector])
+        self.session.commit()
+        return connector
 
     def test_db_manager(self):
         name_filter = NameFilter('.*\.alltypes')
@@ -62,15 +103,6 @@ class ManagerTest(unittest.TestCase):
         name_filter = NameFilter()
         mn = HBaseManager('127.0.0.1:9090', name_filter, 'hbase')
         mn.update()
-
-    def setUp(self) -> None:
-        self.sqlite_url = 'sqlite:///test.sqlite3'
-        engine = create_engine(self.sqlite_url, echo=True)
-        event.listen(engine, 'connect', lambda con, _: con.execute('pragma foreign_keys=ON'))
-        DBSession.init_engine(engine)
-        DBDao.delete_all_tables(True)
-        DBDao.create_all_tables()
-        self.engine = engine
 
     def test_run_with_connection(self):
         connection_args = [

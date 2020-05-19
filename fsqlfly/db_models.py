@@ -207,6 +207,13 @@ class Connector(Base):
         assert self.type == 'system', 'only system has need tables '
 
     @property
+    def table_filter(self) -> NameFilter:
+        if self.type.code == ConnectorType.canal:
+            return NameFilter(include=self.get_config('table_filter'))
+        else:
+            return self.need_tables
+
+    @property
     def need_tables(self) -> NameFilter:
         self.check_system_type()
         return NameFilter(self.get_config('source_include'), self.get_config('source_exclude'))

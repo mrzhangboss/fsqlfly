@@ -25,7 +25,6 @@ class FSQLFlyTestCase(unittest.TestCase):
         return self.DBSession.get_session()
 
     def tearDown(self) -> None:
-        self.session.commit()
         self.session.close()
 
 

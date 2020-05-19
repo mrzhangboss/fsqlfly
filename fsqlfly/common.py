@@ -6,7 +6,7 @@ import traceback
 import attr
 from urllib.parse import urlencode
 from re import _pattern_type
-from typing import Any, Optional, NamedTuple, Callable, Awaitable, Union, List, Type
+from typing import Any, Optional, NamedTuple, Callable, Awaitable, Union, List, Type, Set
 from tornado.web import RequestHandler, HTTPError
 from logzero import logger
 
@@ -49,6 +49,10 @@ class FlinkConnectorType(_BaseArg):
     elasticsearch = "elasticsearch"
     filesystem = "filesystem"
 
+    @classmethod
+    def both_resource(cls) -> Set[str]:
+        return {cls.jdbc, cls.hive, cls.filesystem, cls.kafka}
+
 
 class PageModel(_BaseArg):
     connection = "connection"
@@ -62,6 +66,10 @@ class PageModel(_BaseArg):
     transform = "transform"
     namespace = "namespace"
     savepoint = "savepoint"
+
+    @classmethod
+    def renewable(cls) -> Set[str]:
+        return {cls.version, cls.template, cls.name, cls.connection, cls.connector}
 
 
 class CodeMsg(NamedTuple):

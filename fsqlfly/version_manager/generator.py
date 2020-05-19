@@ -1,13 +1,16 @@
-from fsqlfly.common import *
-from fsqlfly.db_helper import *
+import attr
+from copy import deepcopy
+from typing import List
+from fsqlfly.common import SchemaContent, VersionConfig, SchemaField, CanalMode, BlinkSQLType
+from fsqlfly.db_helper import Connection, ResourceName, ResourceTemplate, SchemaEvent, ResourceVersion, Connector
 from fsqlfly.utils.strings import dump_yaml, load_yaml, get_full_name
 
 
 class IBaseResourceGenerator:
-    def generate_schema_event(self, schema: SchemaContent, connection: Connection) -> List[SchemaEvent]:
+    def generate_schema_event(self, schema: SchemaContent, connection: Connection) -> SchemaEvent:
         raise NotImplementedError
 
-    def generate_resource_name(self, connection: Connection, schema: SchemaEvent) -> List[ResourceName]:
+    def generate_resource_name(self, connection: Connection, schema: SchemaEvent) -> ResourceName:
         raise NotImplementedError
 
     def generate_template(self, connection: Connection, schema: SchemaEvent,
@@ -24,16 +27,16 @@ class IBaseResourceGenerator:
 
 
 class BaseResourceGenerator(IBaseResourceGenerator):
-    def generate_schema_event(self, schema: SchemaContent, connection: Connection) -> List[SchemaEvent]:
-        return [SchemaEvent(name=schema.name, info=schema.comment, database=schema.database,
-                            connection_id=connection.id, comment=schema.comment, primary_key=schema.primary_key,
-                            fields=dump_yaml([attr.asdict(x) for x in schema.fields]),
-                            partitionable=schema.partitionable)]
+    def generate_schema_event(self, schema: SchemaContent, connection: Connection) -> SchemaEvent:
+        return SchemaEvent(name=schema.name, info=schema.comment, database=schema.database,
+                           connection_id=connection.id, comment=schema.comment, primary_key=schema.primary_key,
+                           fields=dump_yaml([attr.asdict(x) for x in schema.fields]),
+                           partitionable=schema.partitionable)
 
-    def generate_resource_name(self, connection: Connection, schema: SchemaEvent) -> List[ResourceName]:
-        return [ResourceName(name=schema.name, database=schema.database, connection_id=connection.id,
-                             schema_version_id=schema.id, latest_schema_id=schema.id, is_latest=True,
-                             full_name=get_full_name(connection.name, schema.database, schema.name))]
+    def generate_resource_name(self, connection: Connection, schema: SchemaEvent) -> ResourceName:
+        return ResourceName(name=schema.name, database=schema.database, connection_id=connection.id,
+                            schema_version_id=schema.id, latest_schema_id=schema.id, is_latest=True,
+                            full_name=get_full_name(connection.name, schema.database, schema.name))
 
     support_type = ['sink', 'source', 'both']
 
@@ -73,9 +76,9 @@ class SinkResourceGenerator(BaseResourceGenerator):
 
 
 class CanalResourceGenerator(BaseResourceGenerator):
-    def __init__(self, connector: Connector, mode: List[str]):
+    def __init__(self, connector: Connector):
         self._connector = connector
-        self._mode = mode
+        self._mode = connector.connector_mode
 
     def _generate_update_fields(self, schema_event: SchemaEvent, config: VersionConfig) -> List[SchemaField]:
         cnt = self._connector

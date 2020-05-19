@@ -1,12 +1,21 @@
-class BaseVersionManager:
-    def is_support(self, pk: str) -> bool:
+from fsqlfly.common import *
+
+
+class IBaseVersionManager:
+    def run(self) -> DBRes:
         raise NotImplementedError
 
-    def run(self, pk: str):
+    def is_support(self) -> bool:
         raise NotImplementedError
 
 
+class BaseVersionManager(IBaseVersionManager):
+    def run(self) -> DBRes:
+        raise NotImplementedError
 
-class BaseVersionManagerFactory:
-    def get_manager(self):
-        pass
+    def is_support(self) -> bool:
+        return False
+
+    @classmethod
+    def not_support_manager(cls):
+        return BaseVersionManager()

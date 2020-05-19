@@ -3,7 +3,7 @@ from fsqlfly.common import *
 
 
 class BaseDao:
-    def __init__(self, session: Optional[Session]):
+    def __init__(self, session: Optional[Session] = None):
         self._session = session
         self.cache_session = None
 
@@ -141,3 +141,21 @@ class Dao(BaseDao):
         session.add(res)
         session.commit()
         return res, inserted
+
+    def name2pk(self, model: str, name: str) -> int:
+        base = SUPPORT_MODELS[model]
+        return self.session.query(base.id).filter(base.name == name).one()[0]
+
+    def get_by_name_or_id(self, model: str, pk: Union[str, int]) -> Optional[DBT]:
+        base = SUPPORT_MODELS[model]
+        query = self.session.query(base)
+        if isinstance(pk, str) and not pk.isdigit():
+            query = query.filter(base.name == pk)
+        else:
+            query = query.filter(base.id == pk)
+        return query.first()
+
+    def save(self, obj: DBT) -> DBT:
+        self.session.add(obj)
+        self.session.commit()
+        return obj

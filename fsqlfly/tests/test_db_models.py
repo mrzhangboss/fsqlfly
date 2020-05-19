@@ -5,7 +5,6 @@ from fsqlfly.tests.base_test import FSQLFlyTestCase
 
 
 class MyTestCase(FSQLFlyTestCase):
-
     def test_positive_delete(self):
         namespace = Namespace(name='iii')
         self.session.add(namespace)
