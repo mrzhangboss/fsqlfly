@@ -34,7 +34,6 @@ def auto_commit(func: Callable):
 
 
 class Dao(BaseDao):
-    @auto_commit
     def upsert_schema_event(self, obj: SchemaEvent) -> (SchemaEvent, bool):
         session = self.session
         inserted = True
@@ -57,7 +56,6 @@ class Dao(BaseDao):
         session.commit()
         return res, inserted
 
-    @auto_commit
     def upsert_resource_name(self, obj: ResourceName) -> (ResourceName, bool):
         session = self.session
         inserted = False
@@ -155,11 +153,12 @@ class Dao(BaseDao):
             query = query.filter(base.id == pk)
         return query.first()
 
+    @auto_commit
     def save(self, obj: DBT) -> DBT:
         self.session.add(obj)
-        self.session.commit()
         return obj
 
+    @auto_commit
     def clean_connection(self, obj: Connection) -> DBRes:
         num = 0
         for x in self.session.query(ResourceName).join(ResourceName.connection).filter(Connection.id == obj.id).all():
@@ -168,6 +167,7 @@ class Dao(BaseDao):
         msg = 'clean {} resource name'.format(num)
         return DBRes(msg=msg)
 
+    @auto_commit
     def clean_connector(self, obj: Connector) -> DBRes:
         num = 0
         for x in self.session.query(Transform).join(Transform.connector).filter(Connector.id == obj.id).all():

@@ -62,8 +62,9 @@ class ManagerTest(FSQLFlyTestCase):
         self.test_manager_update_connection()
         res = ManagerHelper.run(PageModel.connection, PageModelMode.clean, 1)
         self.assertEqual(res.success, True)
-        c = self.session.query(ResourceName).count()
-        self.assertEqual(c, 0)
+        self.assertEqual(self.session.query(ResourceVersion).count(), 0)
+        self.assertEqual(self.session.query(ResourceTemplate).count(), 0)
+        self.assertEqual(self.session.query(ResourceName).count(), 0)
 
     def test_manager_connector_clean(self):
         self.test_manager_update_connector()
