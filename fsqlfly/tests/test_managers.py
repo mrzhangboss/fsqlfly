@@ -54,6 +54,8 @@ class ManagerTest(FSQLFlyTestCase):
         res = ManagerHelper.run(PageModel.connector, PageModelMode.update, connector.id)
         print(res.msg)
         self.assertEqual(res.success, True)
+        c = self.session.query(ResourceVersion).join(ResourceVersion.connection).filter(Connection.id == connector.target.id).count()
+        self.assertTrue(c > 0)
 
     def init_test_connection(self):
         from fsqlfly.settings import FSQLFLY_DB_URL
@@ -103,68 +105,6 @@ class ManagerTest(FSQLFlyTestCase):
         name_filter = NameFilter()
         mn = HBaseManager('127.0.0.1:9090', name_filter, 'hbase')
         mn.update()
-
-    def test_run_with_connection(self):
-        connection_args = [
-            (self.sqlite_url, 'jdbc', '')
-        ]
-        for url, typ, connector in connection_args:
-            connection = Connection(name='a', url=url, type=typ, connector=connector)
-            session = DBSession.get_session()
-            session.add(connection)
-            session.commit()
-            res = ManagerHelper.update('connection', str(connection.id))
-            self.assertTrue(res.success)
-            self.assertTrue(session.query(SchemaEvent).count() > 0)
-            self.assertTrue(session.query(ResourceName).count() > 0)
-            self.assertTrue(session.query(ResourceTemplate).count() > 0)
-            self.assertTrue(session.query(ResourceVersion).count() > 0)
-            self.assertTrue(session.query(ResourceVersion).filter(ResourceVersion.cache.isnot(None)).count() > 0)
-            session.close()
-
-    def test_update_canal_connector(self):
-        from fsqlfly.settings import FSQLFLY_DB_URL
-        db = Connection(name='db', url=FSQLFLY_DB_URL, type='jdbc', connector='', include='sample.*')
-        k_connector = """
-type: kafka
-version: universal     # required: valid connector versions are    "0.8", "0.9", "0.10", "0.11", and "universal"
-properties:
-  zookeeper.connect: localhost:2181  # required: specify the ZooKeeper connection string
-  bootstrap.servers: localhost:9092  # required: specify the Kafka server connection string
-  group.id: testGroup                # optional: required in Kafka consumer, specify consumer group
-
-topic: {{ resource_name.database }}__{{ resource_name.name }}__{{ version.name }}        
-        """
-        kafka = Connection(name='kafka', url='localhost:9092', type='kafka', connector=k_connector)
-        session = DBSession.get_session()
-        session.add_all([db, kafka])
-        session.commit()
-        config = """[canal]
-mode = insert,update
-canal_host: localhost
-canal_port: 11111
-canal_username: root
-canal_password: password
-canal_client_id: 11021
-canal_destination: example
-canal_filter: .*\..*        
-        """
-        connector = Connector(name='example', type='canal', source_id=db.id, target_id=kafka.id, config=config)
-        session.add(connector)
-        session.commit()
-
-        res = ManagerHelper.update('connector', connector.id)
-        self.assertTrue(res.success)
-
-        self.assertTrue(session.query(SchemaEvent).count() > 0)
-        res = session.query(ResourceVersion.template_id, func.count(ResourceVersion.id)).filter(
-            ResourceVersion.name != 'latest').group_by(ResourceVersion.template_id).all()
-        self.assertTrue(all(map(lambda x: x[1] == 2, res)))
-
-        connector_id = connector.id
-        session.close()
-
-        # Consumer.build(connector_id).run()
 
 
 if __name__ == '__main__':

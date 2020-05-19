@@ -50,7 +50,7 @@ class UpdateManagerFactory(BaseManagerFactory):
         if cls.is_canal(obj):
             return CanalResourceGenerator(obj)
         if cls.is_system_connector(obj):
-            return SourceResourceGenerator()
+            return SinkResourceGenerator()
         con = cls.get_connection(obj)
         c_type = con.type.code
         if c_type in FlinkConnectorType.both_resource():
@@ -73,7 +73,7 @@ class UpdateManagerFactory(BaseManagerFactory):
         elif isinstance(obj, Connection):
             return ConnectionUpdateManager(obj, dao, generator, NameFilter(obj.include, obj.exclude))
         elif isinstance(obj, Connector):
-            return ConnectionUpdateManager(obj.source, dao, generator, obj.table_filter)
+            return ConnectionUpdateManager(obj, dao, generator, obj.table_filter)
 
         raise NotImplementedError("Not Support {} in UpdateManagerFactory".format(obj.as_dict()))
 

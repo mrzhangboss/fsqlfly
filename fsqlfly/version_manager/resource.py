@@ -1,7 +1,8 @@
 from abc import ABC
+from typing import Tuple
 from fsqlfly.version_manager.dao import Dao
 from fsqlfly.db_helper import *
-from fsqlfly.common import *
+from fsqlfly.common import (NameFilter, SchemaContent, FlinkConnectorType)
 from fsqlfly.version_manager.base import BaseVersionManager
 from fsqlfly.version_manager.generator import IBaseResourceGenerator
 from fsqlfly.utils.strings import dump_yaml
@@ -68,8 +69,18 @@ class ResourceVersionUpdateManager(UpdateManager):
         self.dao.save(version)
         self.status.update_cache()
 
+    @classmethod
+    def get_source_sink(cls, target: DBT) -> Tuple[Connection, Connection]:
+        if isinstance(target, (ResourceVersion, ResourceTemplate, ResourceName)):
+            return target.connection, target.connection
+        elif isinstance(target, Connection):
+            return target, target
+        elif isinstance(target, Connector):
+            return target.source, target.target
+
     def __init__(self, target: DBT, dao: Dao, generator: IBaseResourceGenerator):
         self.target = target
+        self.source, self.sink = self.get_source_sink(target)
         self.dao = dao
         self.status = UpdateStatus()
         self.gen = generator
@@ -95,9 +106,9 @@ class ResourceNameUpdateManager(ResourceTemplateUpdateManager):
         obj = self.target
         self.update_connection(obj.connection, NameFilter(include=obj.db_name))
 
-    @classmethod
-    def get_scheme_content(cls, connection: Connection, name_filter: NameFilter) -> List[SchemaContent]:
-        c_type = connection.type.code
+    def get_scheme_content(self, name_filter: NameFilter) -> List[SchemaContent]:
+        c_type = self.source.type.code
+        connection = self.source
         if c_type == FlinkConnectorType.jdbc:
             operator = JDBCSynchronizationOperator(connection, name_filter)
         elif c_type == FlinkConnectorType.hive:
@@ -116,7 +127,7 @@ class ResourceNameUpdateManager(ResourceTemplateUpdateManager):
             self.update_template(schema=schema, connection=connection, resource_name=resource_name, template=template)
 
     def update_connection(self, connection: Connection, name_filter: NameFilter):
-        for content in self.get_scheme_content(connection, name_filter):
+        for content in self.get_scheme_content(name_filter):
             schema = self.gen.generate_schema_event(schema=content, connection=connection)
             schema, i = self.dao.upsert_schema_event(schema)
             self.status.update_schema(i)
@@ -132,6 +143,4 @@ class ConnectionUpdateManager(ResourceNameUpdateManager):
         self.name_filter = name_filter
 
     def _run(self):
-        assert isinstance(self.target, Connection)
-        obj = self.target
-        self.update_connection(obj, self.name_filter)
+        self.update_connection(self.sink, self.name_filter)
