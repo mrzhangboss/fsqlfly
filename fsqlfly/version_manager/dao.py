@@ -35,8 +35,8 @@ def auto_commit(func: Callable):
 
 class Dao(BaseDao):
     @classmethod
-    def schema_is_equal(cls, first: SchemaEvent, obj: SchemaEvent) -> bool:
-        return first.fields != obj.fields or first.primary_key != obj.primary_key or obj.partitionable != obj.partitionable
+    def schema_is_equal(cls, a: SchemaEvent, b: SchemaEvent) -> bool:
+        return a.fields != b.fields or a.primary_key != b.primary_key or b.partitionable != b.partitionable
 
     def upsert_schema_event(self, obj: SchemaEvent) -> (SchemaEvent, bool):
         session = self.session
