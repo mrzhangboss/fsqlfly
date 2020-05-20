@@ -1,13 +1,9 @@
 # -*- coding:utf-8 -*-
 from __future__ import absolute_import, unicode_literals, print_function
-import random
 import unittest
 from fsqlfly.version_manager import *
-from sqlalchemy import create_engine, event, func
 from fsqlfly.common import *
-from fsqlfly.version_manager import BaseManager
-from fsqlfly.version_manager.helper import ManagerHelper
-from fsqlfly.version_manager.factory import ManagerFactory
+from fsqlfly.version_manager.helpers.manager import ManagerHelper
 from fsqlfly.tests.base_test import FSQLFlyTestCase
 
 

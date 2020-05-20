@@ -2,11 +2,11 @@ from abc import ABC
 from typing import Tuple
 from fsqlfly.version_manager.dao import Dao
 from fsqlfly.db_helper import *
-from fsqlfly.common import (NameFilter, SchemaContent, FlinkConnectorType, ConnectorType)
+from fsqlfly.common import (NameFilter, FlinkConnectorType)
 from fsqlfly.version_manager.base import BaseVersionManager
 from fsqlfly.version_manager.generator import IBaseResourceGenerator
 from fsqlfly.utils.strings import dump_yaml
-from fsqlfly.version_manager.synchronization_operator import *
+from fsqlfly.version_manager.helpers.synchronization import SynchronizationHelper
 
 
 class UpdateStatus:
@@ -102,19 +102,6 @@ class ResourceNameUpdateManager(ResourceTemplateUpdateManager):
         obj = self.target
         self.update_connection(obj.connection, NameFilter(include=obj.db_name))
 
-    def get_scheme_content(self, name_filter: NameFilter) -> List[SchemaContent]:
-        c_type = self.source.type.code
-        connection = self.source
-        if c_type == FlinkConnectorType.jdbc:
-            operator = JDBCSynchronizationOperator(connection, name_filter)
-        elif c_type == FlinkConnectorType.hive:
-            operator = HiveSynchronizationOperator(connection, name_filter)
-        elif c_type == FlinkConnectorType.elasticsearch:
-            operator = ElasticsearchSynchronizationOperator(connection, name_filter)
-        else:
-            raise NotImplementedError("Not Support {} schema parser".format(c_type))
-        return operator.run()
-
     def update_resource_name(self, connection: Connection, schema: SchemaEvent,
                              resource_name: ResourceName):
         for template in self.gen.generate_template(schema=schema, connection=connection, resource_name=resource_name):
@@ -123,7 +110,7 @@ class ResourceNameUpdateManager(ResourceTemplateUpdateManager):
             self.update_template(schema=schema, connection=connection, resource_name=resource_name, template=template)
 
     def update_connection(self, connection: Connection, name_filter: NameFilter):
-        for content in self.get_scheme_content(name_filter):
+        for content in SynchronizationHelper.synchronize(self.source, name_filter):
             schema = self.gen.generate_schema_event(schema=content, connection=connection)
             schema, i = self.dao.upsert_schema_event(schema)
             self.status.update_schema(i)

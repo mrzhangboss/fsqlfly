@@ -1,7 +1,6 @@
-from typing import Union, List
+from typing import Union
 
-from fsqlfly.common import PageModel, DBRes, SchemaContent, NameFilter
-from fsqlfly.db_helper import SUPPORT_MODELS, DBDao, Connection
+from fsqlfly.common import PageModel, DBRes
 from fsqlfly.version_manager.factory import ManagerFactory
 from fsqlfly.version_manager.dao import Dao
 
@@ -23,7 +22,3 @@ class ManagerHelper:
             return DBRes.api_error("Not found {} in model {}".format(pk, model))
 
 
-class SynchronizationHelper:
-    @classmethod
-    def synchronize(cls, connection: Connection, name_filter: NameFilter) -> List[SchemaContent]:
-        pass
