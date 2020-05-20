@@ -34,6 +34,10 @@ def auto_commit(func: Callable):
 
 
 class Dao(BaseDao):
+    @classmethod
+    def schema_is_equal(cls, first: SchemaEvent, obj: SchemaContent) -> bool:
+        return first.fields != obj.fields or first.primary_key != obj.primary_key or obj.partitionable != obj.partitionable
+
     def upsert_schema_event(self, obj: SchemaEvent) -> (SchemaEvent, bool):
         session = self.session
         inserted = True
@@ -42,7 +46,7 @@ class Dao(BaseDao):
                                                        SchemaEvent.connection_id == obj.connection_id))
         res = first = query.order_by(SchemaEvent.version.desc()).first()
         if first:
-            if first.fields != obj.fields or first.primary_key != obj.primary_key or obj.partitionable != obj.partitionable:
+            if self.schema_is_equal(first, obj):
                 obj.version = first.version + 1
                 obj.father = first
                 res = obj
