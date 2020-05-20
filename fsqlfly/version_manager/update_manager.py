@@ -2,7 +2,7 @@ from abc import ABC
 from typing import Tuple
 from fsqlfly.version_manager.dao import Dao
 from fsqlfly.db_helper import *
-from fsqlfly.common import (NameFilter, SchemaContent, FlinkConnectorType)
+from fsqlfly.common import (NameFilter, SchemaContent, FlinkConnectorType, ConnectorType)
 from fsqlfly.version_manager.base import BaseVersionManager
 from fsqlfly.version_manager.generator import IBaseResourceGenerator
 from fsqlfly.utils.strings import dump_yaml
@@ -134,6 +134,14 @@ class ResourceNameUpdateManager(ResourceTemplateUpdateManager):
 
 
 class ConnectionUpdateManager(ResourceNameUpdateManager):
+    def is_hive_sink(self):
+        if isinstance(self.target, Connector):
+            return self.target.target.type.code == FlinkConnectorType.hive
+        return False
+
+    def is_support(self) -> bool:
+        return not self.is_hive_sink()
+
     def __init__(self, target: DBT, dao: Dao, generator: IBaseResourceGenerator, name_filter: NameFilter):
         super(ConnectionUpdateManager, self).__init__(target, dao, generator)
         self.name_filter = name_filter

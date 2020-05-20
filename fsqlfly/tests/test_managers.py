@@ -58,6 +58,11 @@ class ManagerTest(FSQLFlyTestCase):
             Connection.id == connector.target.id).count()
         self.assertTrue(c > 0)
 
+    def test_manager_update_connector_with_hive_fail(self):
+        connector = self.init_test_connector(FlinkConnectorType.hive)
+        res = ManagerHelper.run(PageModel.connector, PageModelMode.update, connector.id)
+        self.assertEqual(res.success, False)
+
     def test_manager_connection_clean(self):
         self.test_manager_update_connection()
         res = ManagerHelper.run(PageModel.connection, PageModelMode.clean, 1)
@@ -75,8 +80,6 @@ class ManagerTest(FSQLFlyTestCase):
         c = self.session.query(Transform).count()
         self.assertEqual(c, 0)
 
-
-
     def init_test_connection(self):
         from fsqlfly.settings import FSQLFLY_DB_URL
         con = Connection(name='fake', url=FSQLFLY_DB_URL, type=FlinkConnectorType.jdbc, connector='')
@@ -84,7 +87,7 @@ class ManagerTest(FSQLFlyTestCase):
         self.session.commit()
         return con
 
-    def init_test_connector(self):
+    def init_test_connector(self, typ=FlinkConnectorType.kafka):
         con = self.init_test_connection()
         k_connector = """
         type: kafka
@@ -96,7 +99,7 @@ class ManagerTest(FSQLFlyTestCase):
 
         topic: {{ resource_name.database }}__{{ resource_name.name }}__{{ version.name }}        
                 """
-        sink = Connection(name='sink', url='xxx', type=FlinkConnectorType.kafka, connector=k_connector)
+        sink = Connection(name='sink', url='xxx', type=typ, connector=k_connector)
         connector = Connector(name='connector', type=ConnectorType.canal, source=con, target=sink)
         self.session.add_all([sink, connector])
         self.session.commit()
