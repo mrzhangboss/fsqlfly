@@ -1,12 +1,12 @@
-from typing import List
 from fsqlfly.common import PageModelMode, PageModel, FlinkConnectorType, ConnectorType, NameFilter
 from fsqlfly.db_helper import DBT, Connection, ResourceName, ResourceTemplate, ResourceVersion, Connector
 from fsqlfly.version_manager.base import BaseVersionManager
 from fsqlfly.version_manager.dao import Dao
-from fsqlfly.version_manager.update_manager import (ResourceVersionUpdateManager, ResourceNameUpdateManager,
+from fsqlfly.version_manager.manager.update import (ResourceVersionUpdateManager, ResourceNameUpdateManager,
                                                     ResourceTemplateUpdateManager, ConnectionUpdateManager)
+from fsqlfly.version_manager.manager.init import (ConnectorInitTransformManager, HiveInitTransformManager)
 from fsqlfly.version_manager.clean_manager import (ConnectionCleanManager, ConnectorCleanManager)
-from fsqlfly.version_manager.generator import (BaseResourceGenerator, SourceResourceGenerator, SinkResourceGenerator,
+from fsqlfly.version_manager.generator import (BaseResourceGenerator, SinkResourceGenerator,
                                                CanalResourceGenerator)
 
 
@@ -98,6 +98,19 @@ class CleanManagerFactory(BaseManagerFactory):
         raise NotImplementedError("Not Support {} in CleanManagerFactory".format(obj.as_dict()))
 
 
+class InitManagerFactory(BaseManagerFactory):
+    @classmethod
+    def is_support(cls, model: str, obj: DBT) -> bool:
+        return model == PageModel.connector
+
+    @classmethod
+    def build(cls, obj: Connector, dao: Dao) -> BaseVersionManager:
+        assert isinstance(obj, Connector)
+        if obj.target.type.code == FlinkConnectorType.hive:
+            return HiveInitTransformManager(obj, dao)
+        return ConnectorInitTransformManager(obj, dao)
+
+
 class ManagerFactory:
     @classmethod
     def get_manager(cls, model: str, mode: str, obj: DBT, dao: Dao) -> BaseVersionManager:
@@ -105,4 +118,6 @@ class ManagerFactory:
             return UpdateManagerFactory.get_manager(model, obj, dao)
         elif mode == PageModelMode.clean:
             return CleanManagerFactory.get_manager(model, obj, dao)
+        elif mode == PageModelMode.init:
+            return InitManagerFactory.get_manager(model, obj, dao)
         raise NotImplementedError("current not support {} - {} ".format(model, mode))

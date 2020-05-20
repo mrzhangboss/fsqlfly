@@ -126,9 +126,6 @@ class ConnectionUpdateManager(ResourceNameUpdateManager):
             return self.target.target.type.code == FlinkConnectorType.hive
         return False
 
-    def is_support(self) -> bool:
-        return not self.is_hive_sink()
-
     def __init__(self, target: DBT, dao: Dao, generator: IBaseResourceGenerator, name_filter: NameFilter):
         super(ConnectionUpdateManager, self).__init__(target, dao, generator)
         self.name_filter = name_filter
