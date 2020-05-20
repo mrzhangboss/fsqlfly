@@ -97,11 +97,19 @@ class ManagerTest(FSQLFlyTestCase):
 
         res = ManagerHelper.run(PageModel.connector, PageModelMode.init, con.id)
         print(res.msg)
-        self.assertEqual(res.success, False)
+        self.assertEqual(res.success, True)
+
+    def test_manager_list(self):
+        con = self.init_test_connector(typ=FlinkConnectorType.hive, c_type=ConnectorType.system)
+        res = ManagerHelper.run(PageModel.connection, PageModelMode.update, con.source.id)
+        self.assertEqual(res.success, True)
+        res = ManagerHelper.run(PageModel.connector, PageModelMode.list, con.id)
+        self.assertEqual(res.success, True)
 
     def init_test_connection(self):
         from fsqlfly.settings import FSQLFLY_DB_URL
-        con = Connection(name='fake', url=FSQLFLY_DB_URL, type=FlinkConnectorType.jdbc, connector='', include='sample\..*')
+        con = Connection(name='fake', url=FSQLFLY_DB_URL, type=FlinkConnectorType.jdbc, connector='',
+                         include='sample\..*')
         self.session.add(con)
         self.session.commit()
         return con

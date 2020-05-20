@@ -1,10 +1,12 @@
+from typing import Type
 from fsqlfly.common import PageModelMode, PageModel, FlinkConnectorType, ConnectorType, NameFilter
 from fsqlfly.db_helper import DBT, Connection, ResourceName, ResourceTemplate, ResourceVersion, Connector
 from fsqlfly.version_manager.base import BaseVersionManager
 from fsqlfly.version_manager.dao import Dao
 from fsqlfly.version_manager.manager.update import (ResourceVersionUpdateManager, ResourceNameUpdateManager,
                                                     ResourceTemplateUpdateManager, ConnectionUpdateManager)
-from fsqlfly.version_manager.manager.init import (ConnectorInitTransformManager, HiveInitTransformManager)
+from fsqlfly.version_manager.manager.init import (ConnectorInitTransformManager, HiveInitTransformManager,
+                                                  ListInitJobManager)
 from fsqlfly.version_manager.clean_manager import (ConnectionCleanManager, ConnectorCleanManager)
 from fsqlfly.version_manager.generator import (BaseResourceGenerator, SinkResourceGenerator,
                                                CanalResourceGenerator)
@@ -111,13 +113,30 @@ class InitManagerFactory(BaseManagerFactory):
         return ConnectorInitTransformManager(obj, dao)
 
 
+class ListManagerFactory(BaseManagerFactory):
+    @classmethod
+    def is_support(cls, model: str, obj: DBT) -> bool:
+        return model == PageModel.connector
+
+    @classmethod
+    def build(cls, obj: DBT, dao: Dao) -> BaseVersionManager:
+        return ListInitJobManager(obj, dao)
+
+
 class ManagerFactory:
     @classmethod
-    def get_manager(cls, model: str, mode: str, obj: DBT, dao: Dao) -> BaseVersionManager:
+    def get_factory(cls, mode: str) -> Type[BaseManagerFactory]:
         if mode == PageModelMode.update:
-            return UpdateManagerFactory.get_manager(model, obj, dao)
+            return UpdateManagerFactory
         elif mode == PageModelMode.clean:
-            return CleanManagerFactory.get_manager(model, obj, dao)
+            return CleanManagerFactory
         elif mode == PageModelMode.init:
-            return InitManagerFactory.get_manager(model, obj, dao)
-        raise NotImplementedError("current not support {} - {} ".format(model, mode))
+            return InitManagerFactory
+        elif mode == PageModelMode.list:
+            return ListManagerFactory
+        raise NotImplementedError("current not support {} - in ManagerFactory ".format(mode))
+
+    @classmethod
+    def get_manager(cls, model: str, mode: str, obj: DBT, dao: Dao) -> BaseVersionManager:
+        factory = cls.get_factory(mode)
+        return factory.get_manager(model, obj, dao)

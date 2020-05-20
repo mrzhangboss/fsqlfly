@@ -26,6 +26,7 @@ class PageModelMode(_BaseArg):
     delete = 'delete'
     init = 'init'
     clean = 'clean'
+    list = 'list'
 
 
 class FlinkTableType(_BaseArg):

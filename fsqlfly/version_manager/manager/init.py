@@ -142,3 +142,12 @@ class HiveInitTransformManager(ConnectorInitTransformManager):
     def _run(self, resource_names: List[ResourceName]):
         self.create_hive_table(resource_names)
         return self._generate_transform(resource_names)
+
+
+class ListInitJobManager(ConnectorInitTransformManager):
+    def _run(self, resource_names: List[ResourceName]):
+        res = []
+        for resource_name in resource_names:
+            name = self.target.get_transform_name_format(resource_name=resource_name)
+            res.append(name)
+        return DBRes(data=res)
