@@ -2,7 +2,7 @@
 from fsqlfly.common import safe_authenticated
 from fsqlfly.base_handle import BaseHandler
 from fsqlfly.common import DBRes, PageModelMode, PageModel
-from fsqlfly.version_manager.helper import ManagerHelper
+from fsqlfly.version_manager.helpers.manager import ManagerHelper
 
 
 class ManagerHandler(BaseHandler):
