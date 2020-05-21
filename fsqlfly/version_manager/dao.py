@@ -181,3 +181,17 @@ class Dao(BaseDao):
             num += 1
         msg = 'clean {} transform'.format(num)
         return DBRes(msg=msg)
+
+    def get_default_version(self, database: str, table: str, connection_id: int,
+                            template_name: str) -> Optional[ResourceVersion]:
+        query = self.session.query(ResourceVersion).join(ResourceVersion.connection).join(
+            ResourceVersion.resource_name).join(ResourceVersion.template)
+        return query.filter(ResourceName.database == database, ResourceName.name == table,
+                            ResourceTemplate.name == template_name,
+                            Connection.id == connection_id).first()
+
+    def get_default_sink_version(self, database: str, table: str, connection_id: int) -> Optional[ResourceVersion]:
+        return self.get_default_version(database, table, connection_id, 'sink')
+
+    def get_default_source_version(self, database: str, table: str, connection_id: int) -> Optional[ResourceVersion]:
+        return self.get_default_version(database, table, connection_id, 'source')

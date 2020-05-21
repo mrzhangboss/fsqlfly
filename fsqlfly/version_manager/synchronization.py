@@ -3,7 +3,7 @@ from logzero import logger
 from sqlalchemy import create_engine, inspect, TypeDecorator
 from sqlalchemy.sql.sqltypes import INTEGER, SMALLINT, BIGINT
 from fsqlfly.db_helper import Connection
-from fsqlfly.common import NameFilter, SchemaContent, SchemaField
+from fsqlfly.common import NameFilter, SchemaContent, SchemaField, FlinkConnectorType
 
 
 class BaseSynchronizationOperator:
@@ -45,6 +45,11 @@ class SqlalchemySynchronizationOperator(BaseSynchronizationOperator):
 
         return comment
 
+    def _warp(self, s: str) -> str:
+        if self.db_type == FlinkConnectorType.hive:
+            return f'`{s}`'
+        return s
+
     def run(self) -> List[SchemaContent]:
         db_list = self.inspection.get_schema_names()
         update_tables = self.get_update_tables(db_list)
@@ -52,9 +57,8 @@ class SqlalchemySynchronizationOperator(BaseSynchronizationOperator):
         schemas = []
 
         for db, tb in update_tables:
-            _ = lambda x:f'`{x}`'
             schema = SchemaContent(name=tb, database=db, comment=self.get_table_comment(tb, db), type=self.db_type)
-            columns = self.inspection.get_columns(table_name=_(tb), schema=_(db))
+            columns = self.inspection.get_columns(table_name=self._warp(tb), schema=self._warp(db))
             self.set_primary_info(schema, columns, db, tb)
 
             fields = []

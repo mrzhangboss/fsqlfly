@@ -1,7 +1,7 @@
 from abc import ABC
-from typing import Union, List
+from typing import List, Optional
 from sqlalchemy import create_engine
-from fsqlfly.db_helper import Connector, ResourceName, ResourceVersion, Transform
+from fsqlfly.db_helper import Connector, ResourceName, ResourceVersion, Transform, Connection
 from fsqlfly.common import DBRes, ConnectorType, BlinkSQLType, BlinkHiveSQLType, FlinkConnectorType
 from fsqlfly.version_manager.base import BaseVersionManager
 from fsqlfly.version_manager.dao import Dao
@@ -22,10 +22,18 @@ class ConnectorInitTransformManager(InitManager):
         return self.generate_transform()
 
     @classmethod
-    def build_sql(cls, target_database: str, target_table: str, version: ResourceVersion, connector: Connector) -> str:
-        schemas = version.generate_version_cache()['schema']
-        table = f"{connector.target.name}.{target_database}.{target_table}"
-        source = version.db_full_name
+    def _(cls, tb: str) -> str:
+        return f'`{tb}`'
+
+    def get_sql_table_name(self, version: ResourceVersion):
+        if version.connection.type.code == FlinkConnectorType.hive:
+            return version.resource_name.full_name
+        return self._(version.db_full_name)
+
+    def build_sql(self, target: ResourceVersion, source: ResourceVersion, connector: Connector) -> str:
+        schemas = source.generate_version_schema()
+        table = self.get_sql_table_name(target)
+        source = self.get_sql_table_name(source)
         fields = ','.join("`{}`".format(x['name']) for x in schemas)
         key, value = connector.partition_key_value
         partition = f"PARTITION ( {key} = '{value}' ) " if connector.use_partition else ''
@@ -35,20 +43,20 @@ class ConnectorInitTransformManager(InitManager):
         return sql
 
     @classmethod
-    def get_resource_name_default_version(cls, resource_name: ResourceName) -> ResourceVersion:
-        require_version = None
-        for version in resource_name.versions:
-            if version.template.type == 'source':
-                if version.is_default:
-                    return version
-                require_version = version
-        msg = 'Not found require version Please check {}'.format(resource_name.full_name)
-        assert require_version, msg
-        return require_version
+    def is_hive_source(cls, connection: Connection) -> bool:
+        return connection.type.code == FlinkConnectorType.hive
 
-    def get_sink_default_version_name(self, resource_name: ResourceName) -> str:
-        assert self.target.target.type.code == FlinkConnectorType.hive, "current only support target is hive"
-        return self.target.target.name
+    def get_source_name(self, version: ResourceVersion) -> str:
+        if self.is_hive_source(version.connection):
+            return version.connection.name
+        return version.full_name
+
+    def get_source_default_version(self, resource_name: ResourceName) -> ResourceVersion:
+        return self.dao.get_default_source_version(resource_name.database, resource_name.name,
+                                                   resource_name.connection.id)
+
+    def get_sink_default_version(self, t_database: str, t_table: str) -> Optional[ResourceVersion]:
+        return self.dao.get_default_sink_version(t_database, t_table, self.target.target.id)
 
     def get_flink_execution_type(self) -> str:
         if self.target.target.type.code == FlinkConnectorType.hive:
@@ -59,18 +67,21 @@ class ConnectorInitTransformManager(InitManager):
         updated = inserted = 0
         connector = self.target
         for resource_name in resource_names:
-            name = connector.get_transform_name_format(resource_name=resource_name)
-            require_version = self.get_resource_name_default_version(resource_name)
-            sink_name = self.get_sink_default_version_name(resource_name)
-            if sink_name is None:
-                return DBRes.api_error(msg="Not found resource sink table {}".format(resource_name.full_name))
-            require = require_version.full_name + ',' + sink_name
             t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
                                                                            connector=connector)
+            name = connector.get_transform_name_format(resource_name=resource_name)
+            source_version = self.get_source_default_version(resource_name)
+            if source_version is None:
+                return DBRes.api_error(msg="Not found resource source table {}".format(resource_name.full_name))
+            sink_version = self.get_sink_default_version(t_database, t_table)
+            if sink_version is None:
+                return DBRes.api_error(msg="Not found resource sink table {}".format(resource_name.full_name))
+            require = self.get_source_name(source_version) + ',' + self.get_source_name(sink_version)
+
             execution = dict(planner='blink', type=self.get_flink_execution_type(),
                              parallelism=connector.system_execution_parallelism)
             execution['restart-strategy'] = connector.system_execution_restart_strategy
-            transform = Transform(name=name, sql=self.build_sql(t_database, t_table, require_version, connector),
+            transform = Transform(name=name, sql=self.build_sql(sink_version, source_version, connector),
                                   require=require, connector_id=connector.id, yaml=dump_yaml(dict(execution=execution)))
             transform, i = self.dao.upsert_transform(transform)
             inserted += i
@@ -127,7 +138,7 @@ class HiveInitTransformManager(ConnectorInitTransformManager):
         connector = self.target
         engine = create_engine(connector.target.url)
         for resource_name in resource_names:
-            version = self.get_resource_name_default_version(resource_name)
+            version = self.get_source_default_version(resource_name)
             t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
                                                                            connector=connector)
             schemas = version.generate_version_cache()['schema']

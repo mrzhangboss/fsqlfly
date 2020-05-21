@@ -417,6 +417,9 @@ class ResourceVersion(Base):
 
         return res
 
+    def generate_version_schema(self) -> list:
+        return self.generate_version_cache().get('schema', [])
+
     @classmethod
     def is_filter_field(cls, field: SchemaField, connection_type: str, template_type: str,
                         resource_name: ResourceName) -> bool:
