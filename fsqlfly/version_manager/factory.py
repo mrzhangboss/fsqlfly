@@ -36,7 +36,7 @@ class UpdateManagerFactory(BaseManagerFactory):
         if isinstance(obj, Connection):
             return obj
         elif isinstance(obj, Connector):
-            return obj.source
+            return obj.target
         else:
             raise NotImplementedError("Can't get connection from {}".format(obj.as_dict()))
 
@@ -52,8 +52,6 @@ class UpdateManagerFactory(BaseManagerFactory):
     def get_generator(cls, obj: DBT) -> BaseResourceGenerator:
         if cls.is_canal(obj):
             return CanalResourceGenerator(obj)
-        if cls.is_system_connector(obj):
-            return SinkResourceGenerator()
         con = cls.get_connection(obj)
         c_type = con.type.code
         if c_type in FlinkConnectorType.both_resource():

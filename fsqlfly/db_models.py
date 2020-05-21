@@ -127,9 +127,10 @@ class SchemaEvent(Base):
 
     def to_schema_content(self) -> SchemaContent:
         origin_dict = self.as_dict()
-        not_use = ['id', 'info', 'connection_id', 'father_id', 'version', 'fields']
-        origin = {k: v for k, v in origin_dict if k not in not_use}
-        origin['fields'] = json.loads(origin_dict['fields'])
+        use = ['name', 'database', 'comment', 'partitionable']
+        origin = {k: v for k, v in origin_dict.items() if k in use}
+        origin['fields'] = [SchemaField(**x) for x in load_yaml(self.fields)] if self.fields else []
+        origin['type'] = self.connection.type.code
         return SchemaContent(**origin)
 
 

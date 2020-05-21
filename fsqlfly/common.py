@@ -322,7 +322,9 @@ read_partition_num: 50
 startup_mode: latest-offset
 
 [hive]
+example: 1
 
+[filesystem]
 example: 1
 
 [canal]
