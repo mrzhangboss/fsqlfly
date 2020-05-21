@@ -52,8 +52,9 @@ class SqlalchemySynchronizationOperator(BaseSynchronizationOperator):
         schemas = []
 
         for db, tb in update_tables:
+            _ = lambda x:f'`{x}`'
             schema = SchemaContent(name=tb, database=db, comment=self.get_table_comment(tb, db), type=self.db_type)
-            columns = self.inspection.get_columns(table_name=tb, schema=db)
+            columns = self.inspection.get_columns(table_name=_(tb), schema=_(db))
             self.set_primary_info(schema, columns, db, tb)
 
             fields = []

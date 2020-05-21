@@ -312,44 +312,44 @@ CANAL_MODE = CanalMode.support_modes()
 
 DEFAULT_CONFIG = """
 [jdbc]
-insert_primary_key = false
-add_read_partition_key = false
-auto_partition_bound = true
-read_partition_fetch_size = 100
-read_partition_num = 50
+insert_primary_key: false
+add_read_partition_key: false
+auto_partition_bound: true
+read_partition_fetch_size: 100
+read_partition_num: 50
 
 [kafka]
-startup_mode = latest-offset
+startup_mode: latest-offset
 
 [hive]
 
-example = 1
+example: 1
 
 [canal]
-mode = upsert
-process_time_enable = true
-process_time_name = flink_process_time
-rowtime_enable = true
-rowtime_name = mysql_row_time
-rowtime_watermarks = 5000
-rowtime_from = MYSQL_DB_EXECUTE_TIME
-binlog_type_name = MYSQL_DB_EVENT_TYPE
-before_column_suffix = _before
-after_column_suffix = _after
-update_suffix = _updated
-table_filter = .*\..*
+mode: upsert
+process_time_enable: true
+process_time_name: flink_process_time
+rowtime_enable: true
+rowtime_name: mysql_row_time
+rowtime_watermarks: 5000
+rowtime_from: MYSQL_DB_EXECUTE_TIME
+binlog_type_name: MYSQL_DB_EVENT_TYPE
+before_column_suffix: _before
+after_column_suffix: _after
+update_suffix: _updated
+table_filter: .*\..*
 
 [system]
-execution_parallelism =  1
-execution_restart_strategy = {"type":"fixed-delay", "attempts": 3, "delay": 1000}
-source_include =  .*
-source_exclude =  ''
-target_database_format =  {{ resource_name.database }}
-target_table_format =  {{ resource_name.name }}
-transform_name_format =  {{ source_type }}2{{ target_type }}__{{ connector.name }}__{{ resource_name.database }}__{{ resource_name.name }}  
-use_partition =  false
-partition_name =  pt
-partition_value =  {{ ds_nodash }}
-overwrite =  false
+execution_parallelism:  1
+execution_restart_strategy: {"type":"fixed-delay", "attempts": 3, "delay": 1000}
+source_include:  .*
+source_exclude:  ''
+target_database_format:  {{ resource_name.database }}
+target_table_format:  {{ resource_name.name }}
+transform_name_format:  {{ source_type }}2{{ target_type }}__{{ connector.name }}__{{ resource_name.database }}__{{ resource_name.name }}  
+use_partition:  false
+partition_name:  pt
+partition_value:  {{ ds_nodash }}
+overwrite:  false
 
 """

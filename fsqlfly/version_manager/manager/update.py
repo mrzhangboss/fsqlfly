@@ -122,6 +122,11 @@ class ResourceNameUpdateManager(ResourceTemplateUpdateManager):
 
 
 class ConnectionUpdateManager(ResourceNameUpdateManager):
+    def is_support(self) -> bool:
+        if isinstance(self.target, Connector):
+            return self.sink.type.code != FlinkConnectorType.hive
+        return True
+
     def is_hive_sink(self):
         if isinstance(self.target, Connector):
             return self.target.target.type.code == FlinkConnectorType.hive

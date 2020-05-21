@@ -2,6 +2,7 @@
 from __future__ import absolute_import, unicode_literals, print_function
 import unittest
 from fsqlfly.version_manager import *
+from fsqlfly.db_helper import *
 from fsqlfly.common import *
 from fsqlfly.version_manager.helpers.manager import ManagerHelper
 from fsqlfly.tests.base_test import FSQLFlyTestCase
@@ -136,29 +137,19 @@ class ManagerTest(FSQLFlyTestCase):
         self.session.commit()
         return connector
 
-    def test_db_manager(self):
-        name_filter = NameFilter('.*\.alltypes')
+    def update_test_connection(self, url, typ, connector='', include='fsqlfly\..*'):
+        con = Connection(name='fake', url=url, type=typ, connector=connector,
+                         include='fsqlfly\..*')
+        self.session.add(con)
+        self.session.commit()
+        res = ManagerHelper.run(PageModel.connection, PageModelMode.update, con.id)
+        self.assertTrue(res.success)
 
-        mn = DatabaseManager('mysql+pymysql://root:password@localhost:3306/fsqlfly', name_filter, 'db')
+    def test_db_manager_update(self):
+        self.update_test_connection(str(self.engine.url), FlinkConnectorType.jdbc)
 
-        mn.update()
-
-    def test_hive_manager(self):
-        name_filter = NameFilter('test\.alltypes')
-        mn = HiveManager(TEST_HIVE_SERVER2_URL, name_filter, 'hive')
-
-        mn.update()
-
-    def test_elasticsearch_manager(self):
-        name_filter = NameFilter()
-        mn = ElasticSearchManager('http://localhost:9200', name_filter, 'elasticsearch')
-
-        mn.update()
-
-    def test_hbase_manager(self):
-        name_filter = NameFilter()
-        mn = HBaseManager('127.0.0.1:9090', name_filter, 'hbase')
-        mn.update()
+    def test_hive_manager_update(self):
+        self.update_test_connection(TEST_HIVE_SERVER2_URL, FlinkConnectorType.hive)
 
 
 if __name__ == '__main__':

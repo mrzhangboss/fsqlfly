@@ -17,7 +17,8 @@ class ManagerHelper:
             if manager.is_support():
                 return manager.run()
             else:
-                return DBRes.api_error("Not support {} in model {} by {} in ManagerHelper".format(pk, model, mode))
+                msg = "Not support {}:{} in model {} by {} in ManagerHelper".format(obj.name, obj.id, model, mode)
+                return DBRes.api_error(msg)
         else:
             return DBRes.api_error("Not found {} in model {}".format(pk, model))
 
