@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 from __future__ import absolute_import, unicode_literals, print_function
 import unittest
-from fsqlfly.version_manager import *
+from sqlalchemy import create_engine
 from fsqlfly.db_helper import *
 from fsqlfly.common import *
 from fsqlfly.version_manager.helpers.manager import ManagerHelper
@@ -139,7 +139,7 @@ class ManagerTest(FSQLFlyTestCase):
 
     def update_test_connection(self, url, typ, connector='', include='fsqlfly\..*'):
         con = Connection(name='fake', url=url, type=typ, connector=connector,
-                         include='fsqlfly\..*')
+                         include=include)
         self.session.add(con)
         self.session.commit()
         res = ManagerHelper.run(PageModel.connection, PageModelMode.update, con.id)
@@ -150,6 +150,14 @@ class ManagerTest(FSQLFlyTestCase):
 
     def test_hive_manager_update(self):
         self.update_test_connection(TEST_HIVE_SERVER2_URL, FlinkConnectorType.hive)
+
+    def test_hive_manager_update(self):
+        engine = create_engine(TEST_HIVE_SERVER2_URL)
+        for x in open('hive_create_all_type.sql').read().split(';'):
+            if x and x.strip():
+                engine.execute(x.strip())
+
+        self.update_test_connection(TEST_HIVE_SERVER2_URL, FlinkConnectorType.hive, include='fsqlfly_test.*')
 
 
 if __name__ == '__main__':
