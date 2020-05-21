@@ -1,7 +1,8 @@
 from abc import ABC
 from typing import Tuple
 from fsqlfly.version_manager.dao import Dao
-from fsqlfly.db_helper import *
+from fsqlfly.db_helper import (DBRes, ResourceName, ResourceVersion, ResourceTemplate, Connection, Connector, DBT,
+                               SchemaEvent)
 from fsqlfly.common import (NameFilter, FlinkConnectorType)
 from fsqlfly.version_manager.base import BaseVersionManager
 from fsqlfly.version_manager.generator import IBaseResourceGenerator

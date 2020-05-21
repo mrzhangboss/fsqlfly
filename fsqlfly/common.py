@@ -50,9 +50,17 @@ class FlinkConnectorType(_BaseArg):
     elasticsearch = "elasticsearch"
     filesystem = "filesystem"
 
+    _both_resource = {jdbc, hive, filesystem, kafka}
+
     @classmethod
     def both_resource(cls) -> Set[str]:
-        return {cls.jdbc, cls.hive, cls.filesystem, cls.kafka}
+        return cls._both_resource
+
+    _schema_less = {jdbc, hive, hbase, elasticsearch}
+
+    @classmethod
+    def schema_less(cls) -> Set[str]:
+        return cls._schema_less
 
 
 class PageModel(_BaseArg):

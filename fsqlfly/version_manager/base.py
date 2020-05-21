@@ -1,4 +1,4 @@
-from fsqlfly.common import *
+from fsqlfly.common import DBRes
 
 
 class IBaseVersionManager:

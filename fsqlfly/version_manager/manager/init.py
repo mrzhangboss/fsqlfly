@@ -101,7 +101,6 @@ class HiveInitTransformManager(ConnectorInitTransformManager):
             return BlinkHiveSQLType.BINARY
         return typ
 
-    # TODO: Long Parameter
     def build_hive_create_sql(self, target_database: str, target_table: str, schema: list) -> List[str]:
         res = []
         connector = self.target
@@ -115,7 +114,6 @@ class HiveInitTransformManager(ConnectorInitTransformManager):
         res.extend([create_header])
         res.append(','.join(cols))
         res.append(')')
-        # TODO: Inappropriate Intimacy
         if connector.use_partition:
             key, _ = connector.partition_key_value
             partition = f"PARTITIONED BY ({key} STRING)"

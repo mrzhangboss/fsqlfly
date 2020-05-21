@@ -4,7 +4,7 @@ import argparse
 import logzero
 from os.path import join, dirname, abspath
 
-# TODO: to object
+
 def run_webserver(commands: list):
     extend_command = None
     if '--jobdaemon' in commands:

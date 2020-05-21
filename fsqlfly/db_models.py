@@ -3,11 +3,12 @@ import sqlalchemy as sa
 from jinja2 import Template
 from datetime import datetime
 from configparser import ConfigParser
-from typing import Tuple, TypeVar
+from typing import Tuple, TypeVar, Any, Optional, Type, Union
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
-from fsqlfly.common import *
+from fsqlfly.common import (FlinkConnectorType, FlinkTableType, ConnectorType, DEFAULT_CONFIG, CanalMode, SchemaField,
+                            BlinkSQLType, NameFilter, SchemaContent, VersionConfig)
 
 from fsqlfly.utils.strings import load_yaml
 from fsqlfly.utils.template import generate_template_context
@@ -144,8 +145,6 @@ class Connector(Base):
             parser.read_string(self.config)
 
         return parser
-
-    # TODO: Large Class , Duplicated Code
 
     @property
     def connector_mode(self) -> CanalMode:
@@ -353,7 +352,6 @@ class ResourceVersion(Base):
     def db_full_name(self):
         return self.full_name.replace('.', '__')
 
-    # TODO: Long Method, Decompose Conditional
     def get_db_bound(self, key: str) -> Tuple[int, int]:
         resource_name = self.resource_name
         connection = self.connection
@@ -364,27 +362,33 @@ class ResourceVersion(Base):
         real_low, real_upper = _get_int('read_partition_lower_bound'), _get_int('read_partition_upper_bound')
 
         if resource_name.get_config('auto_partition_bound', typ=bool):
-            sql = f'select min(`{key}`), max(`{key}`) from `{resource_name.database}`.`{resource_name.name}`'
-            data = execute(sql, connection.url)
-            l, u = data[0]
-            if real_low is None:
-                real_low = l
-            if real_upper is None:
-                real_upper = u
+            real_low, real_upper = self.get_db_bound_from_db(connection, key, real_low, real_upper, resource_name)
 
         if real_low is None and real_upper is not None:
-            real_low = real_upper - 1
+            return real_upper - 1, real_upper
         elif real_low is not None and real_upper is None:
-            real_upper = real_low + 1
+            return real_low, real_low + 1
         elif real_low is None and real_upper is None:
-            real_low, real_upper = 0, 1
+            return 0, 1
 
         info = f'{self.full_name} must need db bound if you add partition key'
         assert real_low is not None and real_upper is not None, info
         assert real_low <= real_upper, 'generate low upper bind is not equal'
         return real_low, real_upper
 
-    # TODO: Long Method, Shotgun Surgery, Decompose Conditional
+    @classmethod
+    def get_db_bound_from_db(cls, connection: Connection, key: str, real_low: Optional[int], real_upper: Optional[int],
+                             resource_name: ResourceName) -> Tuple[Optional[int], Optional[int]]:
+        e = '`'
+        sql = f'select min({e}{key}{e}), max({e}{key}{e}) from {e}{resource_name.database}{e}.{e}{resource_name.name}{e}'
+        data = execute(sql, connection.url)
+        l, u = data[0]
+        if real_low is None:
+            real_low = l
+        if real_upper is None:
+            real_upper = u
+        return real_low, real_upper
+
     def generate_version_cache(self) -> dict:
         template = self.template
         version = self
@@ -401,74 +405,97 @@ class ResourceVersion(Base):
         config = VersionConfig(**base)
         v_info = "Version {}:{}".format(version.id, version.name)
         if template.type == 'view':
-            assert config.query is not None, '{} View Must Need a Query'.format(v_info)
-            res = dict(query=config.query)
+            res = self.generate_view_cache(config, v_info)
         elif template.type == 'temporal-table':
-            assert config.history_table is not None, '{} View Must Need a history_table'.format(v_info)
-            assert config.primary_key is not None, '{} View Must Need a primary_key'.format(v_info)
-            assert config.time_attribute is not None, '{} View Must Need a time_attribute'.format(v_info)
-            res = {
-                "history-table": config.history_table,
-                "primary-key": config.primary_key,
-                "time-attribute": config.time_attribute
-            }
+            res = self.generate_temporal_table_cache(config, v_info)
         elif template.type in ('sink', 'source', 'both'):
-            res = dict()
-            if config.update_mode:
-                res['update-mode'] = config.update_mode
-            if config.format:
-                res['format'] = config.format
-            elif connection.type.code not in ['hbase', 'jdbc']:
-                res['format'] = {"type": 'json', "derive-schema": True}
-
-            connector = version.get_connection_connector()
-
-            if connector and template.type in ('source', 'both') and schema.primary_key and connection_type == 'jdbc':
-                if resource_name.get_config('add_read_partition_key', typ=bool) and 'read' not in connector:
-                    key = resource_name.get_config('read_partition_key')
-                    if key is None and schema.primary_key:
-                        key = schema.primary_key
-                    if key:
-                        low, upper = self.get_db_bound(key)
-                        connector['read'] = {
-                            "partition": {
-                                "column": key,
-                                "num": resource_name.get_config('read_partition_num', typ=int),
-                                "lower-bound": low,
-                                "upper-bound": upper,
-                            },
-                            "fetch-size": resource_name.get_config('read_partition_fetch_size', typ=int)
-                        }
-            if connector and connection_type == 'kafka':
-                if resource_name.get_config('topic'):
-                    connector['topic'] = resource_name.get_config('topic')
-
-            if connector:
-                connector['type'] = connection.type.code
-
-            res['connector'] = connector if connector else None
-
-            fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema.fields else []
-            need_fields = [x for x in fields if x.name in NameFilter(config.include, config.exclude)]
-            field_names = [x.name for x in need_fields]
-            schemas = []
-
-            if config.schema:
-                for x in config.schema:
-                    assert x['name'] not in field_names, "{} contain in origin field"
-                schemas.extend(config.schema)
-
-            for x in need_fields:
-                if x.autoincrement and connection_type == 'jdbc' and template_type == 'sink' and resource_name.get_config(
-                        'insert_primary_key', typ=bool):
-                    continue
-                schemas.append(self.field2schema(x))
-
-            res['schema'] = schemas
+            res = self.generate_table_cache(config, connection, connection_type, resource_name, schema, template,
+                                            template_type, version)
 
         else:
             raise NotImplementedError("Not Support {}".format(template.type))
 
+        return res
+
+    @classmethod
+    def is_filter_field(cls, field: SchemaField, connection_type: str, template_type: str,
+                        resource_name: ResourceName) -> bool:
+        if field.autoincrement and connection_type == FlinkConnectorType.jdbc and template_type == 'sink' and not resource_name.get_config(
+                'insert_primary_key', typ=bool):
+            return True
+        return False
+
+    def generate_table_cache(self, config: VersionConfig, connection: Connection, connection_type: str,
+                             resource_name: ResourceName, schema: SchemaEvent, template: ResourceTemplate,
+                             template_type: str,
+                             version: 'ResourceVersion') -> dict:
+        res = dict()
+        if config.update_mode:
+            res['update-mode'] = config.update_mode
+        if config.format:
+            res['format'] = config.format
+        elif connection_type not in FlinkConnectorType.schema_less():
+            res['format'] = {"type": 'json', "derive-schema": True}
+        connector = self.generate_table_connector(connection, connection_type, resource_name, schema, template, version)
+        res['connector'] = connector if connector else None
+        fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema.fields else []
+        need_fields = [x for x in fields if x.name in NameFilter(config.include, config.exclude)]
+        field_names = [x.name for x in need_fields]
+        schemas = []
+        if config.schema:
+            for x in config.schema:
+                assert x['name'] not in field_names, "{} contain in origin field"
+            schemas.extend(config.schema)
+        for x in need_fields:
+            if self.is_filter_field(x, connection_type, template_type, resource_name):
+                continue
+            schemas.append(self.field2schema(x))
+        res['schema'] = schemas
+        return res
+
+    def generate_table_connector(self, connection: Connection, connection_type: str, resource_name: ResourceName,
+                                 schema: SchemaEvent, template: ResourceTemplate, version: 'ResourceVersion') -> dict:
+        connector = version.get_connection_connector()
+        jdbc, kafka = FlinkConnectorType.jdbc, FlinkConnectorType.kafka
+        if connector and template.type in ('source', 'both') and schema.primary_key and connection_type == jdbc:
+            if resource_name.get_config('add_read_partition_key', typ=bool) and 'read' not in connector:
+                key = resource_name.get_config('read_partition_key')
+                if key is None and schema.primary_key:
+                    key = schema.primary_key
+                if key:
+                    low, upper = self.get_db_bound(key)
+                    connector['read'] = {
+                        "partition": {
+                            "column": key,
+                            "num": resource_name.get_config('read_partition_num', typ=int),
+                            "lower-bound": low,
+                            "upper-bound": upper,
+                        },
+                        "fetch-size": resource_name.get_config('read_partition_fetch_size', typ=int)
+                    }
+        if connector and connection_type == kafka:
+            if resource_name.get_config('topic'):
+                connector['topic'] = resource_name.get_config('topic')
+        if connector:
+            connector['type'] = connection.type.code
+        return connector
+
+    @classmethod
+    def generate_temporal_table_cache(cls, config: VersionConfig, v_info: str) -> dict:
+        assert config.history_table is not None, '{} View Must Need a history_table'.format(v_info)
+        assert config.primary_key is not None, '{} View Must Need a primary_key'.format(v_info)
+        assert config.time_attribute is not None, '{} View Must Need a time_attribute'.format(v_info)
+        res = {
+            "history-table": config.history_table,
+            "primary-key": config.primary_key,
+            "time-attribute": config.time_attribute
+        }
+        return res
+
+    @classmethod
+    def generate_view_cache(cls, config: VersionConfig, v_info: str) -> dict:
+        assert config.query is not None, '{} View Must Need a Query'.format(v_info)
+        res = dict(query=config.query)
         return res
 
     @classmethod

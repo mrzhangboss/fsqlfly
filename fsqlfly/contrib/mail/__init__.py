@@ -31,7 +31,6 @@ class MailSender:
             return str(e)
 
 
-# TODO: rename factory
 class MailHelper:
     _sender: MailSender = None
 

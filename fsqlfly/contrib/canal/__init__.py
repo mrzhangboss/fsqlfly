@@ -1,17 +1,12 @@
-from fsqlfly.common import *
 import time
-import os
 import logging
-import sys
 import json
 from logzero import logger
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Union
 from collections import defaultdict
 from datetime import datetime
-from random import randint
-from configparser import ConfigParser, SectionProxy
-from argparse import ArgumentParser
 from fsqlfly.db_helper import DBSession, Connector, Connection, Session, ResourceVersion
+from fsqlfly.common import CanalMode, CANAL_MODE
 
 PRINT_EACH = 100
 WAIT_TIMES = 0.5

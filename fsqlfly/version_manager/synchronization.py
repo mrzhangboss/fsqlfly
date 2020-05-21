@@ -1,9 +1,9 @@
-from fsqlfly.db_helper import *
-from fsqlfly.common import *
-from typing import Tuple
+from typing import Tuple, List, Optional
 from logzero import logger
 from sqlalchemy import create_engine, inspect, TypeDecorator
 from sqlalchemy.sql.sqltypes import INTEGER, SMALLINT, BIGINT
+from fsqlfly.db_helper import Connection
+from fsqlfly.common import NameFilter, SchemaContent, SchemaField
 
 
 class BaseSynchronizationOperator:
