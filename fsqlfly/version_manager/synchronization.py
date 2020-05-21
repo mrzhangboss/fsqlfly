@@ -97,4 +97,7 @@ class SqlalchemySynchronizationOperator(BaseSynchronizationOperator):
 
 class DBSynchronizationOperator(BaseSynchronizationOperator):
     def run(self) -> List[SchemaContent]:
-        pass
+        res = []
+        for resource_name in self._connection.resource_names:
+            res.append(resource_name.schema_version.to_schema_content())
+        return res

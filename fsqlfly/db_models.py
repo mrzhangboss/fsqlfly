@@ -125,6 +125,13 @@ class SchemaEvent(Base):
     fields = Column(Text)
     partitionable = Column(Boolean, default=False)
 
+    def to_schema_content(self) -> SchemaContent:
+        origin_dict = self.as_dict()
+        not_use = ['id', 'info', 'connection_id', 'father_id', 'version', 'fields']
+        origin = {k: v for k, v in origin_dict if k not in not_use}
+        origin['fields'] = json.loads(origin_dict['fields'])
+        return SchemaContent(**origin)
+
 
 class Connector(Base):
     __tablename__ = 'connector'
