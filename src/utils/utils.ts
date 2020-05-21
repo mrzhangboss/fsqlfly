@@ -121,27 +121,32 @@ write: # sink options, optional, used when writing into table
 
 `,
 
-  filesystem: `path: "file:///path/to/whatever"`,
+  filesystem: `path: "file:///tmp/{{ resource_name.database }}__{{ resource_name.name }}"`,
   canal: `[canal]
-mode: all
-canal_host: localhost
-canal_port: 11111
-canal_username: root
-canal_password: password
-canal_client_id: 11021
-canal_destination: example
+mode: upsert
+process_time_enable: true
+process_time_name: flink_process_time
+rowtime_enable: true
+rowtime_name: mysql_row_time
+rowtime_watermarks: 5000
+rowtime_from: MYSQL_DB_EXECUTE_TIME
+binlog_type_name: MYSQL_DB_EVENT_TYPE
+before_column_suffix: _before
+after_column_suffix: _after
+update_suffix: _updated
 table_filter: .*\\..*`,
   system: `[system]
-source_include: .*
-source_exclude: ''
-run_parallelism: 0
-target_database_format: {{ resource_name.database }}
-target_table_format: {{ resource_name.name }}
-transform_name_format: {{ source_type }}2{{ target_type }}__{{ connector.name }}__{{ resource_name.database }}__{{ resource_name.name }}
-use_partition: false
-partition_name: pt
-partition_value: {{ ds_nodash }}
-overwrite: false
+execution_parallelism:  1
+execution_restart_strategy: {"type":"fixed-delay", "attempts": 3, "delay": 1000}
+source_include:  .*
+source_exclude:  ''
+target_database_format:  {{ resource_name.database }}
+target_table_format:  {{ resource_name.name }}
+transform_name_format:  {{ source_type }}2{{ target_type }}__{{ connector.name }}__{{ resource_name.database }}__{{ resource_name.name }}
+use_partition:  false
+partition_name:  pt
+partition_value:  {{ ds_nodash }}
+overwrite:  false
 `,
 };
 const base = `include: .*\\.*
