@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-
+from typing import Optional
 from fsqlfly.base_handle import BaseHandler
 from fsqlfly import settings
 from fsqlfly.common import DBRes
@@ -16,13 +16,17 @@ class LoginHandler(BaseHandler):
         else:
             self.write_json(user)
 
+    @classmethod
+    def is_login(cls, login_type: str, password: Optional[str], token: Optional[str]):
+        if login_type == 'account':
+            return password == settings.FSQLFLY_PASSWORD
+        if login_type == 'token':
+            return token == settings.FSQLFLY_TOKEN
+        return False
+
     def post(self):
-        print(self.request.arguments)
         arg = self.json_body
-        # TODO: complicate code
-        if (arg.get('type') == 'account' and arg.get('password') == settings.FSQLFLY_PASSWORD) or (
-                arg.get('type') == 'token' and arg.get('token') == settings.FSQLFLY_TOKEN
-        ):
+        if self.is_login(arg.get('type'), arg.get('password'), arg.get('type')):
             self.set_login_status()
             self.write_json(user)
         else:

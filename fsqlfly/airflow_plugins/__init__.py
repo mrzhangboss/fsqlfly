@@ -7,7 +7,6 @@ from airflow.hooks.http_hook import HttpHook
 from airflow.utils.decorators import apply_defaults
 
 
-# TODO: add more test
 class _BaseJobOperator(BaseSensorOperator):
     template_fields = ['data', 'headers']
     RUN_STATUS = 'RUNNING'

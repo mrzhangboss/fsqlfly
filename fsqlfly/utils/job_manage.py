@@ -66,26 +66,28 @@ class JobControl:
         self.session = Session()
         self.cache = Cache()
 
-    # TODO: Large Method
-    def _get_job_status(self, job_id: str) -> JobStatus:
-        def p_time(t: int) -> str:
-            return str(datetime.fromtimestamp(t / 1000))[:19] if t > 0 else '-'
+    @classmethod
+    def p_duration(cls, t: int) -> str:
+        second = 1000
+        minute = second * 60
+        hour = minute * 60
+        day = hour * 24
+        out = list()
+        for a, b in [(day, '天'), (hour, '小时'), (minute, '分')]:
+            cost = 0
+            while t > a:
+                cost += 1
+                t -= a
+            if cost > 0:
+                out.append(f'{cost}{b}')
+        out.append('{}秒'.format(math.ceil(t / second)))
+        return ''.join(out)
 
-        def p_duration(t: int) -> str:
-            second = 1000
-            minute = second * 60
-            hour = minute * 60
-            day = hour * 24
-            out = list()
-            for a, b in [(day, '天'), (hour, '小时'), (minute, '分')]:
-                cost = 0
-                while t > a:
-                    cost += 1
-                    t -= a
-                if cost > 0:
-                    out.append(f'{cost}{b}')
-            out.append('{}秒'.format(math.ceil(t / second)))
-            return ''.join(out)
+    @classmethod
+    def p_time(cls, t: int) -> str:
+        return str(datetime.fromtimestamp(t / 1000))[:19] if t > 0 else '-'
+
+    def _get_job_status(self, job_id: str) -> JobStatus:
 
         status = self.session.get(self.host + '/jobs/' + job_id).json()
         name = status['name'].split(':', maxsplit=1)[0]
@@ -94,8 +96,8 @@ class JobControl:
         else:
             pt = None
         job_status = JobStatus(name, job_id, status['state'], full_name=status['name'],
-                               start_time=p_time(status["start-time"]), end_time=p_time(status["end-time"]),
-                               duration=p_duration(status['duration']), pt=pt)
+                               start_time=self.p_time(status["start-time"]), end_time=self.p_time(status["end-time"]),
+                               duration=self.p_duration(status['duration']), pt=pt)
         return job_status
 
     @property
@@ -152,7 +154,6 @@ class JobControl:
         self.stop_flink_jobs([jid])
         return 'kill {} '.format(jid)
 
-    # TODO: Large Method
     def handle_status(self, transform: Transform, **kwargs) -> str:
         header = get_job_short_name(transform)
         job_status = self.job_status
@@ -234,7 +235,6 @@ def _handle_job(mode: str, pk: str, json_body: dict, session: Session) -> DBRes:
         else:
             transform = pk
         data = json_body
-        # TODO: replace with factory
         run_res = getattr(JobControlHandle, handle_name)(transform, **data)
         return DBRes(code=500 if run_res.startswith(FAIL_HEADER) else 200, msg=run_res)
     else:

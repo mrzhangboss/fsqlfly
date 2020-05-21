@@ -324,7 +324,7 @@ class DBDao:
 
     @classmethod
     @session_add
-    def get_transform(cls, pk: Optional[int] = None, *args, session: Session, **kwargs) -> Union[List[Base], Base]:
+    def get_transform(cls, pk: Optional[Union[str, int]] = None, *args, session: Session, **kwargs) -> Union[List[Base], Base]:
         query = session.query(Transform)
         if pk:
             return query.filter(Transform.id == pk).first()

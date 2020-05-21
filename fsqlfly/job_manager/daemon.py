@@ -26,12 +26,10 @@ class FlinkJobDaemon:
                  flink_host: str,
                  max_try: int,
                  login_file: str,
-                 max_req_try: int = 5,
-                 stop_handle: Optional[Callable] = None):
+                 max_req_try: int = 5):
         self.logger = get_log_file(login_file)
         self.flink_host = flink_host
         self.max_try = max_try
-        self.stop_handle = stop_handle
         self.max_req_try = max_req_try
         self.session = Session()
         self.run_times = defaultdict(lambda: defaultdict(int))
@@ -52,7 +50,6 @@ class FlinkJobDaemon:
         if FSQLFLY_MAIL_ENABLE:
             print(MailHelper.send(title, content))
 
-    # TODO: Large Method
     def run(self):
         self.logger.debug('Start Running Flink Job Damon {}'.format(str(datetime.now())[:19]))
 
@@ -79,8 +76,6 @@ class FlinkJobDaemon:
                             self.send_email('try restart job {}, last fail'.format(k), r)
                         else:
                             self.started_jobs.add(k)
-                    if self.stop_handle:
-                        self.stop_handle(k)
 
         end_time = time.time()
 
