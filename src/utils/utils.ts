@@ -123,6 +123,12 @@ write: # sink options, optional, used when writing into table
 
   filesystem: `path: "file:///tmp/{{ resource_name.database }}__{{ resource_name.name }}"`,
   canal: `[canal]
+canal_host: localhost
+canal_port: 11111
+canal_username: root
+canal_password: password
+canal_client_id: 11021
+canal_destination: example
 mode: upsert
 process_time_enable: true
 process_time_name: flink_process_time
