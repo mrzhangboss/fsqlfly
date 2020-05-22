@@ -451,7 +451,7 @@ class ResourceVersion(Base):
             res['format'] = config.format
         elif connection_type not in FlinkConnectorType.schema_less():
             if resource_name.save_format == FlinkSaveFormat.json:
-                res['format'] = {"type": 'json', "derive-schema": True}
+                res['format'] = {"type": 'json'}
             elif resource_name.save_format == FlinkSaveFormat.csv:
                 res['format'] = {"type": 'csv'}
             else:
