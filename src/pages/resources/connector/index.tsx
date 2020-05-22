@@ -282,7 +282,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
     return connections
       .filter(
         x =>
-          (currentType === 'canal' ? x.type === 'db' : x.type !== 'elasticsearch') &&
+          (currentType === 'canal' ? x.type === 'jdbc' : x.type !== 'elasticsearch') &&
           x.id !== targetId,
       )
       .map(this.getConnectionSelectInfo);
