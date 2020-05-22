@@ -99,5 +99,6 @@ class DBSynchronizationOperator(BaseSynchronizationOperator):
     def run(self) -> List[SchemaContent]:
         res = []
         for resource_name in self._connection.resource_names:
-            res.append(resource_name.schema_version.to_schema_content())
+            if resource_name.db_name in self.need_tables:
+                res.append(resource_name.schema_version.to_schema_content())
         return res
