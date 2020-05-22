@@ -118,6 +118,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   doRefresh = () => {
+    this.setState({ chooseDatabase: undefined });
     const { dispatch } = this.props;
     dispatch({
       type: `${NAMESPACE}/fetch`,
@@ -240,13 +241,10 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   getFilterPageData = () => {
-    const { search , chooseDatabase } = this.state;
+    const { search, chooseDatabase } = this.state;
     const { listBasicList } = this.props;
     console.log(listBasicList.length);
-    const res = listBasicList.filter(x => chooseDatabase !== undefined ? x.database === chooseDatabase : true)
-      .filter(
-        x => (search.length === 0 || x.name.indexOf(search) >= 0 || x.fullName.indexOf(search) >= 0),
-      );
+    const res = listBasicList.filter(x => chooseDatabase !== undefined ? x.database === chooseDatabase : true).filter(x => (search.length === 0 || x.name.indexOf(search) >= 0 || x.fullName.indexOf(search) >= 0));
     console.log(res.length);
     console.log(res);
     return res;
