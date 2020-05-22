@@ -138,8 +138,11 @@ class Consumer:
 
     def _generate_topic_name(self, database: str, table: str, event_type: str) -> Optional[str]:
         name = database, table, event_type
+        upsert_name = database, table, 'upsert'
         if name in self.topics:
             return self.topics[name]
+        if upsert_name in self.topics:
+            return self.topics[upsert_name]
 
     @classmethod
     def _convert_utc_time(cls, timestamp: int) -> str:
