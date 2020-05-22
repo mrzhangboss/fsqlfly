@@ -179,6 +179,16 @@ class DBDao:
         return '.' not in full_name
 
     @classmethod
+    def get_full_name_cache(cls, version: ResourceVersion, cache: dict) -> dict:
+        full_name_cache = deepcopy(cache)
+        full_name_cache['name'] = version.db_full_name
+        return full_name_cache
+
+    @classmethod
+    def get_sink_cache(cls, version: ResourceVersion, cache: dict) -> dict:
+        return cls.get_full_name_cache(version, cache)
+
+    @classmethod
     @session_add
     def get_require_table(cls, require: str, *args, session: Session, **kwargs) -> List[dict]:
         names = set()
@@ -202,16 +212,18 @@ class DBDao:
             r_name = version.resource_name
             t_name = version.template
             cache['type'] = version.template.type.code
-            for name in [r_name.name, r_name.full_name, t_name.full_name]:
-                if name not in names:
-                    cache['name'] = name.replace('.', '__')
-                    names.add(name)
-                    break
-            if 'name' in cache:
-                res.append(cache)
-            full_name_cache = deepcopy(cache)
-            full_name_cache['name'] = version.full_name.replace('.', '__')
-            res.append(full_name_cache)
+            if cache['type'] == 'sink':
+                res.append(cls.get_sink_cache(version, cache))
+            else:
+                for name in [r_name.name, r_name.full_name, t_name.full_name]:
+                    if name not in names:
+                        cache['name'] = name.replace('.', '__')
+                        names.add(name)
+                        break
+
+                if 'name' in cache:
+                    res.append(cache)
+                res.append(cls.get_full_name_cache(version, cache))
 
         return res
 
@@ -324,7 +336,8 @@ class DBDao:
 
     @classmethod
     @session_add
-    def get_transform(cls, pk: Optional[Union[str, int]] = None, *args, session: Session, **kwargs) -> Union[List[Base], Base]:
+    def get_transform(cls, pk: Optional[Union[str, int]] = None, *args, session: Session, **kwargs) -> Union[
+        List[Base], Base]:
         query = session.query(Transform)
         if pk:
             return query.filter(Transform.id == pk).first()

@@ -31,7 +31,7 @@ class ConnectorInitTransformManager(InitManager):
         return self._(version.db_full_name)
 
     def build_sql(self, target: ResourceVersion, source: ResourceVersion, connector: Connector) -> str:
-        schemas = source.generate_version_schema()
+        schemas = target.generate_version_schema()
         table = self.get_sql_table_name(target)
         source = self.get_sql_table_name(source)
         fields = ','.join("`{}`".format(x['name']) for x in schemas)
@@ -138,10 +138,10 @@ class HiveInitTransformManager(ConnectorInitTransformManager):
         connector = self.target
         engine = create_engine(connector.target.url)
         for resource_name in resource_names:
-            version = self.get_source_default_version(resource_name)
             t_database, t_table = connector.get_transform_target_full_name(resource_name=resource_name,
                                                                            connector=connector)
-            schemas = version.generate_version_cache()['schema']
+            version = self.get_sink_default_version(t_database, t_table)
+            schemas = version.generate_version_schema()
             for sql in self.build_hive_create_sql(t_database, t_table, schemas):
                 print(sql)
                 engine.execute(sql)
