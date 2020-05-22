@@ -1,16 +1,20 @@
-from fsqlfly.db_models import *
+from fsqlfly.db_models import (create_all_tables, delete_all_tables, Base, Connection, SchemaEvent, Connector,
+                               ResourceName, ResourceVersion, ResourceTemplate, Namespace, FileResource, Transform,
+                               Functions, TransformSavepoint)
 import os
 import traceback
 import yaml
 from functools import wraps, partial
 from copy import deepcopy
 from typing import Callable, Type, Optional, List, Union, Any, TypeVar
-from sqlalchemy import and_, event, or_, subquery
+from sqlalchemy import and_, event
+from sqlalchemy.orm.session import Session, sessionmaker, query as session_query
+from sqlalchemy.sql.expression import true
 from sqlalchemy.engine import Engine
 from fsqlfly import settings
 from fsqlfly.common import DBRes
-from sqlalchemy.orm.session import Session, sessionmaker, query as session_query
-from fsqlfly.settings import FSQLFLY_UPLOAD_DIR, FSQLFLY_FLINK_BIN, logger
+from fsqlfly.settings import ENGINE
+from fsqlfly.settings import FSQLFLY_UPLOAD_DIR
 
 Query = session_query.Query
 
@@ -46,6 +50,9 @@ class DBSession:
     def get_session(cls, *args, **kwargs) -> Session:
         assert cls.engine is not None
         return cls._Session(*args, **kwargs)
+
+
+DBSession.init_engine(ENGINE)
 
 
 def session_add(func: Callable) -> Callable:
@@ -155,21 +162,21 @@ class DBDao:
         query = session.query(ResourceVersion.full_name).join(ResourceVersion.connection).join(
             ResourceVersion.resource_name)
         version_data = [x[0] for x in
-                        query.filter(and_(Connection.is_active == True, ResourceName.is_active == True)).all()]
+                        query.filter(and_(Connection.is_active == true(), ResourceName.is_active == true())).all()]
 
         v_query = session.query(ResourceVersion).join(ResourceVersion.connection).join(
             ResourceVersion.resource_name)
         default_version_data = list(x.template.full_name for x in v_query.filter(
-            and_(Connection.is_active == True, ResourceName.is_active == True,
-                 ResourceVersion.is_default == True)).all())
+            and_(Connection.is_active == true(), ResourceName.is_active == true(),
+                 ResourceVersion.is_default == true())).all())
         t_query = session.query(ResourceTemplate).join(ResourceTemplate.connection).join(
             ResourceTemplate.resource_name)
         resource_data = list(x.resource_name.full_name for x in t_query.filter(
-            and_(Connection.is_active == True,
-                 ResourceName.is_active == True,
-                 ResourceTemplate.is_default == True)).all())
+            and_(Connection.is_active == true(),
+                 ResourceName.is_active == true(),
+                 ResourceTemplate.is_default == true())).all())
 
-        hive_data = [x[0] for x in session.query(Connection.name).filter(Connection.is_active == True,
+        hive_data = [x[0] for x in session.query(Connection.name).filter(Connection.is_active == true(),
                                                                          Connection.type == 'hive').all()]
 
         return DBRes(data=hive_data + version_data + default_version_data + resource_data)
@@ -196,36 +203,42 @@ class DBDao:
         for full_name in require.split(','):
             if cls.is_hive_table(full_name):
                 continue
-            version = session.query(ResourceVersion).filter(ResourceVersion.full_name == full_name).first()
-            if version is None:
-                version = session.query(ResourceVersion).join(ResourceVersion.template).filter(
-                    and_(ResourceTemplate.full_name == full_name,
-                         ResourceVersion.is_default == True)).first()
-                if version is None:
-                    version = session.query(ResourceVersion).join(ResourceVersion.template).join(
-                        ResourceVersion.resource_name).filter(and_(ResourceName.full_name == full_name,
-                                                                   ResourceTemplate.is_default == True,
-                                                                   ResourceVersion.is_default == True)).first()
+            version = cls.get_require_version_by_name(full_name, session)
 
             assert version, "Not Found {} in database, try use full name".format(full_name)
             cache = version.generate_version_cache()
-            r_name = version.resource_name
-            t_name = version.template
             cache['type'] = version.template.type.code
-            if cache['type'] == 'sink':
-                res.append(cls.get_sink_cache(version, cache))
-            else:
-                for name in [r_name.name, r_name.full_name, t_name.full_name]:
-                    if name not in names:
-                        cache['name'] = name.replace('.', '__')
-                        names.add(name)
-                        break
+            name = cls.get_version_shortest_name(names, version)
 
-                if 'name' in cache:
-                    res.append(cache)
-                res.append(cls.get_full_name_cache(version, cache))
+            if name:
+                cache['name'] = name
+                res.append(cache)
+            res.append(cls.get_full_name_cache(version, cache))
 
         return res
+
+    @classmethod
+    def get_require_version_by_name(cls, full_name: str, session: Session) -> Optional[ResourceVersion]:
+        version = session.query(ResourceVersion).filter(ResourceVersion.full_name == full_name).first()
+        if version is None:
+            version = session.query(ResourceVersion).join(ResourceVersion.template).filter(
+                and_(ResourceTemplate.full_name == full_name,
+                     ResourceVersion.is_default == true())).first()
+            if version is None:
+                version = session.query(ResourceVersion).join(ResourceVersion.template).join(
+                    ResourceVersion.resource_name).filter(and_(ResourceName.full_name == full_name,
+                                                               ResourceTemplate.is_default == true(),
+                                                               ResourceVersion.is_default == true())).first()
+        return version
+
+    @classmethod
+    def get_version_shortest_name(cls, names: set, version: ResourceVersion) -> Optional[str]:
+        r_name = version.resource_name
+        t_name = version.template
+        for name in [r_name.name, r_name.full_name, t_name.full_name]:
+            if name not in names:
+                names.add(name)
+                return name.replace('.', '__')
 
     @classmethod
     @session_add
@@ -234,7 +247,7 @@ class DBDao:
         res = []
         for full_name in require.split(','):
             if cls.is_hive_table(full_name):
-                hive = session.query(Connection).filter(Connection.is_active == True,
+                hive = session.query(Connection).filter(Connection.is_active == true(),
                                                         Connection.type == 'hive',
                                                         Connection.name == full_name).one()
                 conn = hive.get_connection_connector()
@@ -249,7 +262,7 @@ class DBDao:
     @session_add
     def get_require_functions(cls, *args, session: Session, **kwargs) -> List[dict]:
         res = []
-        for f in session.query(Functions).filter(Functions.is_active == True).all():
+        for f in session.query(Functions).filter(Functions.is_active == true()).all():
             fc = {
                 'name': f.name,
                 'from': 'class',
@@ -264,7 +277,7 @@ class DBDao:
     @session_add
     def get_require_jar(cls, *args, session: Session, **kwargs) -> List[str]:
         res = []
-        for f in session.query(Functions).filter(Functions.is_active == True).all():
+        for f in session.query(Functions).filter(Functions.is_active == true()).all():
             r_p = os.path.join(FSQLFLY_UPLOAD_DIR, f.resource.real_path[1:])
             res.append(r_p)
 
@@ -358,18 +371,12 @@ class DBDao:
         delete_all_tables(DBSession.engine, force)
 
 
-from fsqlfly.settings import ENGINE
-
-DBSession.init_engine(ENGINE)
-
-
 def update_default_value(mapper, connection, target, father_name):
     if target.is_default:
         father_id = getattr(target, father_name)
         father_id = int(father_id) if isinstance(father_id, str) else father_id
-        connection.execute(
-            'update %s set is_default = 0 where id <> %d and is_default = 1 and %s = %d' % (
-                mapper.local_table.fullname, target.id, father_name, father_id))
+        sql = 'update %s set is_default = 0 where id <> %d and is_default = 1 and %s = %d'
+        connection.execute(sql % (mapper.local_table.fullname, target.id, father_name, father_id))
 
 
 for _mode in ['after_insert', 'after_update']:
