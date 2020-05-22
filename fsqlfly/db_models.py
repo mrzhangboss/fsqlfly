@@ -8,7 +8,7 @@ from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, T
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 from fsqlfly.common import (FlinkConnectorType, FlinkTableType, ConnectorType, DEFAULT_CONFIG, CanalMode, SchemaField,
-                            BlinkSQLType, NameFilter, SchemaContent, VersionConfig)
+                            BlinkSQLType, NameFilter, SchemaContent, VersionConfig, FlinkSaveFormat)
 
 from fsqlfly.utils.strings import load_yaml
 from fsqlfly.utils.template import generate_template_context
@@ -299,6 +299,10 @@ class ResourceName(Base):
     def db_name(self):
         return self.database + '.' + self.name if self.database else self.name
 
+    @property
+    def save_format(self) -> str:
+        return self.get_config('format')
+
 
 class ResourceTemplate(Base):
     __tablename__ = 'resource_template'
@@ -446,7 +450,14 @@ class ResourceVersion(Base):
         if config.format:
             res['format'] = config.format
         elif connection_type not in FlinkConnectorType.schema_less():
-            res['format'] = {"type": 'json', "derive-schema": True}
+            if resource_name.save_format == FlinkSaveFormat.json:
+                res['format'] = {"type": 'json', "derive-schema": True}
+            elif resource_name.save_format == FlinkSaveFormat.csv:
+                res['format'] = {"type": 'csv'}
+            else:
+                msg = "Not Support Save format: {} in {}".format(resource_name.save_format, resource_name.full_name)
+                raise NotImplementedError(msg)
+
         connector = self.generate_table_connector(connection, connection_type, resource_name, schema, template, version)
         res['connector'] = connector if connector else None
         fields = [SchemaField(**x) for x in load_yaml(schema.fields)] if schema.fields else []

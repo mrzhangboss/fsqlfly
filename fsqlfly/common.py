@@ -81,6 +81,11 @@ class PageModel(_BaseArg):
         return {cls.version, cls.template, cls.name, cls.connection, cls.connector}
 
 
+class FlinkSaveFormat(_BaseArg):
+    json = 'json'
+    csv = 'csv'
+
+
 class CodeMsg(NamedTuple):
     code: int
     msg: str
@@ -320,12 +325,13 @@ read_partition_num: 50
 
 [kafka]
 startup_mode: latest-offset
+format: json
 
 [hive]
 example: 1
 
 [filesystem]
-example: 1
+format: csv
 
 [canal]
 mode: upsert
