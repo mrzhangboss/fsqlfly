@@ -34,6 +34,7 @@ import { UserModelState } from '@/models/user';
 import { Link } from 'umi';
 import AceEditor from 'react-ace';
 import 'brace/mode/ini';
+
 interface BasicListProps extends FormComponentProps {
   listBasicList: ResourceName[];
   connections: Connection[];
@@ -57,6 +58,7 @@ interface BasicListState {
   msg: string;
   success: boolean;
   submitted: boolean;
+  chooseDatabase?: string;
 }
 
 const NAMESPACE = 'name';
@@ -140,7 +142,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
       visible: true,
       current: item,
       submitted: false,
-      config: item.config
+      config: item.config,
     });
   };
 
@@ -238,15 +240,57 @@ class BasicList extends Component<BasicListProps, BasicListState> {
   };
 
   getFilterPageData = () => {
-    const { search } = this.state;
+    const { search , chooseDatabase } = this.state;
     const { listBasicList } = this.props;
     console.log(listBasicList.length);
-    const res = listBasicList.filter(
-      x => (search.length === 0 || x.name.indexOf(search) >= 0 || x.fullName.indexOf(search) >= 0),
-    );
+    const res = listBasicList.filter(x => chooseDatabase !== undefined ? x.database === chooseDatabase : true)
+      .filter(
+        x => (search.length === 0 || x.name.indexOf(search) >= 0 || x.fullName.indexOf(search) >= 0),
+      );
     console.log(res.length);
     console.log(res);
     return res;
+  };
+
+
+  getDatabaseFilter = () => {
+    const { listBasicList = [] } = this.props;
+    const allDatabase = Array.from(
+      new Set(
+        listBasicList
+          .filter(x => x.database !== null)
+          .map(x => x.database),
+      ),
+    );
+    if (allDatabase.length === 0 || listBasicList.length === 0) {
+      return <></>;
+    }
+    console.error(allDatabase);
+    return (
+      <Dropdown
+        className={styles.namespaceButton}
+        overlay={
+          // @ts-ignore
+          <Menu onClick={({ key }) => this.setState({ chooseDatabase: key })}>
+            {Array.isArray(allDatabase) &&
+            allDatabase.map((x: string) => {
+              return (
+                <Menu.Item key={x}>
+                  <Tooltip title={x} placement="left">
+                    <span>{cutStr(x)}</span>
+                  </Tooltip>
+                </Menu.Item>
+              );
+            })}
+          </Menu>
+        }
+      >
+        <Button>
+          数据库
+          <DownOutlined/>
+        </Button>
+      </Dropdown>
+    );
   };
 
 
@@ -304,6 +348,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
         <Button onClick={this.doRefresh} disabled={fetchLoading}>
           <ReloadOutlined/>
         </Button>
+        {this.getDatabaseFilter()}
         <Search
           defaultValue={search}
           className={styles.extraContentSearch}
@@ -466,6 +511,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
                 添加
               </Button>
               <List
+                pagination={{ 'position': 'bottom' }}
                 size="large"
                 rowKey="id"
                 loading={loading}

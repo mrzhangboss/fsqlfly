@@ -531,6 +531,7 @@ class BasicList extends Component<BasicListProps, BasicListState> {
             </Button>
 
             <List
+              pagination={{ position: 'bottom' }}
               size="large"
               rowKey="id"
               loading={loading}
