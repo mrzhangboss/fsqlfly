@@ -1,6 +1,8 @@
 import json
+import time
 import logging
 from copy import deepcopy
+from collections import defaultdict
 from datetime import datetime, date
 from airflow.operators.sensors import BaseSensorOperator
 from airflow.hooks.http_hook import HttpHook
@@ -40,7 +42,8 @@ class _BaseJobOperator(BaseSensorOperator):
 
     @apply_defaults
     def __init__(self, http_conn_id, token, job_name,
-                 data=None, headers=None, method='start', daemon=True, parallelism=0, *args, **kwargs):
+                 data=None, headers=None, method='start', daemon=True, parallelism=0, retry_times=3, retry_sleep_time=1,
+                 *args, **kwargs):
         basic_headers = {'Content-Type': "application/json",
                          'Token': token}
         if headers:
@@ -58,6 +61,9 @@ class _BaseJobOperator(BaseSensorOperator):
         self.parallelism = parallelism
         self.method = method
         self.daemon = daemon
+        self.retry_times = retry_times
+        self.retry_sleep_time = retry_sleep_time
+        self.failed_jobs = defaultdict(int)
 
         super(_BaseJobOperator, self).__init__(*args, **kwargs)
 
@@ -86,7 +92,7 @@ class _BaseJobOperator(BaseSensorOperator):
             return self.run_other_mode()
         super(_BaseJobOperator, self).execute(context)
 
-    def get_job_status(self, job_name):
+    def get_job_status(self, job_name, try_times=0):
         res = self.http.run(self.get_status_endpoint(job_name), data=self.get_req_data(job_name),
                             headers=self.headers).json()
         full_msg = "req: {} code: {} msg: {}".format(job_name, res['code'], res['msg'])
@@ -121,9 +127,13 @@ class _BaseJobOperator(BaseSensorOperator):
                     logging.debug("Wait For :" + msg)
                     self.job_pools.append(job_name)
                 else:
-                    err_info = "Job {} Fail With Other Exception: {}".format(job_name, msg)
-                    logging.error(err_info)
-                    raise Exception(err_info)
+                    if self.failed_jobs[job_name] < self.retry_times:
+                        self.failed_jobs[job_name] += 1
+                        self.job_pools.append(job_name)
+                    else:
+                        err_info = "Job {} Fail With Other Exception: {}".format(job_name, msg)
+                        logging.error(err_info)
+                        raise Exception(err_info)
             else:
                 self.finished_jobs.append(job_name)
 
