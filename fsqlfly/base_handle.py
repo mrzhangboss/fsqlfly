@@ -58,7 +58,7 @@ class BaseHandler(RequestHandler):
     @property
     def json_body(self) -> dict:
         try:
-            if self.request.body.startswith('"{'):
+            if self.request.body.startswith(b'"{'):
                 json.loads(self.request.body[1:-1])
             else:
                 json_data = json.loads(self.request.body)
