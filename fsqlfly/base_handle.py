@@ -57,17 +57,13 @@ class BaseHandler(RequestHandler):
 
     @property
     def json_body(self) -> dict:
-        _name = '_save_json_data'
-        if not hasattr(self, _name):
-            try:
-                json_data = json.loads(self.request.body)
-                if isinstance(json_data, dict):
-                    json_data = dict2underline(json_data)
-                setattr(self, _name, json_data)
-            except ValueError:
-                setattr(self, _name, {})
-
-        return getattr(self, _name)
+        try:
+            json_data = json.loads(self.request.body)
+            if isinstance(json_data, dict):
+                json_data = dict2underline(json_data)
+            return json_data
+        except ValueError:
+            return dict()
 
     def set_default_headers(self):
         self.set_header('Content-Type', 'application/json; charset=utf-8')
