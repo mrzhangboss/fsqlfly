@@ -129,6 +129,7 @@ class _BaseJobOperator(BaseSensorOperator):
                 else:
                     if self.failed_jobs[job_name] < self.retry_times:
                         self.failed_jobs[job_name] += 1
+                        time.sleep(self.retry_sleep_time)
                         self.job_pools.append(job_name)
                     else:
                         err_info = "Job {} Fail With Other Exception: {}".format(job_name, msg)
