@@ -58,10 +58,9 @@ class BaseHandler(RequestHandler):
     @property
     def json_body(self) -> dict:
         try:
-            if self.request.body.startswith(b'"{'):
-                json_data = json.loads(self.request.body[1:-1])
-            else:
-                json_data = json.loads(self.request.body)
+            json_data = json.loads(self.request.body)
+            if isinstance(json_data, str):
+                json_data = json.loads(json_data)
             if isinstance(json_data, dict):
                 json_data = dict2underline(json_data)
             return json_data
