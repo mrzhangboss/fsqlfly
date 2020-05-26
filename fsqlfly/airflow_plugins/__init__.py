@@ -63,6 +63,7 @@ class _BaseJobOperator(BaseSensorOperator):
         self.daemon = daemon
         self.retry_times = retry_times
         self.retry_sleep_time = retry_sleep_time
+        self.start_run_time = time.time()
         self.failed_jobs = defaultdict(int)
 
         super(_BaseJobOperator, self).__init__(*args, **kwargs)
@@ -76,6 +77,9 @@ class _BaseJobOperator(BaseSensorOperator):
         last_run_job_id = self.job_last_run_id.get(job_name)
         if last_run_job_id:
             send_data['last_run_job_id'] = last_run_job_id
+        if self.start_run_time:
+            send_data['start_run_time'] = self.start_run_time
+
         return json.dumps(send_data, ensure_ascii=True, default=_parse_date_time)
 
     def run_other_mode(self):
@@ -88,11 +92,12 @@ class _BaseJobOperator(BaseSensorOperator):
                 print('Job {} {} Finished'.format(self.job_name, self.method))
 
     def execute(self, context):
+        self.start_run_time = time.time()
         if self.method != 'start':
             return self.run_other_mode()
         super(_BaseJobOperator, self).execute(context)
 
-    def get_job_status(self, job_name, try_times=0):
+    def get_job_status(self, job_name):
         res = self.http.run(self.get_status_endpoint(job_name), data=self.get_req_data(job_name),
                             headers=self.headers).json()
         full_msg = "req: {} code: {} msg: {}".format(job_name, res['code'], res['msg'])
