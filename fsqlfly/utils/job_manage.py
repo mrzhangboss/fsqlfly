@@ -236,6 +236,7 @@ def _handle_job(mode: str, pk: str, json_body: dict, session: Session) -> DBRes:
         else:
             transform = pk
         data = json_body
+        logger.debug('begin run {} - {} - {}'.format(mode, pk, json_body))
         run_res = getattr(JobControlHandle, handle_name)(transform, **data)
         return DBRes(code=500 if run_res.startswith(FAIL_HEADER) else 200, msg=run_res)
     else:
