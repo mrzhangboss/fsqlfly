@@ -85,7 +85,7 @@ class _BaseJobOperator(BaseSensorOperator):
     def run_other_mode(self):
         for job_name in self.get_job_list():
             res = self.http.run(self.gen_job_url(job_name, self.method)
-                                , data=self.data, headers=self.headers).json()
+                                , data=self.get_req_data(job_name), headers=self.headers).json()
             if not res['success']:
                 raise Exception('{} Job Fail response: {}'.format(self.method, str(res)))
             else:
@@ -115,7 +115,7 @@ class _BaseJobOperator(BaseSensorOperator):
             raise Exception("Job {} Already {}".format(job_name, status))
         self.job_pools.append(job_name)
 
-        res = self.http.run(self.get_start_endpoint(job_name), data=self.get_req_data(job_name),
+        res = self.http.run(self.get_start_endpoint(job_name), json=self.get_req_data(job_name),
                             headers=self.headers).json()
         if not res['success']:
             raise Exception('Start Job Fail response: {}'.format(str(res)))
