@@ -66,6 +66,7 @@ class BaseHandler(RequestHandler):
                 json_data = dict2underline(json_data)
             return json_data
         except ValueError:
+            logger.debug("parse data error {}".format(self.request.body.decode(errors='ignore')))
             return dict()
 
     def set_default_headers(self):
