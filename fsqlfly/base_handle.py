@@ -59,7 +59,7 @@ class BaseHandler(RequestHandler):
     def json_body(self) -> dict:
         try:
             if self.request.body.startswith(b'"{'):
-                json.loads(self.request.body[1:-1])
+                json_data = json.loads(self.request.body[1:-1])
             else:
                 json_data = json.loads(self.request.body)
             if isinstance(json_data, dict):
