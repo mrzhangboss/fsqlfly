@@ -359,7 +359,7 @@ class DBDao:
             job_infos = defaultdict(dict)
             for x in query.all():
                 name = "{}_{}".format(x.id, x.name)
-                job_infos[name] = x.to_dict()
+                job_infos[name] = x.as_dict()
             return job_infos
 
     @classmethod
