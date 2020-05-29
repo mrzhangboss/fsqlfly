@@ -1,12 +1,10 @@
-from fsqlfly.db_models import (create_all_tables, delete_all_tables, Base, Connection, SchemaEvent, Connector,
-                               ResourceName, ResourceVersion, ResourceTemplate, Namespace, FileResource, Transform,
-                               Functions, TransformSavepoint)
 import os
 import traceback
 import yaml
 from functools import wraps, partial
 from copy import deepcopy
 from typing import Callable, Type, Optional, List, Union, Any, TypeVar
+from collections import defaultdict
 from sqlalchemy import and_, event
 from sqlalchemy.orm.session import Session, sessionmaker, query as session_query
 from sqlalchemy.sql.expression import true
@@ -15,6 +13,9 @@ from fsqlfly import settings
 from fsqlfly.common import DBRes
 from fsqlfly.settings import ENGINE
 from fsqlfly.settings import FSQLFLY_UPLOAD_DIR
+from fsqlfly.db_models import (create_all_tables, delete_all_tables, Base, Connection, SchemaEvent, Connector,
+                               ResourceName, ResourceVersion, ResourceTemplate, Namespace, FileResource, Transform,
+                               Functions, TransformSavepoint)
 
 Query = session_query.Query
 
@@ -349,12 +350,17 @@ class DBDao:
 
     @classmethod
     @session_add
-    def get_transform(cls, pk: Optional[Union[str, int]] = None, *args, session: Session, **kwargs) -> Union[
-        List[Base], Base]:
+    def get_transform(cls, pk: Optional[Union[str, int]] = None, *args,
+                      session: Session, **kwargs) -> Union[dict, DBT]:
         query = session.query(Transform)
         if pk:
             return query.filter(Transform.id == pk).first()
-        return query.all()
+        else:
+            job_infos = defaultdict(dict)
+            for x in query.all():
+                name = "{}_{}".format(x.id, x.name)
+                job_infos[name] = x.to_dict()
+            return job_infos
 
     @classmethod
     def save(cls, obj: Base, *args, session: Session, **kwargs) -> Base:

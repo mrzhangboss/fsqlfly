@@ -20,19 +20,13 @@ class JobHandler(BaseHandler):
 
 
 def get_latest_transform(refresh_seconds: int = 5) -> Dict[str, dict]:
-    def _get():
-        job_infos = defaultdict(dict)
-        for x in DBDao.get_transform():
-            name = "{}_{}".format(x.id, x.name)
-            job_infos[name] = x.to_dict()
-        return job_infos
-
+    _update = DBDao.get_transform
     __name = '__transforms'
     if not hasattr(get_latest_transform, __name):
-        setattr(get_latest_transform, __name, (_get(), time.time()))
+        setattr(get_latest_transform, __name, (_update(), time.time()))
     objects, t = getattr(get_latest_transform, __name)
     if time.time() - t > refresh_seconds:
-        objects = _get()
+        objects = _update()
         setattr(get_latest_transform, __name, (objects, time.time()))
     return objects
 
