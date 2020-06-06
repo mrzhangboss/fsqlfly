@@ -1,5 +1,6 @@
 from typing import Tuple, List, Optional
 from logzero import logger
+from itertools import chain
 from sqlalchemy import create_engine, inspect, TypeDecorator
 from sqlalchemy.sql.sqltypes import INTEGER, SMALLINT, BIGINT
 from fsqlfly.db_helper import Connection
@@ -80,7 +81,7 @@ class SqlalchemySynchronizationOperator(BaseSynchronizationOperator):
     def get_update_tables(self, db_list) -> List[Tuple[str, str]]:
         update_tables = []
         for db in db_list:
-            for tb in self.inspection.get_table_names(db):
+            for tb in chain(self.inspection.get_table_names(db), self.inspection.get_view_names(db)):
                 full_name = f'{db}.{tb}'
                 if full_name in self.need_tables:
                     update_tables.append((db, tb))
