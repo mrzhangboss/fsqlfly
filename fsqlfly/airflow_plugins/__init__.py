@@ -1,6 +1,8 @@
 import json
+import time
 import logging
 from copy import deepcopy
+from collections import defaultdict
 from datetime import datetime, date
 from airflow.operators.sensors import BaseSensorOperator
 from airflow.hooks.http_hook import HttpHook
@@ -40,7 +42,8 @@ class _BaseJobOperator(BaseSensorOperator):
 
     @apply_defaults
     def __init__(self, http_conn_id, token, job_name,
-                 data=None, headers=None, method='start', daemon=True, parallelism=0, *args, **kwargs):
+                 data=None, headers=None, method='start', daemon=True, parallelism=0, retry_times=3, retry_sleep_time=1,
+                 *args, **kwargs):
         basic_headers = {'Content-Type': "application/json",
                          'Token': token}
         if headers:
@@ -58,6 +61,10 @@ class _BaseJobOperator(BaseSensorOperator):
         self.parallelism = parallelism
         self.method = method
         self.daemon = daemon
+        self.retry_times = retry_times
+        self.retry_sleep_time = retry_sleep_time
+        self.start_run_time = time.time()
+        self.failed_jobs = defaultdict(int)
 
         super(_BaseJobOperator, self).__init__(*args, **kwargs)
 
@@ -70,18 +77,22 @@ class _BaseJobOperator(BaseSensorOperator):
         last_run_job_id = self.job_last_run_id.get(job_name)
         if last_run_job_id:
             send_data['last_run_job_id'] = last_run_job_id
+        if self.start_run_time:
+            send_data['start_run_time'] = self.start_run_time
+
         return json.dumps(send_data, ensure_ascii=True, default=_parse_date_time)
 
     def run_other_mode(self):
         for job_name in self.get_job_list():
             res = self.http.run(self.gen_job_url(job_name, self.method)
-                                , data=self.data, headers=self.headers).json()
+                                , data=self.get_req_data(job_name), headers=self.headers).json()
             if not res['success']:
                 raise Exception('{} Job Fail response: {}'.format(self.method, str(res)))
             else:
                 print('Job {} {} Finished'.format(self.job_name, self.method))
 
     def execute(self, context):
+        self.start_run_time = time.time()
         if self.method != 'start':
             return self.run_other_mode()
         super(_BaseJobOperator, self).execute(context)
@@ -104,7 +115,7 @@ class _BaseJobOperator(BaseSensorOperator):
             raise Exception("Job {} Already {}".format(job_name, status))
         self.job_pools.append(job_name)
 
-        res = self.http.run(self.get_start_endpoint(job_name), data=self.get_req_data(job_name),
+        res = self.http.run(self.get_start_endpoint(job_name), json=self.get_req_data(job_name),
                             headers=self.headers).json()
         if not res['success']:
             raise Exception('Start Job Fail response: {}'.format(str(res)))
@@ -121,9 +132,14 @@ class _BaseJobOperator(BaseSensorOperator):
                     logging.debug("Wait For :" + msg)
                     self.job_pools.append(job_name)
                 else:
-                    err_info = "Job {} Fail With Other Exception: {}".format(job_name, msg)
-                    logging.error(err_info)
-                    raise Exception(err_info)
+                    if self.failed_jobs[job_name] < self.retry_times:
+                        self.failed_jobs[job_name] += 1
+                        time.sleep(self.retry_sleep_time)
+                        self.job_pools.append(job_name)
+                    else:
+                        err_info = "Job {} Fail With Other Exception: {}".format(job_name, msg)
+                        logging.error(err_info)
+                        raise Exception(err_info)
             else:
                 self.finished_jobs.append(job_name)
 

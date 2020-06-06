@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import re
+import json
 import functools
 import urllib
 import traceback
@@ -172,8 +173,9 @@ def safe_authenticated(
         except Exception:
             err = traceback.format_exc()
             logger.error(err)
-            return DBRes.sever_error(msg=f'meet {err}')
-
+            self.set_header('Content-Type', 'application/json; charset=utf-8')
+            self.write(json.dumps(dict(msg=f'meet {err}', code=500, success=False)))
+            self.finish()
     return wrapper
 
 

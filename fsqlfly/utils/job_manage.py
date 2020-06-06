@@ -159,6 +159,7 @@ class JobControl:
         job_status = self.job_status
         pt = kwargs['pt'] if 'pt' in kwargs else None
         last_run_job_id = kwargs['last_run_job_id'].split('_') if 'last_run_job_id' in kwargs else []
+        start = datetime.fromtimestamp(kwargs['start_run_time']) if 'start_run_time' in kwargs else datetime.now()
         if last_run_job_id:
 
             all_job = list(filter(lambda x: x.job_id in last_run_job_id, job_status))
@@ -191,7 +192,7 @@ class JobControl:
         if statuses[self.RUN_STATUS] > 0:
             return '_'.join(last_run_job_id + [self.RUN_STATUS])
         if statuses[self.FINISHED_STATUS] > 0:
-            if (datetime.now() - last_end_time).seconds < 20:
+            if start <= last_end_time:
                 logger.debug('{} job finished too fast'.format(header))
                 return self.FINISHED_STATUS
             else:
@@ -235,6 +236,7 @@ def _handle_job(mode: str, pk: str, json_body: dict, session: Session) -> DBRes:
         else:
             transform = pk
         data = json_body
+        logger.debug('begin run {} - {} - {}'.format(mode, pk, json_body))
         run_res = getattr(JobControlHandle, handle_name)(transform, **data)
         return DBRes(code=500 if run_res.startswith(FAIL_HEADER) else 200, msg=run_res)
     else:

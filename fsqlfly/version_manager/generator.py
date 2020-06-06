@@ -1,7 +1,7 @@
 import attr
 from copy import deepcopy
 from typing import List
-from fsqlfly.common import SchemaContent, VersionConfig, SchemaField, CanalMode, BlinkSQLType
+from fsqlfly.common import SchemaContent, VersionConfig, SchemaField, CanalMode, BlinkSQLType, FlinkConnectorType
 from fsqlfly.db_helper import Connection, ResourceName, ResourceTemplate, SchemaEvent, ResourceVersion, Connector
 from fsqlfly.utils.strings import dump_yaml, load_yaml, get_full_name
 
@@ -129,3 +129,21 @@ class CanalResourceGenerator(BaseResourceGenerator):
             fields.append(self._connector.process_time_field)
         if self._connector.db_execute_time_field:
             fields.append(self._connector.db_execute_time_field)
+
+
+class SystemConnectorGenerator(BaseResourceGenerator):
+    def __init__(self, connector: Connector):
+        self.connector = connector
+        typ = connector.target.type.code
+        both, sink = BaseResourceGenerator.support_type, SinkResourceGenerator.support_type
+        self.support_type = both if typ in FlinkConnectorType.both_resource() else sink
+
+    def generate_resource_name(self, connection: Connection, schema: SchemaEvent) -> ResourceName:
+        name = super(SystemConnectorGenerator, self).generate_resource_name(connection, schema)
+        t_database, t_table = self.connector.get_transform_target_full_name(resource_name=name,
+                                                                            connector=self.connector)
+
+        name.database = t_database
+        name.name = t_table
+        name.full_name = get_full_name(connection.name, t_database, t_table)
+        return name

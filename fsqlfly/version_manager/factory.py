@@ -9,7 +9,7 @@ from fsqlfly.version_manager.manager.init import (ConnectorInitTransformManager,
                                                   ListInitJobManager)
 from fsqlfly.version_manager.clean_manager import (ConnectionCleanManager, ConnectorCleanManager)
 from fsqlfly.version_manager.generator import (BaseResourceGenerator, SinkResourceGenerator,
-                                               CanalResourceGenerator)
+                                               CanalResourceGenerator, SystemConnectorGenerator)
 
 
 class BaseManagerFactory:
@@ -52,6 +52,8 @@ class UpdateManagerFactory(BaseManagerFactory):
     def get_generator(cls, obj: DBT) -> BaseResourceGenerator:
         if cls.is_canal(obj):
             return CanalResourceGenerator(obj)
+        if cls.is_system_connector(obj):
+            return SystemConnectorGenerator(obj)
         con = cls.get_connection(obj)
         c_type = con.type.code
         if c_type in FlinkConnectorType.both_resource():
