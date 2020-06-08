@@ -110,7 +110,7 @@ class ManagerTest(FSQLFlyTestCase):
     def init_test_connection(self):
         from fsqlfly.settings import FSQLFLY_DB_URL
         con = Connection(name='fake', url=FSQLFLY_DB_URL, type=FlinkConnectorType.jdbc, connector='',
-                         include='sample\..*')
+                         include='fsqlfly\..*')
         self.session.add(con)
         self.session.commit()
         return con
@@ -149,15 +149,14 @@ class ManagerTest(FSQLFlyTestCase):
         self.update_test_connection(str(self.engine.url), FlinkConnectorType.jdbc)
 
     def test_hive_manager_update(self):
-        self.update_test_connection(TEST_HIVE_SERVER2_URL, FlinkConnectorType.hive)
-
-    def test_hive_manager_update(self):
         engine = create_engine(TEST_HIVE_SERVER2_URL)
         for x in open('hive_create_all_type.sql').read().split(';'):
             if x and x.strip():
                 engine.execute(x.strip())
 
         self.update_test_connection(TEST_HIVE_SERVER2_URL, FlinkConnectorType.hive, include='fsqlfly_test.*')
+
+
 
 
 if __name__ == '__main__':
